@@ -1,12 +1,12 @@
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
-
 const studentRoutes = require('./routes/students');
 const classRoutes = require('./routes/classes');
 const subjectRoutes = require('./routes/subjects');
 const scoreRoutes = require('./routes/scores');
 const feeRoutes = require('./routes/fees');
+const authRoutes = require('./routes/auth');
 
 
 const express = require('express');
@@ -22,6 +22,7 @@ app.use('/classes', classRoutes);
 app.use('/subjects', subjectRoutes);
 app.use('/scores', scoreRoutes);
 app.use('/fees', feeRoutes);
+app.use('/auth', authRoutes);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

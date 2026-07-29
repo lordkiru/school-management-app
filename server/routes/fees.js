@@ -1,8 +1,9 @@
+const requireAuth = require('../middleware/auth');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const fees = await Fee.find().populate('studentId');
     res.json(fees);
@@ -11,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const fee = new Fee(req.body);
     await fee.save();
@@ -22,7 +23,7 @@ router.post('/', async (req, res) => {
 });
 
 // Record a payment against an existing fee record
-router.patch('/:id/pay', async (req, res) => {
+router.patch('/:id/pay', requireAuth, async (req, res) => {
   try {
     const { amount } = req.body;
     const fee = await Fee.findById(req.params.id);
@@ -35,7 +36,7 @@ router.patch('/:id/pay', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const deleted = await Fee.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Fee record not found' });

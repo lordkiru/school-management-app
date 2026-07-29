@@ -1,8 +1,9 @@
+const requireAuth = require('../middleware/auth');
 const express = require('express');
 const router = express.Router();
 const Subject = require('../models/Subject');
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const subjects = await Subject.find().populate('classId');
     res.json(subjects);
@@ -11,7 +12,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const subject = new Subject(req.body);
     await subject.save();
@@ -20,7 +21,7 @@ router.post('/', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireAuth, async (req, res) => {
   try {
     const updated = await Subject.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -33,7 +34,7 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const deleted = await Subject.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Subject not found' });

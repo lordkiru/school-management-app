@@ -12,7 +12,7 @@ function AddStudent({ onStudentAdded }) {
     const fetchClasses = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/classes', {
+        const res = await fetch('https://school-saas-backend-v8i3.onrender.com/classes', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -32,7 +32,7 @@ function AddStudent({ onStudentAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/students', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

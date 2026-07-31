@@ -13,7 +13,7 @@ function ScoreList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/scores', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/scores', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

@@ -16,7 +16,7 @@ function AuditLogList() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/auditlog', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/auditlog', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

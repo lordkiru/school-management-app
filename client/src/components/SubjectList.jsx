@@ -14,7 +14,7 @@ function SubjectList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/subjects', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/subjects', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });
@@ -45,7 +45,7 @@ function SubjectList({ refreshKey }) {
     setDeletingId(subjectId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/subjects/${subjectId}`, {
+      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/subjects/${subjectId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

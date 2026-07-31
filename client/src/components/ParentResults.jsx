@@ -17,7 +17,7 @@ function ParentResults() {
     setLoading(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/students/public/results/${admissionNumber}`);
+      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/students/public/results/${admissionNumber}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       setResult(data);

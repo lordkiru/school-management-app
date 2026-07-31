@@ -15,6 +15,12 @@ import AddScore from './components/AddScore';
 import FeeList from './components/FeeList';
 import AddFee from './components/AddFee';
 import Dashboard from './components/Dashboard';
+import SchoolSettings from './components/SchoolSettings';
+import AddClassFee from './components/AddClassFee';
+import AuditLogList from './components/AuditLogList';
+import AdjustClassFee from './components/AdjustClassFee';
+import ParentPay from './components/ParentPay';
+import ParentResults from './components/ParentResults';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -48,6 +54,12 @@ function App() {
     setUser(null);
     setSelectedStudentId(null);
   };
+  if (window.location.pathname === '/pay') {
+  return <ParentPay />;
+}
+if (window.location.pathname === '/results') {
+  return <ParentResults />;
+}
 
   if (!user) {
     return (
@@ -102,15 +114,25 @@ if (activePage === 'scores') {
   
   
 }
+
 if (activePage === 'fees') {
   return (
     <div className="grid md:grid-cols-2 gap-6 p-6">
-      <AddFee onFeeAdded={() => setFeeRefreshKey((k) => k + 1)} />
+      <div className="flex flex-col gap-6">
+        <AddClassFee onFeesAdded={() => setFeeRefreshKey((k) => k + 1)} />
+        <AdjustClassFee onAdjusted={() => setFeeRefreshKey((k) => k + 1)} />
+        <AddFee onFeeAdded={() => setFeeRefreshKey((k) => k + 1)} />
+      </div>
       <FeeList refreshKey={feeRefreshKey} />
     </div>
   );
 }
-
+if (activePage === 'auditlog') {
+  return <AuditLogList />;
+}
+if (activePage === 'settings') {
+  return <SchoolSettings />;
+}
   return (
     <div className="p-6 text-gray-500 dark:text-gray-400">
       {activePage.charAt(0).toUpperCase() + activePage.slice(1)} page coming soon.
@@ -119,17 +141,18 @@ if (activePage === 'fees') {
 };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
 
       <div className="flex">
         <Sidebar
-          activePage={activePage}
-          onSelectPage={(page) => {
-            setActivePage(page);
-            setSelectedStudentId(null);
-          }}
-        />
+  activePage={activePage}
+  onSelectPage={(page) => {
+    setActivePage(page);
+    setSelectedStudentId(null);
+  }}
+  userRole={user.role}
+/>
 
         <div className="flex-1">
           <div className="flex items-center justify-between px-6 pt-16 pb-4">

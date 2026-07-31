@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 
 function AddStudent({ onStudentAdded }) {
   const [name, setName] = useState('');
-  const [admissionNumber, setAdmissionNumber] = useState('');
   const [classId, setClassId] = useState('');
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Load the list of classes for the dropdown
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -40,7 +38,7 @@ function AddStudent({ onStudentAdded }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, admissionNumber, classId }),
+        body: JSON.stringify({ name, classId }),
       });
 
       const data = await res.json();
@@ -51,9 +49,8 @@ function AddStudent({ onStudentAdded }) {
 
       setSuccess(`${data.name} added successfully`);
       setName('');
-      setAdmissionNumber('');
       setClassId('');
-      onStudentAdded(); // tells the parent to refresh the list
+      onStudentAdded();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -61,48 +58,42 @@ function AddStudent({ onStudentAdded }) {
     }
   };
 
+  const inputClass =
+    'w-full mb-3 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition';
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg max-w-md"
+      className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md"
     >
-      <h2 className="text-lg font-bold mb-4">Add Student</h2>
+      <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Student</h2>
 
       {error && (
-        <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-sm p-2 rounded mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 text-sm p-2 rounded mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
 
-      <label className="block text-sm mb-1">Name</label>
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Name</label>
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
-        className="w-full mb-3 p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+        className={inputClass}
       />
 
-      <label className="block text-sm mb-1">Admission Number</label>
-      <input
-        type="text"
-        value={admissionNumber}
-        onChange={(e) => setAdmissionNumber(e.target.value)}
-        required
-        className="w-full mb-3 p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-      />
-
-      <label className="block text-sm mb-1">Class</label>
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class</label>
       <select
         value={classId}
         onChange={(e) => setClassId(e.target.value)}
         required
-        className="w-full mb-4 p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+        className={`${inputClass} mb-4`}
       >
         <option value="">Select a class</option>
         {classes.map((cls) => (
@@ -115,7 +106,7 @@ function AddStudent({ onStudentAdded }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2 rounded transition"
+        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition"
       >
         {loading ? 'Adding...' : 'Add Student'}
       </button>

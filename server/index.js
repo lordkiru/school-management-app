@@ -7,6 +7,11 @@ const subjectRoutes = require('./routes/subjects');
 const scoreRoutes = require('./routes/scores');
 const feeRoutes = require('./routes/fees');
 const authRoutes = require('./routes/auth');
+const schoolRoutes = require('./routes/school');
+const auditLogRoutes = require('./routes/auditlog');
+const paystackWebhookRoutes = require('./routes/paystackWebhook');
+
+
 
 
 const express = require('express');
@@ -23,6 +28,9 @@ app.use('/subjects', subjectRoutes);
 app.use('/scores', scoreRoutes);
 app.use('/fees', feeRoutes);
 app.use('/auth', authRoutes);
+app.use('/school', schoolRoutes);
+app.use('/auditlog', auditLogRoutes);
+app.use('/paystack/webhook', paystackWebhookRoutes);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

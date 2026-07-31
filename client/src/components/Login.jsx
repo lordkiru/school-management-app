@@ -12,7 +12,7 @@ function Login({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const res = await fetch('http://const res = await fetch('https://school-saas-backend-v8i3.onrender.com/auth/login', {/auth/login', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/auth/login', {/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

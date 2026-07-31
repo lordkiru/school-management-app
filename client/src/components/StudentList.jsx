@@ -15,8 +15,8 @@ function StudentList({ refreshKey, onSelectStudent }) {
     try {
       const token = localStorage.getItem('token');
       const url = search
-        ? `https://school-saas-backend-v8i3.onrender.com/students?search=${encodeURIComponent(search)}`
-        : 'https://school-saas-backend-v8i3.onrender.com/students';
+        ? `${import.meta.env.VITE_API_URL}/students?search=${encodeURIComponent(search)}`
+        : '${import.meta.env.VITE_API_URL}/students';
       const res = await fetch(url, {
   headers: { Authorization: `Bearer ${token}` },
   cache: 'no-store',
@@ -58,7 +58,7 @@ function StudentList({ refreshKey, onSelectStudent }) {
     setDeletingId(studentId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/students/${studentId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/students/${studentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

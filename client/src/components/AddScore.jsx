@@ -24,10 +24,10 @@ function AddScore({ onScoreAdded }) {
       try {
         const token = localStorage.getItem('token');
         const [studentsRes, subjectsRes] = await Promise.all([
-          fetch('https://school-saas-backend-v8i3.onrender.com/students', {
+          fetch('${import.meta.env.VITE_API_URL}/students', {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch('https://school-saas-backend-v8i3.onrender.com/subjects', {
+          fetch('${import.meta.env.VITE_API_URL}/subjects', {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -77,7 +77,7 @@ function AddScore({ onScoreAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/scores', {
+      const res = await fetch('${import.meta.env.VITE_API_URL}/scores', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

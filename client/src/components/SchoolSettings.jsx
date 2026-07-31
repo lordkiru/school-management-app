@@ -13,7 +13,7 @@ function SchoolSettings() {
     const fetchSchool = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('https://school-saas-backend-v8i3.onrender.com/school', {
+        const res = await fetch('${import.meta.env.VITE_API_URL}/school', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });
@@ -38,7 +38,7 @@ function SchoolSettings() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/school', {
+      const res = await fetch('${import.meta.env.VITE_API_URL}/school', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

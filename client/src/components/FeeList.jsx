@@ -23,8 +23,8 @@ function FeeList({ refreshKey }) {
     try {
       const token = localStorage.getItem('token');
       const url = search
-        ? `https://school-saas-backend-v8i3.onrender.com/fees?search=${encodeURIComponent(search)}`
-        : 'https://school-saas-backend-v8i3.onrender.com/fees';
+        ? `${import.meta.env.VITE_API_URL}/fees?search=${encodeURIComponent(search)}`
+        : '${import.meta.env.VITE_API_URL}/fees';
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
@@ -62,7 +62,7 @@ function FeeList({ refreshKey }) {
     setPayingId(feeId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/${feeId}/pay`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/${feeId}/pay`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ function FeeList({ refreshKey }) {
     setDeletingId(feeId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/${feeId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/${feeId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -113,7 +113,7 @@ function FeeList({ refreshKey }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/${feeId}/adjust`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/${feeId}/adjust`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ function FeeList({ refreshKey }) {
     setInitiatingId(feeId);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/${feeId}/initiate-payment`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/${feeId}/initiate-payment`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

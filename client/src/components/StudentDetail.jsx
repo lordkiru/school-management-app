@@ -11,7 +11,7 @@ function StudentDetail({ studentId, onBack }) {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/students/${studentId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/students/${studentId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();

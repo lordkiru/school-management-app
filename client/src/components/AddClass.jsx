@@ -18,7 +18,7 @@ function AddClass({ onClassAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/classes', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/classes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

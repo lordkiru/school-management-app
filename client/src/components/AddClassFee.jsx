@@ -16,7 +16,7 @@ function AddClassFee({ onFeesAdded }) {
     const fetchClasses = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/classes', {
+        const res = await fetch('https://school-saas-backend-v8i3.onrender.com/classes', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setClasses(await res.json());
@@ -35,7 +35,7 @@ function AddClassFee({ onFeesAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/fees/bulk-by-class', {
+      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/fees/bulk-by-class', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

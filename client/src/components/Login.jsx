@@ -35,7 +35,7 @@ function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-amber-50 dark:bg-gray-900 flex items-center justify-center">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700"

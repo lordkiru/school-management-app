@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -7,13 +7,17 @@ const navItems = [
   { key: 'subjects', label: 'Subjects', icon: BookOpen },
   { key: 'scores', label: 'Scores', icon: ClipboardList },
   { key: 'fees', label: 'Fees', icon: Wallet },
+  { key: 'auditlog', label: 'Audit Trail', icon: History, proprietorOnly: true },
+  { key: 'settings', label: 'Settings', icon: Settings },
 ];
 
-function Sidebar({ activePage, onSelectPage }) {
+function Sidebar({ activePage, onSelectPage, userRole }) {
+  const visibleItems = navItems.filter((item) => !item.proprietorOnly || userRole === 'proprietor');
+
   return (
     <aside className="w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm">
       <nav className="flex flex-col gap-1">
-        {navItems.map(({ key, label, icon: Icon }) => (
+        {visibleItems.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => onSelectPage(key)}

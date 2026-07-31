@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 
-function AddSubject({ onSubjectAdded }) {
-  const [name, setName] = useState('');
+const TERMS = ['First Term', 'Second Term', 'Third Term'];
+
+function AddClassFee({ onFeesAdded }) {
   const [classId, setClassId] = useState('');
+  const [term, setTerm] = useState('First Term');
+  const [session, setSession] = useState('');
+  const [amountExpected, setAmountExpected] = useState('');
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -15,8 +19,7 @@ function AddSubject({ onSubjectAdded }) {
         const res = await fetch('http://localhost:5000/classes', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await res.json();
-        setClasses(data);
+        setClasses(await res.json());
       } catch (err) {
         console.error('Failed to load classes', err);
       }
@@ -32,25 +35,29 @@ function AddSubject({ onSubjectAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/subjects', {
+      const res = await fetch('http://localhost:5000/fees/bulk-by-class', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, classId }),
+        body: JSON.stringify({
+          classId,
+          term,
+          session,
+          amountExpected: Number(amountExpected),
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to add subject');
+        throw new Error(data.error || 'Failed to add fees');
       }
 
-      setSuccess(`${data.name} added successfully`);
-      setName('');
-      setClassId('');
-      onSubjectAdded();
+      setSuccess(data.message);
+      setAmountExpected('');
+      onFeesAdded();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -66,7 +73,10 @@ function AddSubject({ onSubjectAdded }) {
       onSubmit={handleSubmit}
       className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md"
     >
-      <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Subject</h2>
+      <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white">Add Fee for a Whole Class</h2>
+      <p className="text-xs text-slate-400 mb-4">
+        Creates a fee record for every student currently in the selected class.
+      </p>
 
       {error && (
         <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
@@ -79,23 +89,8 @@ function AddSubject({ onSubjectAdded }) {
         </div>
       )}
 
-      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Name</label>
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Mathematics"
-        required
-        className={inputClass}
-      />
-
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class</label>
-      <select
-        value={classId}
-        onChange={(e) => setClassId(e.target.value)}
-        required
-        className={`${inputClass} mb-4`}
-      >
+      <select value={classId} onChange={(e) => setClassId(e.target.value)} required className={inputClass}>
         <option value="">Select a class</option>
         {classes.map((cls) => (
           <option key={cls._id} value={cls._id}>
@@ -104,15 +99,43 @@ function AddSubject({ onSubjectAdded }) {
         ))}
       </select>
 
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Term</label>
+      <select value={term} onChange={(e) => setTerm(e.target.value)} required className={inputClass}>
+        {TERMS.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Session</label>
+      <input
+        type="text"
+        value={session}
+        onChange={(e) => setSession(e.target.value)}
+        placeholder="e.g. 2025/2026"
+        required
+        className={inputClass}
+      />
+
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Amount Expected (₦)</label>
+      <input
+        type="number"
+        value={amountExpected}
+        onChange={(e) => setAmountExpected(e.target.value)}
+        required
+        className={`${inputClass} mb-4`}
+      />
+
       <button
         type="submit"
         disabled={loading}
         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition"
       >
-        {loading ? 'Adding...' : 'Add Subject'}
+        {loading ? 'Adding...' : 'Add Fee for Class'}
       </button>
     </form>
   );
 }
 
-export default AddSubject;
+export default AddClassFee;

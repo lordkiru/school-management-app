@@ -1,1 +1,1 @@
-export const API_URL = 'https://school-saas-backend-v8i3.onrender.com';
+export const API_URL = '${import.meta.env.VITE_API_URL}';

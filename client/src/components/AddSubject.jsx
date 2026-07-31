@@ -12,7 +12,7 @@ function AddSubject({ onSubjectAdded }) {
     const fetchClasses = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('https://school-saas-backend-v8i3.onrender.com/classes', {
+        const res = await fetch('${import.meta.env.VITE_API_URL}/classes', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -32,7 +32,7 @@ function AddSubject({ onSubjectAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('https://school-saas-backend-v8i3.onrender.com/subjects', {
+      const res = await fetch('${import.meta.env.VITE_API_URL}/subjects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

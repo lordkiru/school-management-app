@@ -15,7 +15,7 @@ function ParentPay() {
     setLoading(true);
 
     try {
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/public/lookup/${admissionNumber}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/lookup/${admissionNumber}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       setResult(data);
@@ -29,7 +29,7 @@ function ParentPay() {
   const handlePay = async (feeId) => {
     setPayingId(feeId);
     try {
-      const res = await fetch(`https://school-saas-backend-v8i3.onrender.com/fees/public/${feeId}/initiate-payment`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/${feeId}/initiate-payment`, {
         method: 'POST',
       });
       const data = await res.json();

@@ -6,27 +6,42 @@ const Score = require('../models/Score');
 const Fee = require('../models/Fee');
 const computeGrade = require('../utils/grading');
 const getNextSequence = require('../utils/getNextSequence');
+const School = require('../models/School');
+
 
 // Get all students
-router.get('/', requireAuth, async (req, res) => {
+router.get('/public/results/:admissionNumber', async (req, res) => {
   try {
-    const { search } = req.query;
-    const filter = search
-      ? {
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { admissionNumber: { $regex: search, $options: 'i' } },
-          ],
-        }
-      : {};
+    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber }).populate('classId');
+    if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
 
-    const students = await Student.find(filter).populate('classId');
-    res.json(students);
+    const school = await School.findOne();
+    const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
+
+    const scoresRaw = await Score.find({ studentId: student._id }).populate({
+      path: 'subjectId',
+      populate: { path: 'classId' },
+    });
+
+    const scores = scoresRaw.map((score) => {
+      const scoreObj = score.toObject();
+      const section = score.subjectId?.classId?.section;
+      scoreObj.grade = computeGrade(scoreObj.total, section, maxTotal);
+      return scoreObj;
+    });
+
+    res.json({
+      student: {
+        name: student.name,
+        admissionNumber: student.admissionNumber,
+        className: student.classId?.name || '—',
+      },
+      scores,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 // Get one student with their scores and fees
 router.get('/:id', requireAuth, async (req, res) => {
   try {

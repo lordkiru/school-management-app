@@ -16,7 +16,7 @@ function StudentList({ refreshKey, onSelectStudent }) {
       const token = localStorage.getItem('token');
       const url = search
         ? `${import.meta.env.VITE_API_URL}/students?search=${encodeURIComponent(search)}`
-        : '${import.meta.env.VITE_API_URL}/students';
+        : `${import.meta.env.VITE_API_URL}/students`;
       const res = await fetch(url, {
   headers: { Authorization: `Bearer ${token}` },
   cache: 'no-store',

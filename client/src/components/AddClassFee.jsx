@@ -16,7 +16,7 @@ function AddClassFee({ onFeesAdded }) {
     const fetchClasses = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('${import.meta.env.VITE_API_URL}/classes', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setClasses(await res.json());
@@ -35,7 +35,7 @@ function AddClassFee({ onFeesAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/fees/bulk-by-class', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/bulk-by-class`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

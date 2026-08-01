@@ -16,7 +16,7 @@ function AuditLogList() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/auditlog', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auditlog`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

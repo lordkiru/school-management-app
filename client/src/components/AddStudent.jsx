@@ -12,7 +12,7 @@ function AddStudent({ onStudentAdded }) {
     const fetchClasses = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('${import.meta.env.VITE_API_URL}/classes', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -32,7 +32,7 @@ function AddStudent({ onStudentAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/students', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/students`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

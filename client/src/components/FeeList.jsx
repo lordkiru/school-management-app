@@ -24,7 +24,7 @@ function FeeList({ refreshKey }) {
       const token = localStorage.getItem('token');
       const url = search
         ? `${import.meta.env.VITE_API_URL}/fees?search=${encodeURIComponent(search)}`
-        : '${import.meta.env.VITE_API_URL}/fees';
+        : `${import.meta.env.VITE_API_URL}/fees`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',

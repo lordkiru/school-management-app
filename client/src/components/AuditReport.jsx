@@ -10,7 +10,7 @@ function AuditReport({ logs, onClose }) {
     const fetchSchool = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('${import.meta.env.VITE_API_URL}/school', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
         });

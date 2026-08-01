@@ -8,8 +8,27 @@ const computeGrade = require('../utils/grading');
 const getNextSequence = require('../utils/getNextSequence');
 const School = require('../models/School');
 
-
 // Get all students
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const { search } = req.query;
+    const filter = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { admissionNumber: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const students = await Student.find(filter).populate('classId');
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public results lookup — no login required
 router.get('/public/results/:admissionNumber', async (req, res) => {
   try {
     const student = await Student.findOne({ admissionNumber: req.params.admissionNumber }).populate('classId');
@@ -42,11 +61,15 @@ router.get('/public/results/:admissionNumber', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Get one student with their scores and fees
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id).populate('classId');
     if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const school = await School.findOne();
+    const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
 
     const scoresRaw = await Score.find({ studentId: req.params.id }).populate({
       path: 'subjectId',
@@ -56,7 +79,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     const scores = scoresRaw.map((score) => {
       const scoreObj = score.toObject();
       const section = score.subjectId?.classId?.section;
-      scoreObj.grade = computeGrade(scoreObj.total, section);
+      scoreObj.grade = computeGrade(scoreObj.total, section, maxTotal);
       return scoreObj;
     });
 
@@ -136,36 +159,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await Fee.deleteMany({ studentId: req.params.id });
 
     res.json({ message: 'Student and all related records deleted' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-// Public results lookup — no login required
-router.get('/public/results/:admissionNumber', async (req, res) => {
-  try {
-    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber }).populate('classId');
-    if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
-
-    const scoresRaw = await Score.find({ studentId: student._id }).populate({
-      path: 'subjectId',
-      populate: { path: 'classId' },
-    });
-
-    const scores = scoresRaw.map((score) => {
-      const scoreObj = score.toObject();
-      const section = score.subjectId?.classId?.section;
-      scoreObj.grade = computeGrade(scoreObj.total, section);
-      return scoreObj;
-    });
-
-    res.json({
-      student: {
-        name: student.name,
-        admissionNumber: student.admissionNumber,
-        className: student.classId?.name || '—',
-      },
-      scores,
-    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

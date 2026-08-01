@@ -3,9 +3,14 @@ const router = express.Router();
 const requireAuth = require('../middleware/auth');
 const Score = require('../models/Score');
 const computeGrade = require('../utils/grading');
+const School = require('../models/School');
+
 
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const school = await School.findOne();
+    const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
+
     const scores = await Score.find()
       .populate('studentId')
       .populate({
@@ -16,7 +21,7 @@ router.get('/', requireAuth, async (req, res) => {
     const withGrades = scores.map((score) => {
       const scoreObj = score.toObject();
       const section = score.subjectId?.classId?.section;
-      scoreObj.grade = computeGrade(scoreObj.total, section);
+      scoreObj.grade = computeGrade(scoreObj.total, section, maxTotal);
       return scoreObj;
     });
 

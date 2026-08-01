@@ -13,7 +13,7 @@ function ScoreList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/scores', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/scores`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

@@ -16,9 +16,9 @@ function Dashboard() {
         const headers = { Authorization: `Bearer ${token}` };
 
         const [studentsRes, classesRes, feesRes] = await Promise.all([
-          fetch('${import.meta.env.VITE_API_URL}/students', { headers }),
-          fetch('${import.meta.env.VITE_API_URL}/classes', { headers }),
-          fetch('${import.meta.env.VITE_API_URL}/fees', { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/students`, { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/classes`, { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/fees`, { headers }),
         ]);
 
         const students = await studentsRes.json();

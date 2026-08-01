@@ -14,7 +14,7 @@ function SubjectList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/subjects', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

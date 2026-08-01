@@ -13,7 +13,7 @@ function ClassList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('${import.meta.env.VITE_API_URL}/classes', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
       });

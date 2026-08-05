@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 16;
 
 function SubjectList({ refreshKey }) {
   const [subjects, setSubjects] = useState([]);
@@ -9,6 +9,9 @@ function SubjectList({ refreshKey }) {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [staff, setStaff] = useState([]);
+  const [assigningId, setAssigningId] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState('');
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
@@ -32,9 +35,28 @@ function SubjectList({ refreshKey }) {
     }
   }, []);
 
+  const fetchStaff = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/staff`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setStaff(data.filter((s) => s.role === 'teacher'));
+      }
+    } catch (err) {
+      console.error('Failed to load staff', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchSubjects();
   }, [fetchSubjects, refreshKey]);
+
+  useEffect(() => {
+    fetchStaff();
+  }, [fetchStaff]);
 
   const handleDelete = async (subjectId, subjectName) => {
     const confirmed = window.confirm(
@@ -63,6 +85,28 @@ function SubjectList({ refreshKey }) {
     }
   };
 
+  const handleAssignTeacher = async (subjectId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subjects/${subjectId}/assign-teacher`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ teacherId: selectedTeacher || null }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to assign teacher');
+
+      setAssigningId(null);
+      fetchSubjects();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
 
   const totalPages = Math.ceil(subjects.length / PAGE_SIZE) || 1;
@@ -71,7 +115,7 @@ function SubjectList({ refreshKey }) {
 
   return (
     <div className="p-6">
-      <div className="bg-amber-50 dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-gray-700">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Subjects</h2>
         </div>
@@ -86,13 +130,14 @@ function SubjectList({ refreshKey }) {
                   <tr className="border-b border-slate-100 dark:border-gray-700">
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Name</th>
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Class</th>
+                    <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Teacher</th>
                     <th className="py-3 px-5"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pageSubjects.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="py-6 px-5 text-slate-500 dark:text-gray-400">
+                      <td colSpan={4} className="py-6 px-5 text-slate-500 dark:text-gray-400">
                         No subjects found.
                       </td>
                     </tr>
@@ -101,6 +146,47 @@ function SubjectList({ refreshKey }) {
                       <tr key={subject._id} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
                         <td className="py-3 px-5 text-slate-800 dark:text-white">{subject.name}</td>
                         <td className="py-3 px-5 text-slate-600 dark:text-gray-300">{subject.classId?.name || '—'}</td>
+                        <td className="py-3 px-5">
+                          {assigningId === subject._id ? (
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={selectedTeacher}
+                                onChange={(e) => setSelectedTeacher(e.target.value)}
+                                className="p-1 rounded border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                              >
+                                <option value="">Unassigned</option>
+                                {staff.map((t) => (
+                                  <option key={t._id} value={t._id}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => handleAssignTeacher(subject._id)}
+                                className="text-emerald-600 hover:text-emerald-700 text-xs font-medium"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setAssigningId(null)}
+                                className="text-slate-400 hover:text-slate-600 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setAssigningId(subject._id);
+                                setSelectedTeacher(subject.teacherId?._id || '');
+                              }}
+                              className="hover:underline decoration-dotted text-slate-600 dark:text-gray-300"
+                              title="Click to assign a teacher"
+                            >
+                              {subject.teacherId?.name || 'Unassigned'}
+                            </button>
+                          )}
+                        </td>
                         <td className="py-3 px-5">
                           <button
                             onClick={() => handleDelete(subject._id, subject.name)}

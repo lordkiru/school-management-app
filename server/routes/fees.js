@@ -3,11 +3,12 @@ const AuditLog = require('../models/AuditLog');
 const axios = require('axios');
 
 const requireAuth = require('../middleware/auth');
+const requireRole = require('../middleware/requireRole');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const { search } = req.query;
 
@@ -27,7 +28,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const fee = new Fee(req.body);
     await fee.save();
@@ -38,7 +39,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // Record a payment against an existing fee record
-router.patch('/:id/pay', requireAuth, async (req, res) => {
+router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const { amount } = req.body;
     const fee = await Fee.findById(req.params.id);
@@ -51,7 +52,8 @@ router.patch('/:id/pay', requireAuth, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-router.delete('/:id', requireAuth, async (req, res) => {
+
+router.delete('/:id', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const fee = await Fee.findById(req.params.id).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
@@ -71,9 +73,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Create a fee record for every student in a class at once
+
 // Add (aggregate) a fee amount for every student in a class at once
-router.post('/bulk-by-class', requireAuth, async (req, res) => {
+router.post('/bulk-by-class', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const { classId, term, session, amountExpected } = req.body;
 
@@ -115,8 +117,9 @@ router.post('/bulk-by-class', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Adjust (overwrite) the expected fee for every student in a class
-router.patch('/adjust-by-class', requireAuth, async (req, res) => {
+router.patch('/adjust-by-class', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const { classId, term, session, amountExpected } = req.body;
 
@@ -140,8 +143,9 @@ router.patch('/adjust-by-class', requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Ask Paystack to generate a payment link for a fee's outstanding balance
-router.post('/:id/initiate-payment', requireAuth, async (req, res) => {
+router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
     const fee = await Fee.findById(req.params.id).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
@@ -154,8 +158,8 @@ router.post('/:id/initiate-payment', requireAuth, async (req, res) => {
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
-        email: `${fee.studentId.admissionNumber}@placeholder.school`, // parent email would go here eventually
-        amount: balance * 100, // Paystack expects the amount in kobo, not naira
+        email: `${fee.studentId.admissionNumber}@placeholder.school`,
+        amount: balance * 100,
         metadata: {
           feeId: fee._id.toString(),
           studentName: fee.studentId.name,
@@ -174,6 +178,7 @@ router.post('/:id/initiate-payment', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to initiate payment' });
   }
 });
+
 // Public lookup — no login required. Returns only minimal info needed to pay.
 router.get('/public/lookup/:admissionNumber', async (req, res) => {
   try {
@@ -197,6 +202,7 @@ router.get('/public/lookup/:admissionNumber', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 // Public payment initiation — no login required
 router.post('/public/:id/initiate-payment', async (req, res) => {
   try {
@@ -231,4 +237,54 @@ router.post('/public/:id/initiate-payment', async (req, res) => {
     res.status(500).json({ error: 'Failed to initiate payment' });
   }
 });
+
+// Get fee totals grouped by class, optionally filtered by term/session
+router.get('/report-by-class', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
+  try {
+    const { term, session } = req.query;
+
+    const filter = {};
+    if (term) filter.term = term;
+    if (session) filter.session = session;
+
+    const fees = await Fee.find(filter).populate({
+      path: 'studentId',
+      populate: { path: 'classId' },
+    });
+
+    const byClass = {};
+
+    for (const fee of fees) {
+      const cls = fee.studentId?.classId;
+      if (!cls) continue;
+
+      const key = cls._id.toString();
+      if (!byClass[key]) {
+        byClass[key] = {
+          classId: cls._id,
+          className: cls.name,
+          totalExpected: 0,
+          totalPaid: 0,
+          studentCount: 0,
+        };
+      }
+
+      byClass[key].totalExpected += fee.amountExpected;
+      byClass[key].totalPaid += fee.amountPaid;
+      byClass[key].studentCount += 1;
+    }
+
+    const results = Object.values(byClass).map((c) => ({
+      ...c,
+      totalOutstanding: c.totalExpected - c.totalPaid,
+    }));
+
+    results.sort((a, b) => a.className.localeCompare(b.className));
+
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

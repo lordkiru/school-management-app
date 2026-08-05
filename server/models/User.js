@@ -6,10 +6,12 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: {
-    type: String,
-    enum: ['proprietor', 'teacher', 'bursar', 'parent'],
-    required: true,
-  },
+  type: String,
+  enum: ['proprietor', 'admin', 'teacher', 'bursar', 'parent'],
+  required: true,
+},
+  resetToken: { type: String, default: null },
+resetTokenExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 // Before saving, hash the password if it's new or changed

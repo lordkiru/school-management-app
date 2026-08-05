@@ -9,6 +9,7 @@ function SchoolSettings() {
   const [examMax, setExamMax] = useState(60);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -50,7 +51,7 @@ function SchoolSettings() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-       body: JSON.stringify({ name, address, logoUrl, ca1Max, ca2Max, examMax }),
+        body: JSON.stringify({ name, address, logoUrl, ca1Max, ca2Max, examMax }),
       });
 
       const data = await res.json();
@@ -61,6 +62,37 @@ function SchoolSettings() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/school/logo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload logo');
+
+      setLogoUrl(data.logoUrl);
+      setSuccess('Logo uploaded successfully');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -106,65 +138,70 @@ function SchoolSettings() {
           className={inputClass}
         />
 
-        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Logo URL</label>
-        <input
-          type="text"
-          value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
-          placeholder="https://... or /logo.png"
-          className={inputClass}
-        />
-        <p className="text-xs text-slate-400 mb-4">
-          Paste a link to your logo image, or a path like /logo.png if you've added the file to the
-          client's public folder.
-        </p>
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">School Logo</label>
 
         {logoUrl && (
-          <img src={logoUrl} alt="Logo preview" className="h-16 object-contain mb-4" />
+          <img
+            src={logoUrl}
+            alt="Current logo"
+            className="h-20 object-contain mb-3 rounded-lg border border-slate-100 dark:border-gray-700 p-2"
+          />
         )}
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleLogoUpload}
+          disabled={uploading}
+          className="w-full mb-1 text-sm text-slate-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:text-sm file:font-medium hover:file:bg-indigo-700 file:cursor-pointer disabled:opacity-50"
+        />
+        <p className="text-xs text-slate-400 mb-4">
+          {uploading ? 'Uploading...' : 'Upload a PNG or JPG. It will be resized automatically.'}
+        </p>
+
         <div className="border-t border-slate-100 dark:border-gray-700 pt-4 mt-2 mb-4">
-  <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
-    Continuous Assessment Weighting
-  </h3>
-  <p className="text-xs text-slate-400 mb-3">
-    Set the maximum score for each component. These should add up to your school's total (usually 100).
-  </p>
-  <div className="grid grid-cols-3 gap-2">
-    <div>
-      <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">CA1 Max</label>
-      <input
-        type="number"
-        value={ca1Max}
-        onChange={(e) => setCa1Max(Number(e.target.value))}
-        className={inputClass}
-      />
-    </div>
-    <div>
-      <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">CA2 Max</label>
-      <input
-        type="number"
-        value={ca2Max}
-        onChange={(e) => setCa2Max(Number(e.target.value))}
-        className={inputClass}
-      />
-    </div>
-    <div>
-      <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Exam Max</label>
-      <input
-        type="number"
-        value={examMax}
-        onChange={(e) => setExamMax(Number(e.target.value))}
-        className={inputClass}
-      />
-    </div>
-  </div>
-  <p className="text-xs mt-2 text-slate-400">
-    Total: {ca1Max + ca2Max + examMax}
-    {ca1Max + ca2Max + examMax !== 100 && (
-      <span className="text-amber-600"> (doesn't add up to 100 — grades will still be calculated proportionally)</span>
-    )}
-  </p>
-</div>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
+            Continuous Assessment Weighting
+          </h3>
+          <p className="text-xs text-slate-400 mb-3">
+            Set the maximum score for each component. These should add up to your school's total (usually 100).
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">CA1 Max</label>
+              <input
+                type="number"
+                value={ca1Max}
+                onChange={(e) => setCa1Max(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">CA2 Max</label>
+              <input
+                type="number"
+                value={ca2Max}
+                onChange={(e) => setCa2Max(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Exam Max</label>
+              <input
+                type="number"
+                value={examMax}
+                onChange={(e) => setExamMax(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <p className="text-xs mt-2 text-slate-400">
+            Total: {ca1Max + ca2Max + examMax}
+            {ca1Max + ca2Max + examMax !== 100 && (
+              <span className="text-amber-600"> (doesn't add up to 100 — grades will still be calculated proportionally)</span>
+            )}
+          </p>
+        </div>
 
         <button
           type="submit"

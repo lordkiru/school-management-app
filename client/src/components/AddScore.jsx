@@ -9,6 +9,7 @@ function AddScore({ onScoreAdded }) {
   const [subjectId, setSubjectId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [session, setSession] = useState('');
+  const [sessions, setSessions] = useState([]);
   const [ca1, setCa1] = useState('');
   const [ca2, setCa2] = useState('');
   const [exam, setExam] = useState('');
@@ -40,6 +41,24 @@ function AddScore({ onScoreAdded }) {
     fetchOptions();
   }, []);
 
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/sessions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setSessions(data);
+        const current = data.find((s) => s.isCurrent);
+        if (current) setSession(current.name);
+      } catch (err) {
+        console.error('Failed to load sessions', err);
+      }
+    };
+    fetchSessions();
+  }, []);
+
   // Close the dropdown when clicking outside it
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -60,7 +79,7 @@ function AddScore({ onScoreAdded }) {
 
   const matchingStudents = studentQuery
     ? students.filter((s) => s.name.toLowerCase().includes(studentQuery.toLowerCase()))
-    : students.slice(0, 20); // show a first batch even before typing
+    : students.slice(0, 20);
 
   const handleSelectStudent = (student) => {
     setStudentId(student._id);
@@ -208,14 +227,19 @@ function AddScore({ onScoreAdded }) {
       </select>
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Session</label>
-      <input
-        type="text"
+      <select
         value={session}
         onChange={(e) => setSession(e.target.value)}
-        placeholder="e.g. 2025/2026"
         required
         className={inputClass}
-      />
+      >
+        <option value="">Select a session</option>
+        {sessions.map((s) => (
+          <option key={s._id} value={s.name}>
+            {s.name} {s.isCurrent ? '(current)' : ''}
+          </option>
+        ))}
+      </select>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>

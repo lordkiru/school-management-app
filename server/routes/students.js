@@ -1,4 +1,5 @@
 const requireAuth = require('../middleware/auth');
+const requireRole = require('../middleware/requireRole');
 const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
@@ -92,7 +93,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // Add a new student
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const nextNumber = await getNextSequence('admissionNumber');
     const admissionNumber = `ADM${String(nextNumber).padStart(5, '0')}`;
@@ -135,8 +136,31 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
+// Promote every active student in one class to another class
+router.patch('/promote-class', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+  try {
+    const { toClassId, studentIds } = req.body;
+
+    if (!toClassId || !Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ error: 'toClassId and a non-empty studentIds array are required' });
+    }
+
+    const result = await Student.updateMany(
+      { _id: { $in: studentIds }, status: 'Active' },
+      { $set: { classId: toClassId } }
+    );
+
+    res.json({
+      message: `Promoted ${result.modifiedCount} student(s) to the new class.`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Update a student
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -150,7 +174,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 });
 
 // Delete a student and all their related records
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });

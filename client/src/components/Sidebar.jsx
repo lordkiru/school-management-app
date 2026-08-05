@@ -1,21 +1,27 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange } from 'lucide-react';
 
 const navItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { key: 'students', label: 'Students', icon: Users },
-  { key: 'classes', label: 'Classes', icon: GraduationCap },
-  { key: 'subjects', label: 'Subjects', icon: BookOpen },
-  { key: 'scores', label: 'Scores', icon: ClipboardList },
-  { key: 'fees', label: 'Fees', icon: Wallet },
-  { key: 'auditlog', label: 'Audit Trail', icon: History, proprietorOnly: true },
-  { key: 'settings', label: 'Settings', icon: Settings },
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+  { key: 'students', label: 'Students', icon: Users, allowedRoles: ['proprietor', 'admin', 'bursar', 'teacher'] },
+  { key: 'classes', label: 'Classes', icon: GraduationCap, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'subjects', label: 'Subjects', icon: BookOpen, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
+  { key: 'reportcards', label: 'Report Card', icon: FileText, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'feereport', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'] },
+  { key: 'timetable', label: 'Timetable', icon: Calendar, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'sessions', label: 'Sessions', icon: CalendarRange, allowedRoles: ['proprietor'] },
+  { key: 'promote', label: 'Promote Class', icon: ArrowUpCircle, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
+  { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
 ];
 
 function Sidebar({ activePage, onSelectPage, userRole }) {
-  const visibleItems = navItems.filter((item) => !item.proprietorOnly || userRole === 'proprietor');
+  const visibleItems = navItems.filter((item) => item.allowedRoles.includes(userRole));
 
   return (
-    <aside className="w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm">
+    <aside className="w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm print:hidden">
       <nav className="flex flex-col gap-1">
         {visibleItems.map(({ key, label, icon: Icon }) => (
           <button

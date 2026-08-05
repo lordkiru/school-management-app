@@ -17,6 +17,8 @@ function FeeList({ refreshKey }) {
   const [editAmount, setEditAmount] = useState('');
   const [initiatingId, setInitiatingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [classes, setClasses] = useState([]);
+  const [classFilter, setClassFilter] = useState('');
 
   const fetchFees = useCallback(async (search = '') => {
     setLoading(true);
@@ -41,6 +43,21 @@ function FeeList({ refreshKey }) {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setClasses(await res.json());
+      } catch (err) {
+        console.error('Failed to load classes', err);
+      }
+    };
+    fetchClasses();
   }, []);
 
   useEffect(() => {
@@ -153,22 +170,46 @@ function FeeList({ refreshKey }) {
 
   if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
 
-  const totalPages = Math.ceil(fees.length / PAGE_SIZE) || 1;
+  const filteredFees = classFilter
+    ? fees.filter((f) => {
+        const studentClassId = f.studentId?.classId?._id || f.studentId?.classId;
+        return studentClassId === classFilter;
+      })
+    : fees;
+
+  const totalPages = Math.ceil(filteredFees.length / PAGE_SIZE) || 1;
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const pageFees = fees.slice(startIndex, startIndex + PAGE_SIZE);
+  const pageFees = filteredFees.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
     <div className="p-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-gray-700">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-gray-700 gap-3">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Fees</h2>
-          <input
-            type="text"
-            placeholder="Search by student name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm w-64 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
-          />
+          <div className="flex items-center gap-2">
+            <select
+              value={classFilter}
+              onChange={(e) => {
+                setClassFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm"
+            >
+              <option value="">All classes</option>
+              {classes.map((cls) => (
+                <option key={cls._id} value={cls._id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Search by student name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm w-64 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -312,11 +353,11 @@ function FeeList({ refreshKey }) {
               </table>
             </div>
 
-            {fees.length > 0 && (
+            {filteredFees.length > 0 && (
               <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
                 <span className="text-slate-500 dark:text-gray-400">
-                  Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, fees.length)} of{' '}
-                  {fees.length}
+                  Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredFees.length)} of{' '}
+                  {filteredFees.length}
                 </span>
                 <div className="flex items-center gap-2">
                   <button

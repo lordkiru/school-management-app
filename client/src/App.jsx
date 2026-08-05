@@ -21,6 +21,19 @@ import AuditLogList from './components/AuditLogList';
 import AdjustClassFee from './components/AdjustClassFee';
 import ParentPay from './components/ParentPay';
 import ParentResults from './components/ParentResults';
+import StaffList from './components/StaffList';
+import AddStaff from './components/AddStaff';
+import TimetableView from './components/TimetableView';
+import PromoteClass from './components/PromoteClass';
+import ReportCardView from './components/ReportCardView';
+import FeeReportByClass from './components/FeeReportByClass';
+import SessionManager from './components/SessionManager';
+import ResetPassword from './components/ResetPassword';
+
+const getDefaultPage = (role) => {
+  if (role === 'teacher' || role === 'bursar') return 'students';
+  return 'dashboard';
+};
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -32,6 +45,7 @@ function App() {
   const [feeRefreshKey, setFeeRefreshKey] = useState(0);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [activePage, setActivePage] = useState('dashboard');
+  const [staffRefreshKey, setStaffRefreshKey] = useState(0);
 
   useEffect(() => {
     if (darkMode) {
@@ -44,7 +58,9 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setActivePage(getDefaultPage(parsedUser.role));
     }
   }, []);
 
@@ -54,91 +70,122 @@ function App() {
     setUser(null);
     setSelectedStudentId(null);
   };
+
   if (window.location.pathname === '/pay') {
-  return <ParentPay />;
-}
-if (window.location.pathname === '/results') {
-  return <ParentResults />;
-}
+    return <ParentPay />;
+  }
+  if (window.location.pathname === '/results') {
+    return <ParentResults />;
+  }
+  if (window.location.pathname === '/reset-password') {
+    return <ResetPassword />;
+  }
 
   if (!user) {
     return (
       <>
         <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
-        <Login onLoginSuccess={setUser} />
+        <Login
+          onLoginSuccess={(loggedInUser) => {
+            setUser(loggedInUser);
+            setActivePage(getDefaultPage(loggedInUser.role));
+          }}
+        />
       </>
     );
   }
 
   const renderPage = () => {
     if (activePage === 'dashboard') {
-  return <Dashboard />;
-}
-  if (activePage === 'students') {
-    return selectedStudentId ? (
-      <StudentDetail
-        studentId={selectedStudentId}
-        onBack={() => setSelectedStudentId(null)}
-      />
-    ) : (
-      <div className="grid md:grid-cols-2 gap-6 p-6">
-        <AddStudent onStudentAdded={() => setRefreshKey((k) => k + 1)} />
-        <StudentList refreshKey={refreshKey} onSelectStudent={setSelectedStudentId} />
-      </div>
-    );
-  }
+      return <Dashboard userRole={user.role} />;
+    }
+    if (activePage === 'students') {
+      return selectedStudentId ? (
+        <StudentDetail
+          studentId={selectedStudentId}
+          onBack={() => setSelectedStudentId(null)}
+        />
+      ) : (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddStudent onStudentAdded={() => setRefreshKey((k) => k + 1)} />
+          <StudentList refreshKey={refreshKey} onSelectStudent={setSelectedStudentId} />
+        </div>
+      );
+    }
 
-  if (activePage === 'classes') {
+    if (activePage === 'classes') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddClass onClassAdded={() => setClassRefreshKey((k) => k + 1)} />
+          <ClassList refreshKey={classRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'subjects') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddSubject onSubjectAdded={() => setSubjectRefreshKey((k) => k + 1)} />
+          <SubjectList refreshKey={subjectRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'scores') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddScore onScoreAdded={() => setScoreRefreshKey((k) => k + 1)} />
+          <ScoreList refreshKey={scoreRefreshKey} />
+        </div>
+      );
+    }
+
+    if (activePage === 'fees') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <div className="flex flex-col gap-6">
+            <AddClassFee onFeesAdded={() => setFeeRefreshKey((k) => k + 1)} />
+            <AdjustClassFee onAdjusted={() => setFeeRefreshKey((k) => k + 1)} />
+            <AddFee onFeeAdded={() => setFeeRefreshKey((k) => k + 1)} />
+          </div>
+          <FeeList refreshKey={feeRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'sessions') {
+      return <SessionManager />;
+    }
+    if (activePage === 'feereport') {
+      return <FeeReportByClass />;
+    }
+
+    if (activePage === 'timetable') {
+      return <TimetableView />;
+    }
+    if (activePage === 'promote') {
+      return <PromoteClass />;
+    }
+    if (activePage === 'staff') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddStaff onStaffAdded={() => setStaffRefreshKey((k) => k + 1)} currentUserRole={user.role} />
+          <StaffList refreshKey={staffRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'auditlog') {
+      return <AuditLogList />;
+    }
+    if (activePage === 'settings') {
+      return <SchoolSettings />;
+    }
+    if (activePage === 'reportcards') {
+      return <ReportCardView />;
+    }
     return (
-      <div className="grid md:grid-cols-2 gap-6 p-6">
-        <AddClass onClassAdded={() => setClassRefreshKey((k) => k + 1)} />
-        <ClassList refreshKey={classRefreshKey} />
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        {activePage.charAt(0).toUpperCase() + activePage.slice(1)} page coming soon.
       </div>
     );
-  }
-  if (activePage === 'subjects') {
-  return (
-    <div className="grid md:grid-cols-2 gap-6 p-6">
-      <AddSubject onSubjectAdded={() => setSubjectRefreshKey((k) => k + 1)} />
-      <SubjectList refreshKey={subjectRefreshKey} />
-    </div>
-  );
-}
-if (activePage === 'scores') {
-  return (
-    <div className="grid md:grid-cols-2 gap-6 p-6">
-      <AddScore onScoreAdded={() => setScoreRefreshKey((k) => k + 1)} />
-      <ScoreList refreshKey={scoreRefreshKey} />
-    </div>
-  );
-  
-  
-}
-
-if (activePage === 'fees') {
-  return (
-    <div className="grid md:grid-cols-2 gap-6 p-6">
-      <div className="flex flex-col gap-6">
-        <AddClassFee onFeesAdded={() => setFeeRefreshKey((k) => k + 1)} />
-        <AdjustClassFee onAdjusted={() => setFeeRefreshKey((k) => k + 1)} />
-        <AddFee onFeeAdded={() => setFeeRefreshKey((k) => k + 1)} />
-      </div>
-      <FeeList refreshKey={feeRefreshKey} />
-    </div>
-  );
-}
-if (activePage === 'auditlog') {
-  return <AuditLogList />;
-}
-if (activePage === 'settings') {
-  return <SchoolSettings />;
-}
-  return (
-    <div className="p-6 text-gray-500 dark:text-gray-400">
-      {activePage.charAt(0).toUpperCase() + activePage.slice(1)} page coming soon.
-    </div>
-  );
-};
+  };
 
   return (
     <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -146,13 +193,13 @@ if (activePage === 'settings') {
 
       <div className="flex">
         <Sidebar
-  activePage={activePage}
-  onSelectPage={(page) => {
-    setActivePage(page);
-    setSelectedStudentId(null);
-  }}
-  userRole={user.role}
-/>
+          activePage={activePage}
+          onSelectPage={(page) => {
+            setActivePage(page);
+            setSelectedStudentId(null);
+          }}
+          userRole={user.role}
+        />
 
         <div className="flex-1">
           <div className="flex items-center justify-between px-6 pt-16 pb-4">

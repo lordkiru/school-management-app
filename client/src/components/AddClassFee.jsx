@@ -6,6 +6,7 @@ function AddClassFee({ onFeesAdded }) {
   const [classId, setClassId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [session, setSession] = useState('');
+  const [sessions, setSessions] = useState([]);
   const [amountExpected, setAmountExpected] = useState('');
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
@@ -25,6 +26,24 @@ function AddClassFee({ onFeesAdded }) {
       }
     };
     fetchClasses();
+  }, []);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/sessions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setSessions(data);
+        const current = data.find((s) => s.isCurrent);
+        if (current) setSession(current.name);
+      } catch (err) {
+        console.error('Failed to load sessions', err);
+      }
+    };
+    fetchSessions();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -109,14 +128,19 @@ function AddClassFee({ onFeesAdded }) {
       </select>
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Session</label>
-      <input
-        type="text"
+      <select
         value={session}
         onChange={(e) => setSession(e.target.value)}
-        placeholder="e.g. 2025/2026"
         required
         className={inputClass}
-      />
+      >
+        <option value="">Select a session</option>
+        {sessions.map((s) => (
+          <option key={s._id} value={s.name}>
+            {s.name} {s.isCurrent ? '(current)' : ''}
+          </option>
+        ))}
+      </select>
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Amount Expected (₦)</label>
       <input
@@ -130,7 +154,7 @@ function AddClassFee({ onFeesAdded }) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition"
+        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold px-4 py-2 rounded-lg transition"
       >
         {loading ? 'Adding...' : 'Add Fee for Class'}
       </button>

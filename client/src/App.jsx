@@ -23,7 +23,7 @@ import ParentPay from './components/ParentPay';
 import ParentResults from './components/ParentResults';
 import StaffList from './components/StaffList';
 import AddStaff from './components/AddStaff';
-import TimetableView from './components/TimetableView';
+import TimetableView from './components/Timetableview';
 import PromoteClass from './components/PromoteClass';
 import ReportCardView from './components/ReportCardView';
 import FeeReportByClass from './components/FeeReportByClass';

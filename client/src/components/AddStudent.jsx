@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 
 function AddStudent({ onStudentAdded }) {
   const [name, setName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('');
   const [classId, setClassId] = useState('');
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
@@ -38,7 +40,12 @@ function AddStudent({ onStudentAdded }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, classId }),
+        body: JSON.stringify({ 
+          name, 
+          dateOfBirth, 
+          gender, 
+          classId 
+        }),
       });
 
       const data = await res.json();
@@ -49,6 +56,8 @@ function AddStudent({ onStudentAdded }) {
 
       setSuccess(`${data.name} added successfully`);
       setName('');
+      setDateOfBirth('');
+      setGender('');
       setClassId('');
       onStudentAdded();
     } catch (err) {
@@ -79,16 +88,38 @@ function AddStudent({ onStudentAdded }) {
         </div>
       )}
 
-      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Name</label>
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Name *</label>
       <input
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
+        placeholder="Enter student name"
         className={inputClass}
       />
 
-        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class</label>
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Date of Birth *</label>
+      <input
+        type="date"
+        value={dateOfBirth}
+        onChange={(e) => setDateOfBirth(e.target.value)}
+        required
+        className={inputClass}
+      />
+
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Gender *</label>
+      <select
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+        required
+        className={inputClass}
+      >
+        <option value="">Select gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class *</label>
       <select
         value={classId}
         onChange={(e) => setClassId(e.target.value)}

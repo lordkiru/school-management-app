@@ -6,6 +6,7 @@ const Score = require('../models/Score');
 const computeGrade = require('../utils/grading');
 const School = require('../models/School');
 const Student = require('../models/Student');
+const { validateScore, validateMongoId } = require('../middleware/validators');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -32,7 +33,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validateScore, async (req, res) => {
   try {
     const score = new Score(req.body);
     await score.save();
@@ -42,7 +43,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, validateMongoId, async (req, res) => {
   try {
     const updated = await Score.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -55,7 +56,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
     const deleted = await Score.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ error: 'Score not found' });

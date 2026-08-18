@@ -8,6 +8,8 @@ const Fee = require('../models/Fee');
 const computeGrade = require('../utils/grading');
 const getNextSequence = require('../utils/getNextSequence');
 const School = require('../models/School');
+const { apiLimiter } = require('../middleware/rateLimiter');
+const { validateStudent, validateMongoId } = require('../middleware/validators');
 
 // Get all students
 router.get('/', requireAuth, async (req, res) => {
@@ -30,7 +32,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // Public results lookup — no login required
-router.get('/public/results/:admissionNumber', async (req, res) => {
+router.get('/public/results/:admissionNumber', apiLimiter, async (req, res) => {
   try {
     const student = await Student.findOne({ admissionNumber: req.params.admissionNumber }).populate('classId');
     if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
@@ -93,7 +95,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // Add a new student
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateStudent, async (req, res) => {
   try {
     const nextNumber = await getNextSequence('admissionNumber');
     const admissionNumber = `ADM${String(nextNumber).padStart(5, '0')}`;
@@ -160,7 +162,7 @@ router.patch('/promote-class', requireAuth, requireRole('proprietor', 'admin'), 
 });
 
 // Update a student
-router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
     const student = await Student.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -174,7 +176,7 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req
 });
 
 // Delete a student and all their related records
-router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
     const student = await Student.findByIdAndDelete(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });

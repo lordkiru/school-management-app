@@ -3,6 +3,7 @@ const router = express.Router();
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const User = require('../models/User');
+const { validateStaff, validateMongoId } = require('../middleware/validators');
 
 // List all staff (teachers, bursars, admins) — proprietor and admin
 router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
@@ -15,7 +16,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res
 });
 
 // Create a new staff account
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateStaff, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -37,7 +38,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
 });
 
 // Delete a staff account — proprietor only
-router.delete('/:id', requireAuth, requireRole('proprietor'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor'), validateMongoId, async (req, res) => {
   try {
     const user = await User.findOneAndDelete({ _id: req.params.id, role: { $in: ['teacher', 'bursar', 'admin'] } });
     if (!user) return res.status(404).json({ error: 'Staff member not found' });

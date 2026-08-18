@@ -27,7 +27,7 @@ const validateLogin = [
   handleValidationErrors,
 ];
 
-// Student validation
+// Student validation (admissionNumber is auto-generated)
 const validateStudent = [
   body('name')
     .trim()
@@ -37,25 +37,21 @@ const validateStudent = [
     .withMessage('Name must be between 2 and 100 characters')
     .matches(/^[a-zA-Z\s]+$/)
     .withMessage('Name can only contain letters and spaces'),
-  body('admissionNumber')
-    .trim()
+  body('dateOfBirth')
     .notEmpty()
-    .withMessage('Admission number is required')
-    .isLength({ min: 3, max: 20 })
-    .withMessage('Admission number must be between 3 and 20 characters'),
+    .withMessage('Date of birth is required')
+    .isISO8601()
+    .withMessage('Invalid date format. Use YYYY-MM-DD'),
+  body('gender')
+    .notEmpty()
+    .withMessage('Gender is required')
+    .isIn(['Male', 'Female'])
+    .withMessage('Gender must be Male or Female'),
   body('classId')
     .notEmpty()
     .withMessage('Class is required')
     .isMongoId()
     .withMessage('Invalid class ID'),
-  body('dateOfBirth')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid date format'),
-  body('gender')
-    .optional()
-    .isIn(['Male', 'Female', 'Other'])
-    .withMessage('Gender must be Male, Female, or Other'),
   handleValidationErrors,
 ];
 

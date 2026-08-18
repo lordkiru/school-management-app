@@ -7,6 +7,8 @@ const requireRole = require('../middleware/requireRole');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
+const { validateFee, validateMongoId } = require('../middleware/validators');
+const { apiLimiter, paymentLimiter } = require('../middleware/rateLimiter');
 
 router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
@@ -28,7 +30,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, re
   }
 });
 
-router.post('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, async (req, res) => {
   try {
     const fee = new Fee(req.body);
     await fee.save();
@@ -180,7 +182,7 @@ router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bur
 });
 
 // Public lookup — no login required. Returns only minimal info needed to pay.
-router.get('/public/lookup/:admissionNumber', async (req, res) => {
+router.get('/public/lookup/:admissionNumber', apiLimiter, async (req, res) => {
   try {
     const student = await Student.findOne({ admissionNumber: req.params.admissionNumber });
     if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
@@ -204,7 +206,7 @@ router.get('/public/lookup/:admissionNumber', async (req, res) => {
 });
 
 // Public payment initiation — no login required
-router.post('/public/:id/initiate-payment', async (req, res) => {
+router.post('/public/:id/initiate-payment', paymentLimiter, async (req, res) => {
   try {
     const fee = await Fee.findById(req.params.id).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });

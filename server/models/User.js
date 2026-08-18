@@ -14,6 +14,12 @@ const userSchema = new mongoose.Schema({
 resetTokenExpires: { type: Date, default: null },
 }, { timestamps: true });
 
+// Indexes for better query performance
+userSchema.index({ email: 1 }); // Already unique, but explicit index
+userSchema.index({ role: 1 }); // Filter by role
+userSchema.index({ resetToken: 1 }); // Password reset lookup
+userSchema.index({ createdAt: -1 }); // Sort by creation date
+
 // Before saving, hash the password if it's new or changed
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;

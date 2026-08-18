@@ -14,7 +14,12 @@ const scoreSchema = new mongoose.Schema({
   toObject: { virtuals: true },
 });
 
-scoreSchema.index({ studentId: 1, subjectId: 1, term: 1, session: 1 }, { unique: true });
+// Indexes for better query performance
+scoreSchema.index({ studentId: 1, subjectId: 1, term: 1, session: 1 }, { unique: true }); // Existing compound index
+scoreSchema.index({ studentId: 1 }); // Query all scores for a student
+scoreSchema.index({ subjectId: 1 }); // Query scores by subject
+scoreSchema.index({ term: 1, session: 1 }); // Query scores by term/session
+scoreSchema.index({ createdAt: -1 }); // Sort by creation date
 
 scoreSchema.virtual('total').get(function () {
   return this.ca1 + this.ca2 + this.exam;

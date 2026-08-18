@@ -12,7 +12,11 @@ const feeSchema = new mongoose.Schema({
   toObject: { virtuals: true },
 });
 
-feeSchema.index({ studentId: 1, term: 1, session: 1 }, { unique: true });
+// Indexes for better query performance
+feeSchema.index({ studentId: 1, term: 1, session: 1 }, { unique: true }); // Existing compound index
+feeSchema.index({ studentId: 1 }); // Query all fees for a student
+feeSchema.index({ term: 1, session: 1 }); // Query fees by term/session
+feeSchema.index({ createdAt: -1 }); // Sort by creation date
 
 feeSchema.virtual('balance').get(function () {
   return this.amountExpected - this.amountPaid;

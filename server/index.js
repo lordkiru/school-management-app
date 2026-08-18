@@ -14,6 +14,7 @@ const paystackWebhookRoutes = require('./routes/paystackWebhook');
 const staffRoutes = require('./routes/staff');
 const timetableRoutes = require('./routes/timetable');
 const sessionRoutes = require('./routes/sessions');
+const parentRoutes = require('./routes/parents');
 
 
 
@@ -38,6 +39,7 @@ app.use('/paystack/webhook', paystackWebhookRoutes);
 app.use('/staff', staffRoutes);
 app.use('/timetable', timetableRoutes);
 app.use('/sessions', sessionRoutes);
+app.use('/parents', parentRoutes);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

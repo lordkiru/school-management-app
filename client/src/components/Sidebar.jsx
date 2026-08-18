@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -13,6 +13,7 @@ const navItems = [
   { key: 'sessions', label: 'Sessions', icon: CalendarRange, allowedRoles: ['proprietor'] },
   { key: 'promote', label: 'Promote Class', icon: ArrowUpCircle, allowedRoles: ['proprietor', 'admin'] },
   { key: 'staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
   { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
   { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
 ];

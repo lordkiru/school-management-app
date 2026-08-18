@@ -29,6 +29,9 @@ import ReportCardView from './components/ReportCardView';
 import FeeReportByClass from './components/FeeReportByClass';
 import SessionManager from './components/SessionManager';
 import ResetPassword from './components/ResetPassword';
+import ParentList from './components/ParentList';
+import AddParent from './components/AddParent';
+import ParentPortal from './components/ParentPortal';
 
 const getDefaultPage = (role) => {
   if (role === 'teacher' || role === 'bursar') return 'students';
@@ -46,6 +49,7 @@ function App() {
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [activePage, setActivePage] = useState('dashboard');
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
+  const [parentRefreshKey, setParentRefreshKey] = useState(0);
 
   useEffect(() => {
     if (darkMode) {
@@ -79,6 +83,9 @@ function App() {
   }
   if (window.location.pathname === '/reset-password') {
     return <ResetPassword />;
+  }
+  if (window.location.pathname === '/portal') {
+    return <ParentPortal />;
   }
 
   if (!user) {
@@ -168,6 +175,14 @@ function App() {
         <div className="grid md:grid-cols-2 gap-6 p-6">
           <AddStaff onStaffAdded={() => setStaffRefreshKey((k) => k + 1)} currentUserRole={user.role} />
           <StaffList refreshKey={staffRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'parents') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <AddParent onParentAdded={() => setParentRefreshKey((k) => k + 1)} />
+          <ParentList refreshKey={parentRefreshKey} />
         </div>
       );
     }

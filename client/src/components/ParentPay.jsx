@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 function ParentPay() {
+  const navigate = useNavigate();
   const [admissionNumber, setAdmissionNumber] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -45,16 +47,23 @@ function ParentPay() {
   return (
     <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 p-8">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate('/portal')}
+            className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </button>
+          <a href="/results" className="text-sm text-indigo-600 hover:underline">
+            View results →
+          </a>
+        </div>
+
         <h1 className="text-xl font-bold text-slate-800 text-center mb-1">School Fee Payment</h1>
         <p className="text-sm text-slate-500 text-center mb-4">
           Enter your child's admission number to view and pay outstanding fees.
         </p>
-
-        <div className="text-center mb-4">
-          <a href="/results" className="text-sm text-indigo-600 hover:underline">
-            View results instead →
-          </a>
-        </div>
 
         <form onSubmit={handleLookup} className="flex gap-2 mb-6">
           <input

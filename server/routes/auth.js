@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const requireAuth = require('../middleware/auth');
 const User = require('../models/User');
+const { authLimiter } = require('../middleware/rateLimiter');
+const { validateLogin, validateStaff } = require('../middleware/validators');
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -18,7 +20,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });

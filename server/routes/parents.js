@@ -5,6 +5,8 @@ const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { authLimiter } = require('../middleware/rateLimiter');
+const { validateParent, validateLogin } = require('../middleware/validators');
 
 // Get all parents (admin only)
 router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
@@ -17,7 +19,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res
 });
 
 // Create a new parent (admin only)
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateParent, async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
@@ -45,7 +47,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
 });
 
 // Parent login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
 

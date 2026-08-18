@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Search, Printer, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
 function ParentResults() {
-  const navigate = useNavigate();
   const [admissionNumber, setAdmissionNumber] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -43,13 +41,13 @@ function ParentResults() {
       <div className="w-full max-w-2xl bg-white rounded-xl shadow-sm border border-slate-100 p-8 print:shadow-none print:border-0">
         <div className="print:hidden">
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => navigate('/portal')}
+            <a
+              href="/portal"
               className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
             >
               <ArrowLeft size={16} />
               Back to Dashboard
-            </button>
+            </a>
             <a href="/pay" className="text-sm text-indigo-600 hover:underline">
               Pay fees instead →
             </a>

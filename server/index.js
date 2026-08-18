@@ -2,6 +2,34 @@ require('dotenv').config();
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const helmet = require('helmet');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const { initSentry, getSentryMiddleware } = require('./config/sentry');
+
+const app = express();
+
+// Initialize Sentry FIRST (before any other middleware)
+initSentry(app);
+const sentryMiddleware = getSentryMiddleware();
+
+// Sentry request handler must be the first middleware
+app.use(sentryMiddleware.requestHandler);
+// TracingHandler creates a trace for every incoming request
+app.use(sentryMiddleware.tracingHandler);
+
+// Security middleware
+app.use(helmet()); // Set security headers
+app.use(cors());
+app.use(express.json({ limit: '10mb' })); // Limit body size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Apply rate limiting to all routes
+app.use('/api/', apiLimiter);
+
+// Import routes
 const studentRoutes = require('./routes/students');
 const classRoutes = require('./routes/classes');
 const subjectRoutes = require('./routes/subjects');
@@ -15,26 +43,9 @@ const staffRoutes = require('./routes/staff');
 const timetableRoutes = require('./routes/timetable');
 const sessionRoutes = require('./routes/sessions');
 const parentRoutes = require('./routes/parents');
+const testRoutes = require('./routes/test');
 
-
-
-
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const { apiLimiter } = require('./middleware/rateLimiter');
-
-const app = express();
-
-// Security middleware
-app.use(helmet()); // Set security headers
-app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Limit body size
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Apply rate limiting to all routes
-app.use('/api/', apiLimiter);
+// Register routes
 app.use('/students', studentRoutes);
 app.use('/classes', classRoutes);
 app.use('/subjects', subjectRoutes);
@@ -48,8 +59,21 @@ app.use('/staff', staffRoutes);
 app.use('/timetable', timetableRoutes);
 app.use('/sessions', sessionRoutes);
 app.use('/parents', parentRoutes);
+app.use('/test', testRoutes);
+
 app.get('/', (req, res) => {
   res.send('API is running');
+});
+
+// Sentry error handler must be AFTER all routes but BEFORE other error handlers
+app.use(sentryMiddleware.errorHandler);
+
+// Custom error handler (after Sentry)
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+  });
 });
 
 const PORT = process.env.PORT || 5000;

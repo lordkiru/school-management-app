@@ -103,8 +103,14 @@ app.use(sentryMiddleware.errorHandler);
 // Custom error handler (after Sentry)
 app.use((err, req, res, next) => {
   console.error('Error:', err);
+  
+  // Sanitize error messages in production
+  const message = process.env.NODE_ENV === 'production' 
+    ? 'An error occurred. Please try again later.' 
+    : err.message || 'Internal server error';
+  
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    error: message,
   });
 });
 

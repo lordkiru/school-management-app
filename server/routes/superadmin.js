@@ -186,6 +186,100 @@ router.patch('/tenants/:tenantId/status', requireAuth, requireSuperAdmin, async 
   }
 });
 
+// Create new tenant/school (Super Admin)
+router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain, plan = 'trial' } = req.body;
+
+    // Validate required fields
+    if (!schoolName || !ownerName || !ownerEmail || !ownerPassword) {
+      return res.status(400).json({ 
+        error: 'School name, owner name, email, and password are required' 
+      });
+    }
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email: ownerEmail });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Generate unique tenantId
+    const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create tenant
+    const tenant = new Tenant({
+      tenantId,
+      name: schoolName,
+      subdomain: subdomain || tenantId,
+      status: plan === 'trial' ? 'trial' : 'active',
+    });
+
+    await tenant.save();
+
+    // Create owner user (proprietor)
+    const owner = new User({
+      tenantId,
+      name: ownerName,
+      email: ownerEmail,
+      password: ownerPassword, // Will be hashed by pre-save hook
+      role: 'proprietor',
+    });
+
+    await owner.save();
+
+    // Link owner to tenant
+    tenant.ownerId = owner._id;
+    await tenant.save();
+
+    // Create subscription
+    const billingCycle = 'monthly';
+    const startDate = new Date();
+    const endDate = new Date();
+    
+    if (plan === 'trial') {
+      endDate.setDate(endDate.getDate() + 14); // 14 days trial
+    } else if (billingCycle === 'monthly') {
+      endDate.setMonth(endDate.getMonth() + 1);
+    } else {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    }
+
+    const subscription = new Subscription({
+      tenantId,
+      plan,
+      billingCycle,
+      status: 'active',
+      startDate,
+      endDate,
+    });
+
+    await subscription.save();
+
+    res.status(201).json({
+      message: 'School created successfully by super admin',
+      tenant: {
+        tenantId: tenant.tenantId,
+        name: tenant.name,
+        subdomain: tenant.subdomain,
+        status: tenant.status,
+      },
+      owner: {
+        id: owner._id,
+        name: owner.name,
+        email: owner.email,
+      },
+      subscription: {
+        plan: subscription.plan,
+        endDate: subscription.endDate,
+      },
+    });
+  } catch (err) {
+    console.error('Tenant creation error:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Delete tenant (soft delete)
 router.delete('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
@@ -199,7 +293,70 @@ router.delete('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, 
       return res.status(404).json({ error: 'Tenant not found' });
     }
 
+    // Also cancel their subscription
+    await Subscription.updateMany(
+      { tenantId: req.params.tenantId, status: 'active' },
+      { status: 'cancelled', endDate: new Date() }
+    );
+
     res.json({ message: 'Tenant cancelled successfully', tenant });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Permanently delete tenant and all data (DANGEROUS - use with caution)
+router.delete('/tenants/:tenantId/permanent', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { confirm } = req.body;
+
+    if (confirm !== 'DELETE_PERMANENTLY') {
+      return res.status(400).json({ 
+        error: 'Please confirm permanent deletion by sending { "confirm": "DELETE_PERMANENTLY" }' 
+      });
+    }
+
+    const tenant = await Tenant.findOne({ tenantId: req.params.tenantId });
+    
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // Delete all tenant data
+    const Student = require('../models/Student');
+    const Class = require('../models/Class');
+    const Subject = require('../models/Subject');
+    const Score = require('../models/Score');
+    const Fee = require('../models/Fee');
+    const Parent = require('../models/Parent');
+    const School = require('../models/School');
+    const Session = require('../models/Session');
+    const Timetable = require('../models/Timetable');
+    const AuditLog = require('../models/AuditLog');
+    const Counter = require('../models/Counter');
+
+    await Promise.all([
+      User.deleteMany({ tenantId: req.params.tenantId }),
+      Student.deleteMany({ tenantId: req.params.tenantId }),
+      Class.deleteMany({ tenantId: req.params.tenantId }),
+      Subject.deleteMany({ tenantId: req.params.tenantId }),
+      Score.deleteMany({ tenantId: req.params.tenantId }),
+      Fee.deleteMany({ tenantId: req.params.tenantId }),
+      Parent.deleteMany({ tenantId: req.params.tenantId }),
+      School.deleteMany({ tenantId: req.params.tenantId }),
+      Session.deleteMany({ tenantId: req.params.tenantId }),
+      Timetable.deleteMany({ tenantId: req.params.tenantId }),
+      AuditLog.deleteMany({ tenantId: req.params.tenantId }),
+      Counter.deleteMany({ tenantId: req.params.tenantId }),
+      Subscription.deleteMany({ tenantId: req.params.tenantId }),
+      Tenant.deleteOne({ tenantId: req.params.tenantId }),
+    ]);
+
+    res.json({ 
+      message: 'Tenant and all associated data permanently deleted',
+      tenantId: req.params.tenantId,
+      tenantName: tenant.name
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

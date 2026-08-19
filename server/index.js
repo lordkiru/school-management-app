@@ -76,6 +76,8 @@ const timetableRoutes = require('./routes/timetable');
 const sessionRoutes = require('./routes/sessions');
 const parentRoutes = require('./routes/parents');
 const testRoutes = require('./routes/test');
+const tenantRoutes = require('./routes/tenants');
+const subscriptionRoutes = require('./routes/subscriptions');
 
 // Register routes
 app.use('/students', studentRoutes);
@@ -92,6 +94,8 @@ app.use('/timetable', timetableRoutes);
 app.use('/sessions', sessionRoutes);
 app.use('/parents', parentRoutes);
 app.use('/test', testRoutes);
+app.use('/tenants', tenantRoutes);
+app.use('/subscriptions', subscriptionRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

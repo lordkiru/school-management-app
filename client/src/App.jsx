@@ -32,6 +32,8 @@ import ResetPassword from './components/ResetPassword';
 import ParentList from './components/ParentList';
 import AddParent from './components/AddParent';
 import ParentPortal from './components/ParentPortal';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import TenantManagement from './pages/TenantManagement';
 
 const getDefaultPage = (role) => {
   if (role === 'teacher' || role === 'bursar') return 'students';
@@ -194,6 +196,13 @@ function App() {
     }
     if (activePage === 'reportcards') {
       return <ReportCardView />;
+    }
+    // Super Admin Routes
+    if (activePage === 'superadmin') {
+      return <SuperAdminDashboard />;
+    }
+    if (activePage === 'superadmin-tenants') {
+      return <TenantManagement />;
     }
     return (
       <div className="p-6 text-gray-500 dark:text-gray-400">

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2 } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -16,6 +16,9 @@ const navItems = [
   { key: 'parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
   { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
   { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
+  // Super Admin Menu Items
+  { key: 'superadmin', label: '🎯 Super Admin', icon: Shield, allowedRoles: ['super_admin'] },
+  { key: 'superadmin-tenants', label: '🏫 Manage Schools', icon: Building2, allowedRoles: ['super_admin'] },
 ];
 
 function Sidebar({ activePage, onSelectPage, userRole }) {

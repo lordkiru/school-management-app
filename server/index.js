@@ -78,6 +78,7 @@ const parentRoutes = require('./routes/parents');
 const testRoutes = require('./routes/test');
 const tenantRoutes = require('./routes/tenants');
 const subscriptionRoutes = require('./routes/subscriptions');
+const superAdminRoutes = require('./routes/superadmin');
 
 // Register routes
 app.use('/students', studentRoutes);
@@ -96,6 +97,7 @@ app.use('/parents', parentRoutes);
 app.use('/test', testRoutes);
 app.use('/tenants', tenantRoutes);
 app.use('/subscriptions', subscriptionRoutes);
+app.use('/superadmin', superAdminRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

@@ -10,10 +10,10 @@ const { validateScore, validateMongoId } = require('../middleware/validators');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const school = await School.findOne();
+    const school = await School.findOne({ tenantId: req.user.tenantId });
     const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
 
-    const scores = await Score.find()
+    const scores = await Score.find({ tenantId: req.user.tenantId })
       .populate('studentId')
       .populate({
         path: 'subjectId',
@@ -35,7 +35,10 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, validateScore, async (req, res) => {
   try {
-    const score = new Score(req.body);
+    const score = new Score({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await score.save();
     res.status(201).json(score);
   } catch (err) {
@@ -45,10 +48,11 @@ router.post('/', requireAuth, validateScore, async (req, res) => {
 
 router.patch('/:id', requireAuth, validateMongoId, async (req, res) => {
   try {
-    const updated = await Score.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updated = await Score.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
     if (!updated) return res.status(404).json({ error: 'Score not found' });
     res.json(updated);
   } catch (err) {
@@ -58,7 +62,7 @@ router.patch('/:id', requireAuth, validateMongoId, async (req, res) => {
 
 router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
-    const deleted = await Score.findByIdAndDelete(req.params.id);
+    const deleted = await Score.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Score not found' });
     res.json({ message: 'Score deleted' });
   } catch (err) {
@@ -75,15 +79,24 @@ router.get('/report-card', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'classId, term, and session are required' });
     }
 
-    const school = await School.findOne();
+    const school = await School.findOne({ tenantId: req.user.tenantId });
     const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
 
-    const students = await Student.find({ classId, status: 'Active' }).populate('classId');
+    const students = await Student.find({ 
+      tenantId: req.user.tenantId,
+      classId, 
+      status: 'Active' 
+    }).populate('classId');
 
     const results = [];
 
     for (const student of students) {
-      const scoresRaw = await Score.find({ studentId: student._id, term, session }).populate({
+      const scoresRaw = await Score.find({ 
+        tenantId: req.user.tenantId,
+        studentId: student._id, 
+        term, 
+        session 
+      }).populate({
         path: 'subjectId',
         populate: { path: 'classId' },
       });

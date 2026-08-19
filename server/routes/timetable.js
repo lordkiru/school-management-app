@@ -8,7 +8,8 @@ const Timetable = require('../models/Timetable');
 router.get('/', requireAuth, async (req, res) => {
   try {
     const { classId } = req.query;
-    const filter = classId ? { classId } : {};
+    const filter = { tenantId: req.user.tenantId };
+    if (classId) filter.classId = classId;
 
     const entries = await Timetable.find(filter)
       .populate('classId')
@@ -26,7 +27,10 @@ router.get('/', requireAuth, async (req, res) => {
 // Add a new timetable entry
 router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const entry = new Timetable(req.body);
+    const entry = new Timetable({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await entry.save();
     res.status(201).json(entry);
   } catch (err) {
@@ -37,7 +41,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
 // Delete a timetable entry
 router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const deleted = await Timetable.findByIdAndDelete(req.params.id);
+    const deleted = await Timetable.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Timetable entry not found' });
     res.json({ message: 'Timetable entry deleted' });
   } catch (err) {

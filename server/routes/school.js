@@ -7,9 +7,9 @@ const upload = require('../uploadConfig');
 // Get school info (creates a default one if none exists yet)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    let school = await School.findOne();
+    let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
-      school = await School.create({});
+      school = await School.create({ tenantId: req.user.tenantId });
     }
     res.json(school);
   } catch (err) {
@@ -20,14 +20,15 @@ router.get('/', requireAuth, async (req, res) => {
 // Update school info
 router.patch('/', requireAuth, async (req, res) => {
   try {
-    let school = await School.findOne();
+    let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
-      school = await School.create(req.body);
+      school = await School.create({ ...req.body, tenantId: req.user.tenantId });
     } else {
-      school = await School.findByIdAndUpdate(school._id, req.body, {
-        new: true,
-        runValidators: true,
-      });
+      school = await School.findOneAndUpdate(
+        { tenantId: req.user.tenantId },
+        req.body,
+        { new: true, runValidators: true }
+      );
     }
     res.json(school);
   } catch (err) {
@@ -42,12 +43,12 @@ router.post('/logo', requireAuth, upload.single('logo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    let school = await School.findOne();
+    let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
-      school = await School.create({ logoUrl: req.file.path });
+      school = await School.create({ tenantId: req.user.tenantId, logoUrl: req.file.path });
     } else {
-      school = await School.findByIdAndUpdate(
-        school._id,
+      school = await School.findOneAndUpdate(
+        { tenantId: req.user.tenantId },
         { logoUrl: req.file.path },
         { new: true }
       );

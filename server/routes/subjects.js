@@ -7,7 +7,9 @@ const requireRole = require('../middleware/requireRole');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const subjects = await Subject.find().populate('classId').populate('teacherId', 'name email');
+    const subjects = await Subject.find({ tenantId: req.user.tenantId })
+      .populate('classId')
+      .populate('teacherId', 'name email');
     res.json(subjects);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -16,7 +18,10 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const subject = new Subject(req.body);
+    const subject = new Subject({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await subject.save();
     res.status(201).json(subject);
   } catch (err) {
@@ -26,10 +31,11 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
 
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const updated = await Subject.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updated = await Subject.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
     if (!updated) return res.status(404).json({ error: 'Subject not found' });
     res.json(updated);
   } catch (err) {
@@ -39,10 +45,10 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req
 
 router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const deleted = await Subject.findByIdAndDelete(req.params.id);
+    const deleted = await Subject.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Subject not found' });
 
-    await Score.deleteMany({ subjectId: req.params.id });
+    await Score.deleteMany({ tenantId: req.user.tenantId, subjectId: req.params.id });
 
     res.json({ message: 'Subject and related scores deleted' });
   } catch (err) {
@@ -55,8 +61,8 @@ router.patch('/:id/assign-teacher', requireAuth, requireRole('proprietor', 'admi
   try {
     const { teacherId } = req.body;
 
-    const subject = await Subject.findByIdAndUpdate(
-      req.params.id,
+    const subject = await Subject.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
       { teacherId: teacherId || null },
       { new: true, runValidators: true }
     ).populate('teacherId', 'name email');

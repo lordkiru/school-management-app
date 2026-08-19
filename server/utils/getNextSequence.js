@@ -1,8 +1,8 @@
 const Counter = require('../models/Counter');
 
-async function getNextSequence(name) {
+async function getNextSequence(name, tenantId) {
   const counter = await Counter.findOneAndUpdate(
-    { name },
+    { name, tenantId },
     { $inc: { value: 1 } },
     { new: true, upsert: true }
   );

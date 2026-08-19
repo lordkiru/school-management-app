@@ -6,7 +6,7 @@ const Session = require('../models/Session');
 // Get all sessions
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const sessions = await Session.find().sort({ name: -1 });
+    const sessions = await Session.find({ tenantId: req.user.tenantId }).sort({ name: -1 });
     res.json(sessions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -16,7 +16,10 @@ router.get('/', requireAuth, async (req, res) => {
 // Create a new session
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const session = new Session(req.body);
+    const session = new Session({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await session.save();
     res.status(201).json(session);
   } catch (err) {
@@ -27,10 +30,10 @@ router.post('/', requireAuth, async (req, res) => {
 // Mark a session as the current one (unmarks every other session)
 router.patch('/:id/set-current', requireAuth, async (req, res) => {
   try {
-    await Session.updateMany({}, { $set: { isCurrent: false } });
+    await Session.updateMany({ tenantId: req.user.tenantId }, { $set: { isCurrent: false } });
 
-    const session = await Session.findByIdAndUpdate(
-      req.params.id,
+    const session = await Session.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
       { isCurrent: true },
       { new: true }
     );
@@ -46,7 +49,7 @@ router.patch('/:id/set-current', requireAuth, async (req, res) => {
 // Delete a session
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const deleted = await Session.findByIdAndDelete(req.params.id);
+    const deleted = await Session.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Session not found' });
     res.json({ message: 'Session deleted' });
   } catch (err) {

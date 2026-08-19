@@ -16,14 +16,15 @@ router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, re
 
     if (search) {
       const matchingStudents = await Student.find({
+        tenantId: req.user.tenantId,
         name: { $regex: search, $options: 'i' },
       });
       const studentIds = matchingStudents.map((s) => s._id);
-      const fees = await Fee.find({ studentId: { $in: studentIds } }).populate('studentId');
+      const fees = await Fee.find({ tenantId: req.user.tenantId, studentId: { $in: studentIds } }).populate('studentId');
       return res.json(fees);
     }
 
-    const fees = await Fee.find().populate('studentId');
+    const fees = await Fee.find({ tenantId: req.user.tenantId }).populate('studentId');
     res.json(fees);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -32,7 +33,10 @@ router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, re
 
 router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, async (req, res) => {
   try {
-    const fee = new Fee(req.body);
+    const fee = new Fee({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await fee.save();
     res.status(201).json(fee);
   } catch (err) {
@@ -44,7 +48,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, 
 router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, validateAmount, async (req, res) => {
   try {
     const { amount } = req.body;
-    const fee = await Fee.findById(req.params.id);
+    const fee = await Fee.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
 
     fee.amountPaid += amount;
@@ -57,10 +61,11 @@ router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), valid
 
 router.delete('/:id', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, async (req, res) => {
   try {
-    const fee = await Fee.findById(req.params.id).populate('studentId');
+    const fee = await Fee.findOne({ _id: req.params.id, tenantId: req.user.tenantId }).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
 
     await AuditLog.create({
+      tenantId: req.user.tenantId,
       action: 'delete',
       entityType: 'Fee',
       entityId: fee._id,
@@ -85,7 +90,7 @@ router.post('/bulk-by-class', requireAuth, requireRole('proprietor', 'bursar'), 
       return res.status(400).json({ error: 'classId, term, session, and amountExpected are required' });
     }
 
-    const students = await Student.find({ classId });
+    const students = await Student.find({ tenantId: req.user.tenantId, classId });
 
     if (students.length === 0) {
       return res.status(404).json({ error: 'No students found in this class' });
@@ -94,7 +99,7 @@ router.post('/bulk-by-class', requireAuth, requireRole('proprietor', 'bursar'), 
     const results = { created: 0, updated: 0 };
 
     for (const student of students) {
-      const existing = await Fee.findOne({ studentId: student._id, term, session });
+      const existing = await Fee.findOne({ tenantId: req.user.tenantId, studentId: student._id, term, session });
 
       if (existing) {
         existing.amountExpected += amountExpected;
@@ -102,6 +107,7 @@ router.post('/bulk-by-class', requireAuth, requireRole('proprietor', 'bursar'), 
         results.updated++;
       } else {
         await Fee.create({
+          tenantId: req.user.tenantId,
           studentId: student._id,
           term,
           session,
@@ -129,11 +135,11 @@ router.patch('/adjust-by-class', requireAuth, requireRole('proprietor', 'bursar'
       return res.status(400).json({ error: 'classId, term, session, and amountExpected are required' });
     }
 
-    const students = await Student.find({ classId });
+    const students = await Student.find({ tenantId: req.user.tenantId, classId });
     const studentIds = students.map((s) => s._id);
 
     const result = await Fee.updateMany(
-      { studentId: { $in: studentIds }, term, session },
+      { tenantId: req.user.tenantId, studentId: { $in: studentIds }, term, session },
       { $set: { amountExpected } }
     );
 
@@ -149,7 +155,7 @@ router.patch('/adjust-by-class', requireAuth, requireRole('proprietor', 'bursar'
 // Ask Paystack to generate a payment link for a fee's outstanding balance
 router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
-    const fee = await Fee.findById(req.params.id).populate('studentId');
+    const fee = await Fee.findOne({ _id: req.params.id, tenantId: req.user.tenantId }).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
 
     const balance = fee.amountExpected - fee.amountPaid;
@@ -187,7 +193,7 @@ router.get('/public/lookup/:admissionNumber', apiLimiter, async (req, res) => {
     const student = await Student.findOne({ admissionNumber: req.params.admissionNumber });
     if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
 
-    const allFees = await Fee.find({ studentId: student._id });
+    const allFees = await Fee.find({ tenantId: student.tenantId, studentId: student._id });
     const outstandingFees = allFees.filter((f) => f.amountExpected > f.amountPaid);
 
     res.json({
@@ -245,7 +251,7 @@ router.get('/report-by-class', requireAuth, requireRole('proprietor', 'bursar'),
   try {
     const { term, session } = req.query;
 
-    const filter = {};
+    const filter = { tenantId: req.user.tenantId };
     if (term) filter.term = term;
     if (session) filter.session = session;
 

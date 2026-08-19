@@ -30,11 +30,11 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
     if (!isMatch) return res.status(401).json({ error: 'Invalid email or password' });
 
     const token = jwt.sign(
-      { id: user._id, role: user.role, email: user.email, name: user.name },
+      { id: user._id, role: user.role, email: user.email, name: user.name, tenantId: user.tenantId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: user.tenantId } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -45,7 +45,8 @@ router.post('/generate-reset', authLimiter, requireAuth, validateGenerateReset, 
   try {
     const { userId } = req.body;
 
-    const user = await User.findById(userId);
+    // Ensure user belongs to same tenant
+    const user = await User.findOne({ _id: userId, tenantId: req.user.tenantId });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const token = crypto.randomBytes(32).toString('hex');

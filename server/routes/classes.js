@@ -6,7 +6,7 @@ const Class = require('../models/Class');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const classes = await Class.find();
+    const classes = await Class.find({ tenantId: req.user.tenantId });
     res.json(classes);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -15,7 +15,10 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const newClass = new Class(req.body);
+    const newClass = new Class({
+      ...req.body,
+      tenantId: req.user.tenantId,
+    });
     await newClass.save();
     res.status(201).json(newClass);
   } catch (err) {
@@ -25,10 +28,11 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
 
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const updated = await Class.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updated = await Class.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
+      req.body,
+      { new: true, runValidators: true }
+    );
     if (!updated) return res.status(404).json({ error: 'Class not found' });
     res.json(updated);
   } catch (err) {
@@ -38,7 +42,7 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req
 
 router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const deleted = await Class.findByIdAndDelete(req.params.id);
+    const deleted = await Class.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Class not found' });
     res.json({ message: 'Class deleted' });
   } catch (err) {

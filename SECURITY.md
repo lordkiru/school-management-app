@@ -154,7 +154,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ### Infrastructure
 - [ ] HTTPS enforcement
 - [ ] Database backups
-- [ ] Error logging (Sentry)
+- [x] Error logging (Sentry)
 - [ ] Monitoring (New Relic/DataDog)
 - [ ] DDoS protection (Cloudflare)
 
@@ -295,11 +295,11 @@ CLOUDINARY_API_SECRET=<your_api_secret>
 | 2026-08-18 | Added input validation | ✅ Complete |
 | 2026-08-18 | Added security headers | ✅ Complete |
 | 2026-08-18 | Added XSS protection | ✅ Complete |
-| TBD | Rotate credentials | ⏳ Pending |
-| TBD | Remove .env from git | ⏳ Pending |
-| TBD | Add error logging | ⏳ Pending |
+| 2026-08-19 | Added Sentry error logging | ✅ Complete |
+| 2026-08-19 | Removed .env from git history | ✅ Complete |
+| 2026-08-18 | Rotated all credentials | ✅ Complete |
 
 ---
 
-**Last Updated:** August 18, 2026
+**Last Updated:** August 19, 2026
 **Maintained By:** Development Team

@@ -1,11 +1,21 @@
 const mongoose = require('mongoose');
 
+const paymentSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
+  paymentDate: { type: Date, default: Date.now },
+  paymentMethod: { type: String, enum: ['Cash', 'Bank Transfer', 'Card', 'Paystack', 'Other'], default: 'Cash' },
+  reference: { type: String }, // Transaction reference
+  receivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Staff who received payment
+  notes: { type: String },
+});
+
 const feeSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   term: { type: String, enum: ['First Term', 'Second Term', 'Third Term'], required: true },
   session: { type: String, required: true },
   amountExpected: { type: Number, required: true },
   amountPaid: { type: Number, default: 0 },
+  payments: [paymentSchema], // Payment history
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

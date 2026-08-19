@@ -5,10 +5,10 @@ const crypto = require('crypto');
 const requireAuth = require('../middleware/auth');
 const User = require('../models/User');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { validateLogin, validateStaff } = require('../middleware/validators');
+const { validateLogin, validateStaff, validatePasswordReset, validateGenerateReset } = require('../middleware/validators');
 
 // Register a new user
-router.post('/register', async (req, res) => {
+router.post('/register', validateStaff, async (req, res) => {
   try {
     const user = new User(req.body);
     await user.save();
@@ -41,7 +41,7 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
 });
 
 // Generate a password reset token (proprietor does this on behalf of a staff member)
-router.post('/generate-reset', authLimiter, requireAuth, async (req, res) => {
+router.post('/generate-reset', authLimiter, requireAuth, validateGenerateReset, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -60,7 +60,7 @@ router.post('/generate-reset', authLimiter, requireAuth, async (req, res) => {
 });
 
 // Use a reset token to set a new password (no login required)
-router.post('/reset-password', authLimiter, async (req, res) => {
+router.post('/reset-password', authLimiter, validatePasswordReset, async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 

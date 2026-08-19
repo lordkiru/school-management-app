@@ -6,7 +6,7 @@ const requireRole = require('../middleware/requireRole');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { validateParent, validateLogin } = require('../middleware/validators');
+const { validateParent, validateLogin, validateStudentId, validateMongoId } = require('../middleware/validators');
 
 // Get all parents (admin only)
 router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
@@ -91,7 +91,7 @@ router.get('/me/children', requireAuth, async (req, res) => {
 });
 
 // Link a child to parent
-router.post('/:id/link-child', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/:id/link-child', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, validateStudentId, async (req, res) => {
   try {
     const { studentId } = req.body;
     const parent = await Parent.findById(req.params.id);
@@ -114,7 +114,7 @@ router.post('/:id/link-child', requireAuth, requireRole('proprietor', 'admin'), 
 });
 
 // Unlink a child from parent
-router.post('/:id/unlink-child', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/:id/unlink-child', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, validateStudentId, async (req, res) => {
   try {
     const { studentId } = req.body;
     const parent = await Parent.findById(req.params.id);
@@ -133,7 +133,7 @@ router.post('/:id/unlink-child', requireAuth, requireRole('proprietor', 'admin')
 });
 
 // Delete a parent
-router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
     const parent = await Parent.findByIdAndDelete(req.params.id);
     if (!parent) {

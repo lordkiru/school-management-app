@@ -183,6 +183,52 @@ const validateMongoId = [
   handleValidationErrors,
 ];
 
+// Password reset validation
+const validatePasswordReset = [
+  body('token')
+    .trim()
+    .notEmpty()
+    .withMessage('Reset token is required')
+    .isLength({ min: 32, max: 128 })
+    .withMessage('Invalid token format'),
+  body('newPassword')
+    .notEmpty()
+    .withMessage('New password is required')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+  handleValidationErrors,
+];
+
+// Generate reset token validation
+const validateGenerateReset = [
+  body('userId')
+    .notEmpty()
+    .withMessage('User ID is required')
+    .isMongoId()
+    .withMessage('Invalid user ID'),
+  handleValidationErrors,
+];
+
+// Payment amount validation
+const validateAmount = [
+  body('amount')
+    .notEmpty()
+    .withMessage('Amount is required')
+    .isFloat({ min: 0 })
+    .withMessage('Amount must be a positive number'),
+  handleValidationErrors,
+];
+
+// Student ID validation (for linking/unlinking)
+const validateStudentId = [
+  body('studentId')
+    .notEmpty()
+    .withMessage('Student ID is required')
+    .isMongoId()
+    .withMessage('Invalid student ID'),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateLogin,
   validateStudent,
@@ -191,5 +237,9 @@ module.exports = {
   validateFee,
   validateScore,
   validateMongoId,
+  validatePasswordReset,
+  validateGenerateReset,
+  validateAmount,
+  validateStudentId,
   handleValidationErrors,
 };

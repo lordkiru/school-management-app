@@ -7,7 +7,7 @@ const requireRole = require('../middleware/requireRole');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
-const { validateFee, validateMongoId } = require('../middleware/validators');
+const { validateFee, validateMongoId, validateAmount } = require('../middleware/validators');
 const { apiLimiter, paymentLimiter } = require('../middleware/rateLimiter');
 
 router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
@@ -41,7 +41,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, 
 });
 
 // Record a payment against an existing fee record
-router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
+router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, validateAmount, async (req, res) => {
   try {
     const { amount } = req.body;
     const fee = await Fee.findById(req.params.id);
@@ -55,7 +55,7 @@ router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), async
   }
 });
 
-router.delete('/:id', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
+router.delete('/:id', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, async (req, res) => {
   try {
     const fee = await Fee.findById(req.params.id).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });

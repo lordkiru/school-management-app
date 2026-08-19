@@ -41,7 +41,7 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
 });
 
 // Generate a password reset token (proprietor does this on behalf of a staff member)
-router.post('/generate-reset', requireAuth, async (req, res) => {
+router.post('/generate-reset', authLimiter, requireAuth, async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -60,7 +60,7 @@ router.post('/generate-reset', requireAuth, async (req, res) => {
 });
 
 // Use a reset token to set a new password (no login required)
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 

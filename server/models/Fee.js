@@ -10,6 +10,7 @@ const paymentSchema = new mongoose.Schema({
 });
 
 const feeSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   term: { type: String, enum: ['First Term', 'Second Term', 'Third Term'], required: true },
   session: { type: String, required: true },
@@ -23,9 +24,10 @@ const feeSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-feeSchema.index({ studentId: 1, term: 1, session: 1 }, { unique: true }); // Existing compound index
-feeSchema.index({ studentId: 1 }); // Query all fees for a student
-feeSchema.index({ term: 1, session: 1 }); // Query fees by term/session
+feeSchema.index({ tenantId: 1 }); // Filter by tenant
+feeSchema.index({ tenantId: 1, studentId: 1, term: 1, session: 1 }, { unique: true }); // Unique per tenant
+feeSchema.index({ tenantId: 1, studentId: 1 }); // Query all fees for a student per tenant
+feeSchema.index({ tenantId: 1, term: 1, session: 1 }); // Query fees by term/session per tenant
 feeSchema.index({ createdAt: -1 }); // Sort by creation date
 
 feeSchema.virtual('balance').get(function () {

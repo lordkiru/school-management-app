@@ -2,8 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true },
   password: { type: String, required: true },
   role: {
   type: String,
@@ -15,8 +16,9 @@ resetTokenExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 // Indexes for better query performance
-userSchema.index({ email: 1 }); // Already unique, but explicit index
-userSchema.index({ role: 1 }); // Filter by role
+userSchema.index({ tenantId: 1 }); // Filter by tenant
+userSchema.index({ tenantId: 1, email: 1 }, { unique: true }); // Email unique per tenant
+userSchema.index({ tenantId: 1, role: 1 }); // Filter by tenant + role
 userSchema.index({ resetToken: 1 }); // Password reset lookup
 userSchema.index({ createdAt: -1 }); // Sort by creation date
 

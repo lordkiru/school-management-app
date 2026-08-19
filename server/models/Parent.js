@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const parentSchema = new mongoose.Schema({
+  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
   name: {
     type: String,
     required: true,
@@ -9,7 +10,6 @@ const parentSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
   },
   phone: {
@@ -28,7 +28,9 @@ const parentSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-parentSchema.index({ email: 1 }); // Already unique, but explicit index
+parentSchema.index({ tenantId: 1 }); // Filter by tenant
+parentSchema.index({ tenantId: 1, email: 1 }, { unique: true }); // Email unique per tenant
+parentSchema.index({ tenantId: 1, phone: 1 }); // Filter by tenant + phone
 parentSchema.index({ createdAt: -1 }); // Sort by creation date
 
 // Before saving, hash the password if it's new or changed

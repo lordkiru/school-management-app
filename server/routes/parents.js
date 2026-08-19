@@ -29,14 +29,12 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateParent
       return res.status(400).json({ error: 'Parent with this email already exists' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    // Password will be automatically hashed by the pre-save hook in the model
     const parent = new Parent({
       name,
       email,
       phone,
-      password: hashedPassword,
+      password, // No manual hashing needed - model handles it
     });
 
     await parent.save();
@@ -56,7 +54,8 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isMatch = await bcrypt.compare(password, parent.password);
+    // Use the comparePassword method from the model
+    const isMatch = await parent.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

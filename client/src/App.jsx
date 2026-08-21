@@ -34,8 +34,10 @@ import AddParent from './components/AddParent';
 import ParentPortal from './components/ParentPortal';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import TenantManagement from './pages/TenantManagement';
+import SubscriptionManagement from './pages/SubscriptionManagement';
 
 const getDefaultPage = (role) => {
+  if (role === 'super_admin') return 'superadmin';
   if (role === 'teacher' || role === 'bursar') return 'students';
   return 'dashboard';
 };
@@ -199,10 +201,13 @@ function App() {
     }
     // Super Admin Routes
     if (activePage === 'superadmin') {
-      return <SuperAdminDashboard />;
+      return <SuperAdminDashboard onNavigate={(page) => setActivePage(page)} />;
     }
     if (activePage === 'superadmin-tenants') {
       return <TenantManagement />;
+    }
+    if (activePage === 'superadmin-subscriptions') {
+      return <SubscriptionManagement />;
     }
     return (
       <div className="p-6 text-gray-500 dark:text-gray-400">

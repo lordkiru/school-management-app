@@ -43,13 +43,18 @@ router.post('/logo', requireAuth, upload.single('logo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const logoUrl = req.file.secure_url || req.file.url;
+    if (!logoUrl) {
+      return res.status(500).json({ error: 'Upload succeeded but Cloudinary did not return a URL' });
+    }
+
     let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
-      school = await School.create({ tenantId: req.user.tenantId, logoUrl: req.file.path });
+      school = await School.create({ tenantId: req.user.tenantId, logoUrl });
     } else {
       school = await School.findOneAndUpdate(
         { tenantId: req.user.tenantId },
-        { logoUrl: req.file.path },
+        { logoUrl },
         { new: true }
       );
     }

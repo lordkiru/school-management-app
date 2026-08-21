@@ -63,11 +63,20 @@ router.post('/register', async (req, res) => {
     const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Create tenant
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days trial
+
     const tenant = new Tenant({
       tenantId,
-      name: schoolName,
+      schoolName,
       subdomain: subdomain || tenantId,
-      status: 'trial', // Start with trial
+      subscriptionPlan: 'trial',
+      subscriptionStatus: 'trialing',
+      trialEndsAt,
+      primaryContact: {
+        name: ownerName,
+        email: ownerEmail,
+      },
+      status: 'active',
     });
 
     await tenant.save();
@@ -91,9 +100,14 @@ router.post('/register', async (req, res) => {
     const subscription = new Subscription({
       tenantId,
       plan: 'trial',
-      status: 'active',
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days trial
+      interval: 'trial',
+      amount: 0,
+      currency: 'NGN',
+      status: 'trialing',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: trialEndsAt,
+      trialStart: new Date(),
+      trialEnd: trialEndsAt,
     });
 
     await subscription.save();
@@ -102,7 +116,7 @@ router.post('/register', async (req, res) => {
       message: 'Tenant created successfully',
       tenant: {
         tenantId: tenant.tenantId,
-        name: tenant.name,
+        schoolName: tenant.schoolName,
         subdomain: tenant.subdomain,
       },
       owner: {
@@ -112,7 +126,7 @@ router.post('/register', async (req, res) => {
       },
       subscription: {
         plan: subscription.plan,
-        endDate: subscription.endDate,
+        endDate: subscription.currentPeriodEnd,
       },
     });
   } catch (err) {
@@ -128,7 +142,7 @@ router.patch('/me', requireAuth, requireRole('proprietor'), async (req, res) => 
 
     const tenant = await Tenant.findOneAndUpdate(
       { tenantId: req.user.tenantId },
-      { name, subdomain, settings },
+      { schoolName: name, subdomain, settings },
       { new: true, runValidators: true }
     );
 
@@ -151,8 +165,8 @@ router.patch('/:tenantId/status', requireAuth, async (req, res) => {
 
     const { status } = req.body;
 
-    if (!['active', 'suspended', 'trial', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    if (!['active', 'suspended', 'deleted'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Use active, suspended, or deleted. (Trial/cancellation state is tracked separately on the subscription.)' });
     }
 
     const tenant = await Tenant.findOneAndUpdate(
@@ -180,7 +194,7 @@ router.delete('/:tenantId', requireAuth, async (req, res) => {
 
     const tenant = await Tenant.findOneAndUpdate(
       { tenantId: req.params.tenantId },
-      { status: 'cancelled' },
+      { status: 'deleted' },
       { new: true }
     );
 

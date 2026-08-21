@@ -7,6 +7,11 @@ const Student = require('../models/Student');
 const Fee = require('../models/Fee');
 const requireAuth = require('../middleware/auth');
 
+// The super admin's own internal tenant — not a real customer school,
+// so it's excluded from school lists/counts shown in the dashboard.
+const PLATFORM_TENANT_ID = 'tenant_super_admin_platform';
+const EXCLUDE_PLATFORM_TENANT = { tenantId: { $ne: PLATFORM_TENANT_ID } };
+
 // Middleware to check if user is super admin
 const requireSuperAdmin = (req, res, next) => {
   if (req.user.role !== 'super_admin') {
@@ -23,19 +28,19 @@ const requireSuperAdmin = (req, res, next) => {
 router.get('/dashboard', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     // Get tenant statistics
-    const totalTenants = await Tenant.countDocuments();
-    const activeTenants = await Tenant.countDocuments({ status: 'active' });
-    const trialTenants = await Tenant.countDocuments({ status: 'trial' });
-    const suspendedTenants = await Tenant.countDocuments({ status: 'suspended' });
-    const cancelledTenants = await Tenant.countDocuments({ status: 'cancelled' });
+    const totalTenants = await Tenant.countDocuments(EXCLUDE_PLATFORM_TENANT);
+    const activeTenants = await Tenant.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, status: 'active' });
+    const trialTenants = await Tenant.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, subscriptionStatus: 'trialing' });
+    const suspendedTenants = await Tenant.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, status: 'suspended' });
+    const cancelledTenants = await Tenant.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, subscriptionStatus: 'canceled' });
 
     // Get subscription statistics
-    const activeSubscriptions = await Subscription.countDocuments({ status: 'active' });
-    const expiredSubscriptions = await Subscription.countDocuments({ status: 'expired' });
+    const activeSubscriptions = await Subscription.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, status: 'active' });
+    const expiredSubscriptions = await Subscription.countDocuments({ ...EXCLUDE_PLATFORM_TENANT, status: 'canceled' });
     
     // Get subscription by plan
     const subscriptionsByPlan = await Subscription.aggregate([
-      { $match: { status: 'active' } },
+      { $match: { ...EXCLUDE_PLATFORM_TENANT, status: 'active' } },
       { $group: { _id: '$plan', count: { $sum: 1 } } }
     ]);
 
@@ -44,7 +49,7 @@ router.get('/dashboard', requireAuth, requireSuperAdmin, async (req, res) => {
     const totalStudents = await Student.countDocuments();
 
     // Get recent tenants (last 10)
-    const recentTenants = await Tenant.find()
+    const recentTenants = await Tenant.find(EXCLUDE_PLATFORM_TENANT)
       .populate('ownerId', 'name email')
       .sort({ createdAt: -1 })
       .limit(10);
@@ -53,8 +58,9 @@ router.get('/dashboard', requireAuth, requireSuperAdmin, async (req, res) => {
     const monthlyRevenue = await Subscription.aggregate([
       { 
         $match: { 
+          ...EXCLUDE_PLATFORM_TENANT,
           status: 'active',
-          billingCycle: 'monthly'
+          interval: 'monthly'
         } 
       },
       {
@@ -95,11 +101,11 @@ router.get('/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, search } = req.query;
     
-    const query = {};
+    const query = { ...EXCLUDE_PLATFORM_TENANT };
     if (status) query.status = status;
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { schoolName: { $regex: search, $options: 'i' } },
         { subdomain: { $regex: search, $options: 'i' } },
         { tenantId: { $regex: search, $options: 'i' } }
       ];
@@ -210,9 +216,15 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
     // Create tenant
     const tenant = new Tenant({
       tenantId,
-      name: schoolName,
+      schoolName,
       subdomain: subdomain || tenantId,
-      status: plan === 'trial' ? 'trial' : 'active',
+      subscriptionPlan: plan,
+      subscriptionStatus: plan === 'trial' ? 'trialing' : 'active',
+      primaryContact: {
+        name: ownerName,
+        email: ownerEmail,
+      },
+      status: 'active',
     });
 
     await tenant.save();
@@ -233,25 +245,31 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
     await tenant.save();
 
     // Create subscription
-    const billingCycle = 'monthly';
-    const startDate = new Date();
-    const endDate = new Date();
-    
+    const interval = 'monthly';
+    const currentPeriodStart = new Date();
+    const currentPeriodEnd = new Date();
+    let trialEnd;
+
     if (plan === 'trial') {
-      endDate.setDate(endDate.getDate() + 14); // 14 days trial
-    } else if (billingCycle === 'monthly') {
-      endDate.setMonth(endDate.getMonth() + 1);
+      currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 14); // 14 days trial
+      trialEnd = new Date(currentPeriodEnd);
+    } else if (interval === 'monthly') {
+      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
     } else {
-      endDate.setFullYear(endDate.getFullYear() + 1);
+      currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
     }
 
     const subscription = new Subscription({
       tenantId,
       plan,
-      billingCycle,
-      status: 'active',
-      startDate,
-      endDate,
+      interval: plan === 'trial' ? 'trial' : interval,
+      amount: 0,
+      currency: 'NGN',
+      status: plan === 'trial' ? 'trialing' : 'active',
+      currentPeriodStart,
+      currentPeriodEnd,
+      trialStart: plan === 'trial' ? currentPeriodStart : undefined,
+      trialEnd,
     });
 
     await subscription.save();
@@ -260,7 +278,7 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
       message: 'School created successfully by super admin',
       tenant: {
         tenantId: tenant.tenantId,
-        name: tenant.name,
+        schoolName: tenant.schoolName,
         subdomain: tenant.subdomain,
         status: tenant.status,
       },
@@ -271,7 +289,7 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
       },
       subscription: {
         plan: subscription.plan,
-        endDate: subscription.endDate,
+        endDate: subscription.currentPeriodEnd,
       },
     });
   } catch (err) {
@@ -285,7 +303,7 @@ router.delete('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, 
   try {
     const tenant = await Tenant.findOneAndUpdate(
       { tenantId: req.params.tenantId },
-      { status: 'cancelled' },
+      { status: 'deleted' },
       { new: true }
     );
 
@@ -296,7 +314,7 @@ router.delete('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, 
     // Also cancel their subscription
     await Subscription.updateMany(
       { tenantId: req.params.tenantId, status: 'active' },
-      { status: 'cancelled', endDate: new Date() }
+      { status: 'canceled', canceledAt: new Date() }
     );
 
     res.json({ message: 'Tenant cancelled successfully', tenant });
@@ -355,7 +373,7 @@ router.delete('/tenants/:tenantId/permanent', requireAuth, requireSuperAdmin, as
     res.json({ 
       message: 'Tenant and all associated data permanently deleted',
       tenantId: req.params.tenantId,
-      tenantName: tenant.name
+      tenantName: tenant.schoolName
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -371,7 +389,7 @@ router.get('/subscriptions', requireAuth, requireSuperAdmin, async (req, res) =>
   try {
     const { page = 1, limit = 20, status, plan } = req.query;
     
-    const query = {};
+    const query = { ...EXCLUDE_PLATFORM_TENANT };
     if (status) query.status = status;
     if (plan) query.plan = plan;
 
@@ -388,7 +406,7 @@ router.get('/subscriptions', requireAuth, requireSuperAdmin, async (req, res) =>
         const tenant = await Tenant.findOne({ tenantId: sub.tenantId });
         return {
           ...sub.toObject(),
-          tenant: tenant ? { name: tenant.name, subdomain: tenant.subdomain } : null
+          tenant: tenant ? { name: tenant.schoolName, subdomain: tenant.subdomain } : null
         };
       })
     );
@@ -480,7 +498,7 @@ router.get('/analytics', requireAuth, requireSuperAdmin, async (req, res) => {
 
     // New tenants over time
     const newTenants = await Tenant.aggregate([
-      { $match: { createdAt: { $gte: startDate } } },
+      { $match: { ...EXCLUDE_PLATFORM_TENANT, createdAt: { $gte: startDate } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -492,7 +510,7 @@ router.get('/analytics', requireAuth, requireSuperAdmin, async (req, res) => {
 
     // Active subscriptions over time
     const subscriptionTrends = await Subscription.aggregate([
-      { $match: { createdAt: { $gte: startDate } } },
+      { $match: { ...EXCLUDE_PLATFORM_TENANT, createdAt: { $gte: startDate } } },
       {
         $group: {
           _id: { 
@@ -507,6 +525,7 @@ router.get('/analytics', requireAuth, requireSuperAdmin, async (req, res) => {
 
     // Tenant status distribution
     const tenantStatusDistribution = await Tenant.aggregate([
+      { $match: EXCLUDE_PLATFORM_TENANT },
       {
         $group: {
           _id: '$status',
@@ -533,10 +552,10 @@ router.get('/export', requireAuth, requireSuperAdmin, async (req, res) => {
     let data;
     switch (type) {
       case 'tenants':
-        data = await Tenant.find().populate('ownerId', 'name email');
+        data = await Tenant.find(EXCLUDE_PLATFORM_TENANT).populate('ownerId', 'name email');
         break;
       case 'subscriptions':
-        data = await Subscription.find();
+        data = await Subscription.find(EXCLUDE_PLATFORM_TENANT);
         break;
       case 'users':
         data = await User.find().select('-password');

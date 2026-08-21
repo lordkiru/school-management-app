@@ -15,6 +15,12 @@ const tenantSchema = new mongoose.Schema({
     required: true 
   },
   
+  // The user (proprietor/super_admin) who owns/administers this tenant
+  ownerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  
   // Subdomain for accessing the school (e.g., "greenwood" for greenwood.schoolsaas.com)
   subdomain: { 
     type: String, 

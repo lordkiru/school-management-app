@@ -136,7 +136,7 @@ const TenantManagement = () => {
                 {tenants.map((tenant) => (
                   <tr key={tenant._id}>
                     <td>
-                      <strong>{tenant.name}</strong>
+                      <strong>{tenant.schoolName}</strong>
                       <br />
                       <small>{tenant.tenantId}</small>
                     </td>

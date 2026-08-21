@@ -8,6 +8,8 @@
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']); // Works around Windows/ISP DNS not resolving mongodb+srv SRV records
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Tenant = require('../models/Tenant');
@@ -25,13 +27,29 @@ async function createSuperAdmin() {
 
     // Check if super admin tenant exists
     let superAdminTenant = await Tenant.findOne({ tenantId: SUPER_ADMIN_TENANT_ID });
-    
+
+    // Use default credentials for simplicity
+    const name = 'Super Admin';
+    const email = 'admin@platform.com';
+    const password = 'Admin@123';
+
     if (!superAdminTenant) {
       console.log('📝 Creating Super Admin tenant...');
+
+      const farFuture = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000); // 100 years
+
       superAdminTenant = new Tenant({
         tenantId: SUPER_ADMIN_TENANT_ID,
-        name: 'Platform Administration',
+        schoolName: 'Platform Administration',
         subdomain: 'admin',
+        subscriptionPlan: 'enterprise',
+        subscriptionStatus: 'active',
+        subscriptionStartDate: new Date(),
+        subscriptionEndDate: farFuture,
+        primaryContact: {
+          name,
+          email,
+        },
         status: 'active',
       });
       await superAdminTenant.save();
@@ -41,10 +59,12 @@ async function createSuperAdmin() {
       const subscription = new Subscription({
         tenantId: SUPER_ADMIN_TENANT_ID,
         plan: 'enterprise',
-        billingCycle: 'yearly',
+        interval: 'yearly',
+        amount: 0,
+        currency: 'NGN',
         status: 'active',
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // 100 years
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: farFuture,
       });
       await subscription.save();
       console.log('✅ Super Admin subscription created\n');
@@ -63,11 +83,6 @@ async function createSuperAdmin() {
       return;
     }
 
-    // Use default credentials for simplicity
-    const name = 'Super Admin';
-    const email = 'admin@platform.com';
-    const password = 'Admin@123';
-
     console.log('📝 Creating Super Admin with default credentials...\n');
 
     // Create super admin user
@@ -81,7 +96,7 @@ async function createSuperAdmin() {
 
     await superAdmin.save();
 
-    // Link super admin to tenant
+    // Link the tenant to its owning super admin user
     superAdminTenant.ownerId = superAdmin._id;
     await superAdminTenant.save();
 

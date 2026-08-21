@@ -144,7 +144,7 @@ const SuperAdminDashboard = () => {
           {recentTenants?.map((tenant) => (
             <div key={tenant._id} className="tenant-card">
               <div className="tenant-header">
-                <h3>{tenant.name}</h3>
+                <h3>{tenant.schoolName}</h3>
                 <span className={`status-badge ${tenant.status}`}>
                   {tenant.status}
                 </span>

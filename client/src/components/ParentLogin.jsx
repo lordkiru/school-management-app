@@ -7,16 +7,27 @@ function ParentLogin({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Prefer tenantId from URL (?tenantId=tenant_xxx) — set by school when sharing the portal link.
+  // If not in URL, the parent can type it manually in the form.
+  const urlTenantId = new URLSearchParams(window.location.search).get('tenantId') || '';
+  const [tenantId, setTenantId] = useState(urlTenantId);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    if (!tenantId.trim()) {
+      setError('Please enter your School ID. Ask your school admin for this code.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/parents/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, tenantId: tenantId.trim() }),
       });
 
       const data = await res.json();
@@ -47,6 +58,26 @@ function ParentLogin({ onLoginSuccess }) {
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+
+          {/* Show School ID field only if not pre-filled from URL */}
+          {!urlTenantId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                School ID
+              </label>
+              <input
+                type="text"
+                value={tenantId}
+                onChange={(e) => setTenantId(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+                placeholder="e.g. tenant_1234_abc"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Ask your school admin for this code, or use the link they provided.
+              </p>
             </div>
           )}
 

@@ -12,14 +12,15 @@ function Login({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      // Extract subdomain from the current hostname for tenant-scoped login.
-      // e.g. "greenfield.lemida.com" → subdomain = "greenfield"
-      // On localhost or the root domain there is no subdomain — send empty string,
-      // and the server will fall back to a global lookup (dev mode / super admin).
-      const hostname = window.location.hostname; // e.g. "greenfield.lemida.com" or "localhost"
+      // Extract subdomain for tenant-scoped login.
+      // e.g. "greenfield.yourdomain.com" → subdomain = "greenfield"
+      // Hosting platform domains (vercel.app, onrender.com, etc.) are ignored —
+      // those are not real school subdomains, so we fall back to global lookup.
+      const hostname = window.location.hostname;
       const parts = hostname.split('.');
-      // A subdomain exists when there are 3+ parts and the first part is not "www"
-      const subdomain = parts.length >= 3 && parts[0] !== 'www' ? parts[0] : '';
+      const HOSTING_DOMAINS = ['vercel.app', 'onrender.com', 'netlify.app', 'railway.app', 'localhost'];
+      const isHostingDomain = HOSTING_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
+      const subdomain = (!isHostingDomain && parts.length >= 3 && parts[0] !== 'www') ? parts[0] : '';
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',

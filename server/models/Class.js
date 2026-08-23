@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const classSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   name: { type: String, required: true }, // e.g. "JSS1 Gold"
   level: { type: String, required: true }, // e.g. "JSS1"
   section: {

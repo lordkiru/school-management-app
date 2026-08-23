@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 const timetableSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
   subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
   dayOfWeek: { type: String, enum: DAYS, required: true },

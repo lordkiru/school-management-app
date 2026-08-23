@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const schoolSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, unique: true, index: true }, // Multi-tenant support - one school per tenant
+  tenantId: { type: String, required: true }, // Multi-tenant support - one school per tenant
   name: { type: String, required: true, default: 'My School' },
   address: { type: String, default: '' },
   logoUrl: { type: String, default: '' },

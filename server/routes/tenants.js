@@ -41,8 +41,9 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-// Create a new tenant (Public registration or Super Admin)
-router.post('/register', async (req, res) => {
+// Create a new tenant (Public self-registration)
+const { authLimiter } = require('../middleware/rateLimiter');
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain } = req.body;
 

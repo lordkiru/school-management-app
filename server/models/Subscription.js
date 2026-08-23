@@ -4,8 +4,7 @@ const subscriptionSchema = new mongoose.Schema({
   // Link to tenant
   tenantId: { 
     type: String, 
-    required: true, 
-    index: true 
+    required: true 
   },
   
   // Plan details

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const subjectSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   name: { type: String, required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

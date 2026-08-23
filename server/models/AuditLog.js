@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const auditLogSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   action: { type: String, required: true }, // e.g. "delete"
   entityType: { type: String, required: true }, // e.g. "Fee"
   entityId: { type: mongoose.Schema.Types.ObjectId, required: true },

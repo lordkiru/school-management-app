@@ -55,9 +55,9 @@ router.post('/upgrade', requireAuth, requireRole('proprietor'), async (req, res)
     });
 
     if (currentSubscription) {
-      // End current subscription
-      currentSubscription.status = 'cancelled';
-      currentSubscription.endDate = new Date();
+      // End current subscription — use 'canceled' to match the Subscription model enum
+      currentSubscription.status = 'canceled';
+      currentSubscription.canceledAt = new Date();
       await currentSubscription.save();
     }
 
@@ -74,10 +74,12 @@ router.post('/upgrade', requireAuth, requireRole('proprietor'), async (req, res)
     const newSubscription = new Subscription({
       tenantId: req.user.tenantId,
       plan,
-      billingCycle,
+      interval: billingCycle, // model uses 'interval', not 'billingCycle'
+      amount: 0, // updated by payment webhook
+      currency: 'NGN',
       status: 'active',
-      startDate,
-      endDate,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
     });
 
     await newSubscription.save();
@@ -109,14 +111,15 @@ router.post('/cancel', requireAuth, requireRole('proprietor'), async (req, res) 
       return res.status(404).json({ error: 'No active subscription found' });
     }
 
-    subscription.status = 'cancelled';
-    subscription.endDate = new Date();
+    // Use 'canceled' to match the Subscription model enum (one 'l')
+    subscription.status = 'canceled';
+    subscription.canceledAt = new Date();
     await subscription.save();
 
-    // Update tenant status
+    // Update tenant status — use 'suspended' (valid Tenant enum value)
     await Tenant.findOneAndUpdate(
       { tenantId: req.user.tenantId },
-      { status: 'cancelled' }
+      { subscriptionStatus: 'canceled' }
     );
 
     res.json({
@@ -139,10 +142,10 @@ router.post('/renew', requireAuth, requireRole('proprietor'), async (req, res) =
       return res.status(404).json({ error: 'No subscription found' });
     }
 
-    // Calculate new end date
+    // Calculate new end date based on existing interval
     const startDate = new Date();
     const endDate = new Date();
-    if (currentSubscription.billingCycle === 'monthly') {
+    if (currentSubscription.interval === 'monthly') {
       endDate.setMonth(endDate.getMonth() + 1);
     } else {
       endDate.setFullYear(endDate.getFullYear() + 1);
@@ -152,10 +155,12 @@ router.post('/renew', requireAuth, requireRole('proprietor'), async (req, res) =
     const renewal = new Subscription({
       tenantId: req.user.tenantId,
       plan: currentSubscription.plan,
-      billingCycle: currentSubscription.billingCycle,
+      interval: currentSubscription.interval,
+      amount: currentSubscription.amount || 0,
+      currency: currentSubscription.currency || 'NGN',
       status: 'active',
-      startDate,
-      endDate,
+      currentPeriodStart: startDate,
+      currentPeriodEnd: endDate,
     });
 
     await renewal.save();
@@ -201,8 +206,9 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     const { status } = req.body;
 
-    if (!['active', 'cancelled', 'expired', 'suspended'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    // Valid values must match the Subscription model enum: ['active', 'past_due', 'canceled', 'trialing', 'incomplete']
+    if (!['active', 'past_due', 'canceled', 'trialing', 'incomplete'].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Use 'active', 'past_due', 'canceled', 'trialing', or 'incomplete'." });
     }
 
     const subscription = await Subscription.findByIdAndUpdate(

@@ -45,12 +45,16 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateParent
   }
 });
 
-// Parent login
+  // Parent login — requires email + tenantId to scope to the correct school
 router.post('/login', authLimiter, validateLogin, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, tenantId } = req.body;
 
-    const parent = await Parent.findOne({ email });
+    if (!tenantId) {
+      return res.status(400).json({ error: 'tenantId is required to identify your school' });
+    }
+
+    const parent = await Parent.findOne({ email, tenantId });
     if (!parent) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

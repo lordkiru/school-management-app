@@ -6,12 +6,14 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('teacher');
   const [error, setError] = useState('');
+  const [errorDetails, setErrorDetails] = useState([]);
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setErrorDetails([]);
     setSuccess('');
     setLoading(true);
 
@@ -29,7 +31,12 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to add staff');
+        setError(data.error || 'Failed to add staff');
+        // Show field-level validation errors if present
+        if (data.details && data.details.length > 0) {
+          setErrorDetails(data.details.map((d) => d.msg));
+        }
+        return;
       }
 
       setSuccess(`${data.name} added successfully`);
@@ -55,8 +62,15 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Staff</h2>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
-          {error}
+        <div className="bg-rose-50 dark:bg-red-900/40 text-rose-600 dark:text-red-200 text-sm p-3 rounded-lg mb-3">
+          <p className="font-semibold mb-1">{error}</p>
+          {errorDetails.length > 0 && (
+            <ul className="list-disc list-inside space-y-0.5">
+              {errorDetails.map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {success && (
@@ -77,8 +91,12 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
+        placeholder="e.g. Welcome@123"
         className={inputClass}
       />
+      <p className="text-xs text-slate-400 dark:text-gray-500 -mt-2 mb-3">
+        Min 8 chars · uppercase · lowercase · number · special character (@$!%*?&)
+      </p>
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Role</label>
       <select value={role} onChange={(e) => setRole(e.target.value)} required className={`${inputClass} mb-4`}>

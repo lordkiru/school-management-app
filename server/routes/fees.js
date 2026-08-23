@@ -4,27 +4,55 @@ const axios = require('axios');
 
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const requireActiveSubscription = require('../middleware/checkSubscription');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
 const { validateFee, validateMongoId, validateAmount } = require('../middleware/validators');
 const { apiLimiter, paymentLimiter } = require('../middleware/rateLimiter');
 
+// Get fees — supports ?page=1&limit=50&search=&term=&session=
 router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, page, limit, term, session } = req.query;
+
+    const usePagination = page !== undefined || limit !== undefined;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 50));
+
+    const filter = { tenantId: req.user.tenantId };
+    if (term) filter.term = term;
+    if (session) filter.session = session;
 
     if (search) {
       const matchingStudents = await Student.find({
         tenantId: req.user.tenantId,
         name: { $regex: search, $options: 'i' },
       });
-      const studentIds = matchingStudents.map((s) => s._id);
-      const fees = await Fee.find({ tenantId: req.user.tenantId, studentId: { $in: studentIds } }).populate('studentId');
-      return res.json(fees);
+      filter.studentId = { $in: matchingStudents.map((s) => s._id) };
     }
 
-    const fees = await Fee.find({ tenantId: req.user.tenantId }).populate('studentId');
+    if (usePagination) {
+      const total = await Fee.countDocuments(filter);
+      const fees = await Fee.find(filter)
+        .populate({ path: 'studentId', populate: { path: 'classId' } })
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum);
+
+      return res.json({
+        fees,
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+      });
+    }
+
+    // Legacy: return flat array when no pagination params given
+    const fees = await Fee.find(filter).populate({
+      path: 'studentId',
+      populate: { path: 'classId' },
+    });
     res.json(fees);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -188,9 +216,14 @@ router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bur
 });
 
 // Public lookup — no login required. Returns only minimal info needed to pay.
+// Requires tenantId query param to scope to the correct school (since admission numbers are not globally unique).
 router.get('/public/lookup/:admissionNumber', apiLimiter, async (req, res) => {
   try {
-    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber });
+    const { tenantId } = req.query;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'tenantId query parameter is required to identify your school' });
+    }
+    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber, tenantId });
     if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
 
     const allFees = await Fee.find({ tenantId: student.tenantId, studentId: student._id });
@@ -216,6 +249,11 @@ router.post('/public/:id/initiate-payment', paymentLimiter, async (req, res) => 
   try {
     const fee = await Fee.findById(req.params.id).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
+
+    // Cross-tenant protection: verify the fee belongs to the same tenant as the student
+    if (!fee.studentId || fee.studentId.tenantId !== fee.tenantId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     const balance = fee.amountExpected - fee.amountPaid;
     if (balance <= 0) {

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Trash2, Printer } from 'lucide-react';
+import printArea from '../utils/printArea';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -11,6 +12,7 @@ function TimetableView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [school, setSchool] = useState(null);
 
   const [subjectId, setSubjectId] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState('Monday');
@@ -18,6 +20,8 @@ function TimetableView() {
   const [endTime, setEndTime] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const printRef = useRef(null);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -32,6 +36,19 @@ function TimetableView() {
       }
     };
     fetchClasses();
+
+    const fetchSchool = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSchool(await res.json());
+      } catch (err) {
+        console.error('Failed to load school info', err);
+      }
+    };
+    fetchSchool();
   }, []);
 
   useEffect(() => {
@@ -76,6 +93,7 @@ function TimetableView() {
   }, [fetchEntries]);
 
   const classSubjects = subjects.filter((s) => s.classId?._id === selectedClass);
+  const selectedClassName = classes.find((c) => c._id === selectedClass)?.name || '';
 
   const handleAddEntry = async (e) => {
     e.preventDefault();
@@ -139,6 +157,7 @@ function TimetableView() {
 
   return (
     <div className="p-6">
+      {/* Class selector */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Timetable</h2>
 
@@ -159,6 +178,7 @@ function TimetableView() {
 
       {selectedClass && (
         <>
+          {/* Add entry form */}
           <form
             onSubmit={handleAddEntry}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6"
@@ -237,13 +257,42 @@ function TimetableView() {
             </div>
           </form>
 
+          {/* Timetable grid */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+            {/* Table toolbar */}
+            {entries.length > 0 && (
+              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                <p className="text-sm text-slate-500 dark:text-gray-400">
+                  {entries.length} entr{entries.length === 1 ? 'y' : 'ies'} — {selectedClassName}
+                </p>
+                <button
+                  onClick={() => printArea(printRef)}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                >
+                  <Printer size={15} /> Print Timetable
+                </button>
+              </div>
+            )}
+
             {loading ? (
               <p className="p-5 text-slate-500 dark:text-gray-400">Loading timetable...</p>
             ) : error ? (
               <p className="p-5 text-rose-600 dark:text-red-400">{error}</p>
             ) : (
-              <div className="overflow-x-auto">
+              /* Printable area — only this is sent to printer */
+              <div ref={printRef} className="overflow-x-auto">
+                {/* Print header — hidden on screen via .screen-hidden CSS, shown in isolated print popup */}
+                <div className="screen-hidden hidden" style={{ textAlign: 'center', paddingBottom: 16, marginBottom: 16, borderBottom: '1px solid #e2e8f0' }}>
+                  {school?.logoUrl && (
+                    <img src={school.logoUrl} alt="" style={{ height: 48, margin: '0 auto 8px' }} />
+                  )}
+                  <div style={{ fontWeight: 700, fontSize: 18 }}>{school?.name || 'School'}</div>
+                  {school?.address && <div style={{ fontSize: 12, color: '#64748b' }}>{school.address}</div>}
+                  <div style={{ fontSize: 14, marginTop: 6, fontWeight: 600 }}>
+                    Timetable — {selectedClassName}
+                  </div>
+                </div>
+
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 dark:border-gray-700">
@@ -251,7 +300,7 @@ function TimetableView() {
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Time</th>
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Subject</th>
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Teacher</th>
-                      <th className="py-3 px-5"></th>
+                      <th className="py-3 px-5 no-print"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -278,7 +327,7 @@ function TimetableView() {
                               <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
                                 {entry.subjectId?.teacherId?.name || 'Unassigned'}
                               </td>
-                              <td className="py-3 px-5">
+                              <td className="py-3 px-5 no-print">
                                 <button
                                   onClick={() => handleDelete(entry._id)}
                                   disabled={deletingId === entry._id}

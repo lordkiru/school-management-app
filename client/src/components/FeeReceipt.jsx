@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Printer, X } from 'lucide-react';
+import printArea from '../utils/printArea';
 
 function FeeReceipt({ fee, onClose }) {
   const [school, setSchool] = useState(null);
+  const printRef = useRef(null);
 
   useEffect(() => {
     if (!fee) return;
@@ -23,18 +25,15 @@ function FeeReceipt({ fee, onClose }) {
 
   if (!fee) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 print:bg-white print:p-0 print:static">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto print:shadow-none print:rounded-none print:max-h-none print:max-w-none">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100 print:hidden">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Modal header — never printed */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-100">
           <h2 className="font-semibold text-slate-800">Fee Receipt</h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={handlePrint}
+              onClick={() => printArea(printRef)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1.5 rounded-lg transition"
             >
               <Printer size={16} /> Print / Save as PDF
@@ -48,7 +47,8 @@ function FeeReceipt({ fee, onClose }) {
           </div>
         </div>
 
-        <div className="p-8 text-slate-800">
+        {/* Printable area — only this div is sent to the printer */}
+        <div ref={printRef} className="p-8 text-slate-800">
           <div className="text-center mb-6 border-b border-slate-200 pb-4">
             {school?.logoUrl && (
               <img

@@ -13,6 +13,10 @@ function AddClassFee({ onFeesAdded }) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Fee structure auto-fill state
+  const [structureHint, setStructureHint] = useState(''); // human-readable breakdown hint
+  const [structureLoading, setStructureLoading] = useState(false);
+
   useEffect(() => {
     const fetchClasses = async () => {
       try {
@@ -46,6 +50,44 @@ function AddClassFee({ onFeesAdded }) {
     fetchSessions();
   }, []);
 
+  // Auto-fill amount from fee structure when class + term + session are all set
+  useEffect(() => {
+    if (!classId || !term || !session) {
+      setStructureHint('');
+      return;
+    }
+
+    const fetchStructure = async () => {
+      setStructureLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        const params = new URLSearchParams({ term, session });
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/fee-structure?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const match = data.find((s) => s.classId?._id === classId || s.classId === classId);
+
+        if (match && match.items.length > 0) {
+          const total = match.items.reduce((sum, item) => sum + item.amount, 0);
+          setAmountExpected(String(total));
+          // Build hint: "Tuition ₦15,000 + PTA ₦2,000 + ..."
+          const parts = match.items.map((item) => `${item.name} ₦${item.amount.toLocaleString()}`);
+          setStructureHint(parts.join(' + '));
+        } else {
+          setStructureHint('');
+        }
+      } catch (err) {
+        console.error('Failed to fetch fee structure', err);
+        setStructureHint('');
+      } finally {
+        setStructureLoading(false);
+      }
+    };
+
+    fetchStructure();
+  }, [classId, term, session]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -76,6 +118,7 @@ function AddClassFee({ onFeesAdded }) {
 
       setSuccess(data.message);
       setAmountExpected('');
+      setStructureHint('');
       onFeesAdded();
     } catch (err) {
       setError(err.message);
@@ -142,14 +185,31 @@ function AddClassFee({ onFeesAdded }) {
         ))}
       </select>
 
-      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Amount Expected (₦)</label>
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
+        Amount Expected (₦)
+        {structureLoading && (
+          <span className="ml-2 text-xs text-slate-400">Loading structure...</span>
+        )}
+      </label>
       <input
         type="number"
         value={amountExpected}
-        onChange={(e) => setAmountExpected(e.target.value)}
+        onChange={(e) => {
+          setAmountExpected(e.target.value);
+          setStructureHint(''); // clear hint if manually edited
+        }}
         required
-        className={`${inputClass} mb-4`}
+        placeholder="Enter amount or select class to auto-fill"
+        className={`${inputClass} mb-1`}
       />
+
+      {/* Fee structure breakdown hint */}
+      {structureHint && (
+        <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-4 leading-relaxed">
+          📋 Auto-filled from fee structure: {structureHint}
+        </p>
+      )}
+      {!structureHint && <div className="mb-4" />}
 
       <button
         type="submit"

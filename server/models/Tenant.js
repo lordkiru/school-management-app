@@ -5,8 +5,7 @@ const tenantSchema = new mongoose.Schema({
   tenantId: { 
     type: String, 
     required: true, 
-    unique: true,
-    index: true 
+    unique: true
   },
   
   // School information
@@ -28,8 +27,7 @@ const tenantSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: /^[a-z0-9-]+$/,
-    index: true
+    match: /^[a-z0-9-]+$/
   },
   
   // Optional custom domain (e.g., "school.greenwood.edu")
@@ -38,8 +36,7 @@ const tenantSchema = new mongoose.Schema({
     unique: true, 
     sparse: true,
     lowercase: true,
-    trim: true,
-    index: true
+    trim: true
   },
   
   // Subscription & Billing
@@ -120,9 +117,7 @@ const tenantSchema = new mongoose.Schema({
 });
 
 // Indexes for performance
-tenantSchema.index({ tenantId: 1 });
-tenantSchema.index({ subdomain: 1 });
-tenantSchema.index({ customDomain: 1 });
+// Note: tenantId, subdomain, customDomain already indexed via unique:true on field definition
 tenantSchema.index({ subscriptionStatus: 1 });
 tenantSchema.index({ status: 1 });
 tenantSchema.index({ subscriptionPlan: 1 });

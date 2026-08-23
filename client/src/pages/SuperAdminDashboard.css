@@ -41,6 +41,21 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
+.stat-card.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  outline: 2px solid rgba(33, 150, 243, 0.25);
+}
+
+.stat-card.clickable:active {
+  transform: translateY(-1px);
+}
+
 .stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

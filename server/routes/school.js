@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/auth');
+const requireRole = require('../middleware/requireRole');
 const School = require('../models/School');
 const upload = require('../uploadConfig');
 
@@ -17,8 +18,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// Update school info
-router.patch('/', requireAuth, async (req, res) => {
+// Update school info (proprietor or admin only)
+router.patch('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
@@ -36,8 +37,8 @@ router.patch('/', requireAuth, async (req, res) => {
   }
 });
 
-// Upload a new school logo
-router.post('/logo', requireAuth, upload.single('logo'), async (req, res) => {
+// Upload a new school logo (proprietor or admin only)
+router.post('/logo', requireAuth, requireRole('proprietor', 'admin'), upload.single('logo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });

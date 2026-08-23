@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Printer } from 'lucide-react';
+import printArea from '../utils/printArea';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
@@ -14,6 +15,7 @@ function ReportCardView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [printStudentId, setPrintStudentId] = useState(null);
+  const printRef = useRef(null);
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -89,7 +91,8 @@ function ReportCardView() {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6 print:hidden">
+      {/* Filter form */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Report Cards</h2>
 
         {error && (
@@ -149,8 +152,9 @@ function ReportCardView() {
         </form>
       </div>
 
+      {/* Class results table */}
       {results.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden print:hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -186,14 +190,16 @@ function ReportCardView() {
         </div>
       )}
 
+      {/* Individual report card modal */}
       {printing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 print:bg-white print:p-0 print:static">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto print:shadow-none print:rounded-none print:max-h-none print:max-w-none">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 print:hidden">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Modal header — never printed */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h2 className="font-semibold text-slate-800">Report Card</h2>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => printArea(printRef)}
                   className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1.5 rounded-lg transition"
                 >
                   <Printer size={16} /> Print / Save as PDF
@@ -207,7 +213,8 @@ function ReportCardView() {
               </div>
             </div>
 
-            <div className="p-8 text-slate-800">
+            {/* Printable area — only this div is sent to the printer */}
+            <div ref={printRef} className="p-8 text-slate-800">
               <div className="text-center mb-6 border-b border-slate-200 pb-4">
                 {school?.logoUrl && (
                   <img src={school.logoUrl} alt={`${school.name} logo`} className="h-14 mx-auto mb-2 object-contain" />

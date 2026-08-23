@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   name: { type: String, required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
   admissionNumber: { type: String, required: true },
+  dateOfBirth: { type: Date },
+  gender: { type: String, enum: ['Male', 'Female'] },
   status: {
     type: String,
     enum: ['Active', 'Graduated', 'Withdrawn', 'Transferred'],

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/auth');
+const requireRole = require('../middleware/requireRole');
 const Session = require('../models/Session');
 
 // Get all sessions
@@ -13,8 +14,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// Create a new session
-router.post('/', requireAuth, async (req, res) => {
+// Create a new session (proprietor or admin only)
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const session = new Session({
       ...req.body,
@@ -27,8 +28,8 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-// Mark a session as the current one (unmarks every other session)
-router.patch('/:id/set-current', requireAuth, async (req, res) => {
+// Mark a session as the current one (unmarks every other session) — proprietor or admin only
+router.patch('/:id/set-current', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     await Session.updateMany({ tenantId: req.user.tenantId }, { $set: { isCurrent: false } });
 
@@ -46,8 +47,8 @@ router.patch('/:id/set-current', requireAuth, async (req, res) => {
   }
 });
 
-// Delete a session
-router.delete('/:id', requireAuth, async (req, res) => {
+// Delete a session (proprietor or admin only)
+router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const deleted = await Session.findOneAndDelete({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!deleted) return res.status(404).json({ error: 'Session not found' });

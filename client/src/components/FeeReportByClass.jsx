@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Printer } from 'lucide-react';
+import printArea from '../utils/printArea';
 
 function FeeReportByClass() {
   const [school, setSchool] = useState(null);
@@ -10,6 +11,7 @@ function FeeReportByClass() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const printRef = useRef(null);
 
   const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
@@ -82,7 +84,8 @@ function FeeReportByClass() {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6 print:hidden">
+      {/* Filter form — never printed */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Report by Class</h2>
         <p className="text-xs text-slate-400 mb-4">
           Leave term/session as "All" to include every fee record.
@@ -127,7 +130,7 @@ function FeeReportByClass() {
           {loaded && (
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => printArea(printRef)}
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               <Printer size={16} /> Print / Save as PDF
@@ -136,8 +139,9 @@ function FeeReportByClass() {
         </form>
       </div>
 
+      {/* Printable area — only this div is sent to the printer */}
       {loaded && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-8 print:shadow-none print:border-0">
+        <div ref={printRef} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-8">
           <div className="text-center mb-6 border-b border-slate-200 dark:border-gray-700 pb-4">
             {school?.logoUrl && (
               <img src={school.logoUrl} alt={`${school.name} logo`} className="h-14 mx-auto mb-2 object-contain" />

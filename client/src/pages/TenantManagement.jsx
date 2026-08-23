@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant } from '../services/superAdminApi';
 import './TenantManagement.css';
 
-const TenantManagement = () => {
+const TenantManagement = ({ initialStatusFilter = '' }) => {
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -127,6 +127,7 @@ const TenantManagement = () => {
                   <th>School Name</th>
                   <th>Subdomain</th>
                   <th>Owner</th>
+                  <th>Students</th>
                   <th>Status</th>
                   <th>Created</th>
                   <th>Actions</th>
@@ -145,6 +146,11 @@ const TenantManagement = () => {
                       {tenant.ownerId?.name || 'N/A'}
                       <br />
                       <small>{tenant.ownerId?.email || ''}</small>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600, fontSize: '1rem' }}>
+                        {tenant.studentCount ?? 0}
+                      </span>
                     </td>
                     <td>
                       <span className={`status-badge ${tenant.status}`}>

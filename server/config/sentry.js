@@ -9,8 +9,8 @@ function initSentry(app) {
 
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    // Performance Monitoring
-    tracesSampleRate: 1.0, // Capture 100% of transactions
+    // Performance Monitoring — 100% in dev, 10% in production to avoid excessive billing
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     // Environment
     environment: process.env.NODE_ENV || 'development',
   });

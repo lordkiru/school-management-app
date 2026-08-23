@@ -27,8 +27,11 @@ import TimetableView from './components/Timetableview';
 import PromoteClass from './components/PromoteClass';
 import ReportCardView from './components/ReportCardView';
 import FeeReportByClass from './components/FeeReportByClass';
+import FeeStructureSetup from './components/FeeStructureSetup';
+import FeeBreakdownView from './components/FeeBreakdownView';
 import SessionManager from './components/SessionManager';
 import ResetPassword from './components/ResetPassword';
+import ForgotPassword from './components/ForgotPassword';
 import ParentList from './components/ParentList';
 import AddParent from './components/AddParent';
 import ParentPortal from './components/ParentPortal';
@@ -54,6 +57,7 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
   const [parentRefreshKey, setParentRefreshKey] = useState(0);
+  const [navParams, setNavParams] = useState({});
 
   useEffect(() => {
     if (darkMode) {
@@ -87,6 +91,9 @@ function App() {
   }
   if (window.location.pathname === '/reset-password') {
     return <ResetPassword />;
+  }
+  if (window.location.pathname === '/forgot-password') {
+    return <ForgotPassword />;
   }
   if (window.location.pathname === '/portal') {
     return <ParentPortal />;
@@ -167,6 +174,12 @@ function App() {
     if (activePage === 'feereport') {
       return <FeeReportByClass />;
     }
+    if (activePage === 'feesetup') {
+      return <FeeStructureSetup />;
+    }
+    if (activePage === 'feedownown') {
+      return <FeeBreakdownView />;
+    }
 
     if (activePage === 'timetable') {
       return <TimetableView />;
@@ -201,13 +214,32 @@ function App() {
     }
     // Super Admin Routes
     if (activePage === 'superadmin') {
-      return <SuperAdminDashboard onNavigate={(page) => setActivePage(page)} />;
+      return (
+        <SuperAdminDashboard
+          onNavigate={(page, params = {}) => {
+            setNavParams(params);
+            setActivePage(page);
+          }}
+        />
+      );
     }
     if (activePage === 'superadmin-tenants') {
-      return <TenantManagement />;
+      return (
+        <TenantManagement
+          initialStatusFilter={navParams.statusFilter || ''}
+          onNavigate={(page, params = {}) => {
+            setNavParams(params);
+            setActivePage(page);
+          }}
+        />
+      );
     }
     if (activePage === 'superadmin-subscriptions') {
-      return <SubscriptionManagement />;
+      return (
+        <SubscriptionManagement
+          initialStatusFilter={navParams.statusFilter || ''}
+        />
+      );
     }
     return (
       <div className="p-6 text-gray-500 dark:text-gray-400">

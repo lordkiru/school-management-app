@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const scoreSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
   term: { type: String, enum: ['First Term', 'Second Term', 'Third Term'], required: true },

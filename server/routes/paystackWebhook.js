@@ -21,11 +21,22 @@ router.post('/', express.json(), async (req, res) => {
     if (event.event === 'charge.success') {
       const { feeId } = event.data.metadata;
       const amountPaid = event.data.amount / 100; // convert kobo back to naira
+      const reference = event.data.reference;
 
       const fee = await Fee.findById(feeId);
       if (fee) {
-        fee.amountPaid += amountPaid;
-        await fee.save();
+        // Idempotency check: skip if this reference has already been recorded
+        const alreadyProcessed = fee.payments && fee.payments.some(p => p.reference === reference);
+        if (!alreadyProcessed) {
+          fee.amountPaid += amountPaid;
+          fee.payments.push({
+            amount: amountPaid,
+            reference,
+            paymentMethod: 'Paystack',
+            paymentDate: new Date(event.data.paid_at || Date.now()),
+          });
+          await fee.save();
+        }
       }
     }
 

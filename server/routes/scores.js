@@ -2,38 +2,64 @@ const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const requireActiveSubscription = require('../middleware/checkSubscription');
 const Score = require('../models/Score');
 const computeGrade = require('../utils/grading');
 const School = require('../models/School');
 const Student = require('../models/Student');
 const { validateScore, validateMongoId } = require('../middleware/validators');
 
+// Get scores — supports ?page=1&limit=50&classId=&term=&session=
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const { page, limit, classId, term, session } = req.query;
+
+    const usePagination = page !== undefined || limit !== undefined;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 100));
+
     const school = await School.findOne({ tenantId: req.user.tenantId });
     const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
 
-    const scores = await Score.find({ tenantId: req.user.tenantId })
-      .populate('studentId')
-      .populate({
-        path: 'subjectId',
-        populate: { path: 'classId' },
-      });
+    const filter = { tenantId: req.user.tenantId };
+    if (term) filter.term = term;
+    if (session) filter.session = session;
 
+    // If classId given, find all students in that class first
+    if (classId) {
+      const studentsInClass = await Student.find({ tenantId: req.user.tenantId, classId }).select('_id');
+      filter.studentId = { $in: studentsInClass.map((s) => s._id) };
+    }
+
+    const query = Score.find(filter)
+      .populate('studentId')
+      .populate({ path: 'subjectId', populate: { path: 'classId' } });
+
+    let scores;
+    if (usePagination) {
+      const total = await Score.countDocuments(filter);
+      scores = await query.sort({ createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum);
+      const withGrades = scores.map((score) => {
+        const scoreObj = score.toObject();
+        scoreObj.grade = computeGrade(scoreObj.total, score.subjectId?.classId?.section, maxTotal);
+        return scoreObj;
+      });
+      return res.json({ scores: withGrades, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
+    }
+
+    scores = await query;
     const withGrades = scores.map((score) => {
       const scoreObj = score.toObject();
-      const section = score.subjectId?.classId?.section;
-      scoreObj.grade = computeGrade(scoreObj.total, section, maxTotal);
+      scoreObj.grade = computeGrade(scoreObj.total, score.subjectId?.classId?.section, maxTotal);
       return scoreObj;
     });
-
     res.json(withGrades);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/', requireAuth, validateScore, async (req, res) => {
+router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin', 'teacher'), validateScore, async (req, res) => {
   try {
     const score = new Score({
       ...req.body,
@@ -46,7 +72,7 @@ router.post('/', requireAuth, validateScore, async (req, res) => {
   }
 });
 
-router.patch('/:id', requireAuth, validateMongoId, async (req, res) => {
+router.patch('/:id', requireAuth, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
   try {
     const updated = await Score.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },

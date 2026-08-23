@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const sessionSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   name: { type: String, required: true }, // e.g. "2025/2026"
   isCurrent: { type: Boolean, default: false },
 }, { timestamps: true });

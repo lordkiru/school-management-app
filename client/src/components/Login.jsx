@@ -12,10 +12,19 @@ function Login({ onLoginSuccess }) {
     setLoading(true);
 
     try {
+      // Extract subdomain from the current hostname for tenant-scoped login.
+      // e.g. "greenfield.lemida.com" → subdomain = "greenfield"
+      // On localhost or the root domain there is no subdomain — send empty string,
+      // and the server will fall back to a global lookup (dev mode / super admin).
+      const hostname = window.location.hostname; // e.g. "greenfield.lemida.com" or "localhost"
+      const parts = hostname.split('.');
+      // A subdomain exists when there are 3+ parts and the first part is not "www"
+      const subdomain = parts.length >= 3 && parts[0] !== 'www' ? parts[0] : '';
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, subdomain }),
       });
 
       const data = await res.json();
@@ -71,10 +80,19 @@ function Login({ onLoginSuccess }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition mb-4"
         >
           {loading ? 'Logging in...' : 'Log In'}
         </button>
+
+        <div className="text-center">
+          <a
+            href="/forgot-password"
+            className="text-sm text-slate-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+          >
+            Forgot your password?
+          </a>
+        </div>
       </form>
     </div>
   );

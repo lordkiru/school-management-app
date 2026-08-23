@@ -1,5 +1,6 @@
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const requireActiveSubscription = require('../middleware/checkSubscription');
 const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
@@ -11,12 +12,18 @@ const School = require('../models/School');
 const { apiLimiter } = require('../middleware/rateLimiter');
 const { validateStudent, validateMongoId } = require('../middleware/validators');
 
-// Get all students
+// Get all students — supports ?page=1&limit=50&search=
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, page, limit } = req.query;
+
+    // Pagination defaults: no pagination if page/limit not provided (backward-compatible)
+    const usePagination = page !== undefined || limit !== undefined;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit) || 50));
+
     const filter = { tenantId: req.user.tenantId };
-    
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -24,6 +31,23 @@ router.get('/', requireAuth, async (req, res) => {
       ];
     }
 
+    if (usePagination) {
+      const total = await Student.countDocuments(filter);
+      const students = await Student.find(filter)
+        .populate('classId')
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum);
+
+      return res.json({
+        students,
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+      });
+    }
+
+    // Legacy: return flat array when no pagination params given
     const students = await Student.find(filter).populate('classId');
     res.json(students);
   } catch (err) {
@@ -31,10 +55,15 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// Public results lookup — no login required
+// Public results lookup — no login required.
+// Requires tenantId query param to scope to the correct school.
 router.get('/public/results/:admissionNumber', apiLimiter, async (req, res) => {
   try {
-    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber }).populate('classId');
+    const { tenantId } = req.query;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'tenantId query parameter is required to identify your school' });
+    }
+    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber, tenantId }).populate('classId');
     if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
 
     const school = await School.findOne({ tenantId: student.tenantId });
@@ -95,7 +124,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // Add a new student
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateStudent, async (req, res) => {
+router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin'), validateStudent, async (req, res) => {
   try {
     const nextNumber = await getNextSequence('admissionNumber', req.user.tenantId);
     const admissionNumber = `ADM${String(nextNumber).padStart(5, '0')}`;

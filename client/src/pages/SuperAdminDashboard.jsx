@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getDashboard } from '../services/superAdminApi';
 import './SuperAdminDashboard.css';
 
-const SuperAdminDashboard = () => {
+const SuperAdminDashboard = ({ onNavigate }) => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,7 +56,11 @@ const SuperAdminDashboard = () => {
 
       {/* Overview Stats */}
       <div className="stats-grid">
-        <div className="stat-card primary">
+        <div
+          className="stat-card primary clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          title="View all schools"
+        >
           <div className="stat-icon">🏫</div>
           <div className="stat-content">
             <h3>{overview?.totalTenants || 0}</h3>
@@ -64,7 +68,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card success">
+        <div
+          className="stat-card success clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'active' })}
+          title="View active schools"
+        >
           <div className="stat-icon">✅</div>
           <div className="stat-content">
             <h3>{overview?.activeTenants || 0}</h3>
@@ -72,7 +80,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card warning">
+        <div
+          className="stat-card warning clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'trial' })}
+          title="View trial schools"
+        >
           <div className="stat-icon">🔄</div>
           <div className="stat-content">
             <h3>{overview?.trialTenants || 0}</h3>
@@ -80,7 +92,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card danger">
+        <div
+          className="stat-card danger clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'suspended' })}
+          title="View suspended schools"
+        >
           <div className="stat-icon">⏸️</div>
           <div className="stat-content">
             <h3>{overview?.suspendedTenants || 0}</h3>
@@ -88,7 +104,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card info">
+        <div
+          className="stat-card info clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          title="View all users"
+        >
           <div className="stat-icon">👥</div>
           <div className="stat-content">
             <h3>{overview?.totalUsers || 0}</h3>
@@ -96,7 +116,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card info">
+        <div
+          className="stat-card info clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          title="View all students"
+        >
           <div className="stat-icon">🎓</div>
           <div className="stat-content">
             <h3>{overview?.totalStudents || 0}</h3>
@@ -104,7 +128,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card success">
+        <div
+          className="stat-card success clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
+          title="View active subscriptions"
+        >
           <div className="stat-icon">💳</div>
           <div className="stat-content">
             <h3>{overview?.activeSubscriptions || 0}</h3>
@@ -112,7 +140,11 @@ const SuperAdminDashboard = () => {
           </div>
         </div>
 
-        <div className="stat-card secondary">
+        <div
+          className="stat-card secondary clickable"
+          onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
+          title="View expired subscriptions"
+        >
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <h3>{overview?.expiredSubscriptions || 0}</h3>
@@ -167,27 +199,27 @@ const SuperAdminDashboard = () => {
       <div className="dashboard-section">
         <h2>⚡ Quick Actions</h2>
         <div className="quick-actions">
-          <button 
+          <button
             className="action-btn primary"
-            onClick={() => window.location.href = '/superadmin/tenants'}
+            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
           >
             📋 Manage Schools
           </button>
-          <button 
+          <button
             className="action-btn success"
-            onClick={() => window.location.href = '/superadmin/tenants/create'}
+            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
           >
             ➕ Create New School
           </button>
-          <button 
+          <button
             className="action-btn info"
-            onClick={() => window.location.href = '/superadmin/subscriptions'}
+            onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
           >
             💳 Manage Subscriptions
           </button>
-          <button 
+          <button
             className="action-btn secondary"
-            onClick={() => window.location.href = '/superadmin/users'}
+            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
           >
             👥 View All Users
           </button>

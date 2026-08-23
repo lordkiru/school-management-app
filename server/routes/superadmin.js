@@ -119,8 +119,22 @@ router.get('/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
 
     const total = await Tenant.countDocuments(query);
 
+    // Attach studentCount to each tenant
+    const tenantIds = tenants.map((t) => t.tenantId);
+    const studentCounts = await Student.aggregate([
+      { $match: { tenantId: { $in: tenantIds } } },
+      { $group: { _id: '$tenantId', count: { $sum: 1 } } },
+    ]);
+    const countMap = {};
+    studentCounts.forEach((s) => { countMap[s._id] = s.count; });
+
+    const tenantsWithCounts = tenants.map((t) => ({
+      ...t.toObject(),
+      studentCount: countMap[t.tenantId] || 0,
+    }));
+
     res.json({
-      tenants,
+      tenants: tenantsWithCounts,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
       total,
@@ -172,8 +186,9 @@ router.patch('/tenants/:tenantId/status', requireAuth, requireSuperAdmin, async 
   try {
     const { status } = req.body;
 
-    if (!['active', 'suspended', 'trial', 'cancelled'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    // Valid values must match the Tenant model enum: ['active', 'suspended', 'deleted']
+    if (!['active', 'suspended', 'deleted'].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Use 'active', 'suspended', or 'deleted'." });
     }
 
     const tenant = await Tenant.findOneAndUpdate(
@@ -427,8 +442,9 @@ router.patch('/subscriptions/:id/status', requireAuth, requireSuperAdmin, async 
   try {
     const { status } = req.body;
 
-    if (!['active', 'cancelled', 'expired', 'suspended'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    // Valid values must match the Subscription model enum: ['active', 'past_due', 'canceled', 'trialing', 'incomplete']
+    if (!['active', 'past_due', 'canceled', 'trialing', 'incomplete'].includes(status)) {
+      return res.status(400).json({ error: "Invalid status. Use 'active', 'past_due', 'canceled', 'trialing', or 'incomplete'." });
     }
 
     const subscription = await Subscription.findByIdAndUpdate(

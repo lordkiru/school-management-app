@@ -10,7 +10,7 @@ const paymentSchema = new mongoose.Schema({
 });
 
 const feeSchema = new mongoose.Schema({
-  tenantId: { type: String, required: true, index: true }, // Multi-tenant support
+  tenantId: { type: String, required: true }, // Multi-tenant support
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   term: { type: String, enum: ['First Term', 'Second Term', 'Third Term'], required: true },
   session: { type: String, required: true },

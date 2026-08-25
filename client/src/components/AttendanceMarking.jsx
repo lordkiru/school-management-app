@@ -81,7 +81,10 @@ function AttendanceMarking({ userRole }) {
         );
         const attData = await attRes.json();
 
-        const allStudents = (studentsData || []).filter((s) => s.status === 'Active');
+        const allStudents = (studentsData || []).filter(
+          (s) => s.status === 'Active' &&
+            (s.classId?._id === selectedClassId || s.classId === selectedClassId)
+        );
         setStudents(allStudents);
 
         if (attData.records && attData.records.length > 0) {

@@ -3,6 +3,7 @@ const requireRole = require('../middleware/requireRole');
 const express = require('express');
 const router = express.Router();
 const Class = require('../models/Class');
+const { validateClass, validateMongoId } = require('../middleware/validators');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -13,7 +14,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateClass, async (req, res) => {
   try {
     const newClass = new Class({
       ...req.body,
@@ -26,7 +27,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
   }
 });
 
-router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, validateClass, async (req, res) => {
   try {
     const updated = await Class.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },

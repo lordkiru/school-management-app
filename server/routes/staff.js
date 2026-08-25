@@ -50,7 +50,7 @@ router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor
 // Edit a staff account — proprietor can change name/email/role; admin can only change name/email
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
-    const { name, email, role } = req.body;
+    const { name, email, role, assignedClassId } = req.body;
 
     const staff = await User.findOne({
       _id: req.params.id,
@@ -85,9 +85,14 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMo
       staff.role = role;
     }
 
+    // Assign or unassign a class (for teachers — used for attendance)
+    if (assignedClassId !== undefined) {
+      staff.assignedClassId = assignedClassId || null;
+    }
+
     await staff.save();
 
-    res.json({ id: staff._id, name: staff.name, email: staff.email, role: staff.role });
+    res.json({ id: staff._id, name: staff.name, email: staff.email, role: staff.role, assignedClassId: staff.assignedClassId });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

@@ -117,11 +117,11 @@ const validateFee = [
     .withMessage('Student ID is required')
     .isMongoId()
     .withMessage('Invalid student ID'),
-  body('amount')
+  body('amountExpected')
     .notEmpty()
-    .withMessage('Amount is required')
+    .withMessage('Amount expected is required')
     .isFloat({ min: 0 })
-    .withMessage('Amount must be a positive number'),
+    .withMessage('Amount expected must be a positive number'),
   body('term')
     .notEmpty()
     .withMessage('Term is required')
@@ -229,6 +229,48 @@ const validateStudentId = [
   handleValidationErrors,
 ];
 
+// Class validation
+const validateClass = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Class name is required')
+    .isLength({ max: 60 })
+    .withMessage('Class name is too long'),
+  body('level')
+    .trim()
+    .notEmpty()
+    .withMessage('Level is required')
+    .isLength({ max: 30 })
+    .withMessage('Level is too long'),
+  body('section')
+    .notEmpty()
+    .withMessage('Section is required')
+    .isIn(['Creche', 'Kindergarten', 'Nursery', 'Primary', 'Secondary'])
+    .withMessage('Section must be one of: Creche, Kindergarten, Nursery, Primary, Secondary'),
+  handleValidationErrors,
+];
+
+// Subject validation
+const validateSubject = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Subject name is required')
+    .isLength({ max: 60 })
+    .withMessage('Subject name is too long'),
+  body('classId')
+    .notEmpty()
+    .withMessage('Class is required')
+    .isMongoId()
+    .withMessage('Invalid class ID'),
+  body('teacherId')
+    .optional({ nullable: true })
+    .isMongoId()
+    .withMessage('Invalid teacher ID'),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateLogin,
   validateStudent,
@@ -241,5 +283,7 @@ module.exports = {
   validateGenerateReset,
   validateAmount,
   validateStudentId,
+  validateClass,
+  validateSubject,
   handleValidationErrors,
 };

@@ -6,6 +6,7 @@ const router = express.Router();
 const Student = require('../models/Student');
 const Score = require('../models/Score');
 const Fee = require('../models/Fee');
+const AuditLog = require('../models/AuditLog');
 const computeGrade = require('../utils/grading');
 const getNextSequence = require('../utils/getNextSequence');
 const School = require('../models/School');
@@ -210,6 +211,49 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMo
     );
     if (!student) return res.status(404).json({ error: 'Student not found' });
     res.json(student);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Manually refund some or all of a student's wallet credit (e.g. a withdrawing student).
+// This is deliberately a separate, explicit action — overpayments are credited to the
+// wallet automatically, but paying that credit back out in cash is never automatic.
+router.post('/:id/wallet/refund', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, async (req, res) => {
+  try {
+    const { amount, reason } = req.body;
+
+    if (amount == null || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'A positive refund amount is required' });
+    }
+
+    const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    if (amount > student.walletBalance) {
+      return res.status(400).json({ error: `Refund amount exceeds wallet balance of ₦${student.walletBalance.toLocaleString()}` });
+    }
+
+    student.walletBalance -= amount;
+    await student.save();
+
+    await AuditLog.create({
+      tenantId: req.user.tenantId,
+      action: 'update',
+      entityType: 'Student',
+      entityId: student._id,
+      snapshot: {
+        reason: reason || 'Manual wallet refund',
+        refundedAmount: amount,
+        remainingWalletBalance: student.walletBalance,
+      },
+      performedBy: req.user?.email || req.user?.id,
+    });
+
+    res.json({
+      message: `₦${amount.toLocaleString()} refunded. Remaining wallet balance: ₦${student.walletBalance.toLocaleString()}`,
+      studentWalletBalance: student.walletBalance,
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

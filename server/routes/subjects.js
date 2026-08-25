@@ -4,6 +4,7 @@ const router = express.Router();
 const Subject = require('../models/Subject');
 const Score = require('../models/Score');
 const requireRole = require('../middleware/requireRole');
+const { validateSubject, validateMongoId } = require('../middleware/validators');
 
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -16,7 +17,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateSubject, async (req, res) => {
   try {
     const subject = new Subject({
       ...req.body,
@@ -29,7 +30,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, re
   }
 });
 
-router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, validateSubject, async (req, res) => {
   try {
     const updated = await Subject.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },
@@ -57,9 +58,13 @@ router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), async (re
 });
 
 // Assign (or unassign) a teacher for a subject
-router.patch('/:id/assign-teacher', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.patch('/:id/assign-teacher', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
     const { teacherId } = req.body;
+
+    if (teacherId && !/^[0-9a-fA-F]{24}$/.test(teacherId)) {
+      return res.status(400).json({ error: 'Invalid teacher ID' });
+    }
 
     const subject = await Subject.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },

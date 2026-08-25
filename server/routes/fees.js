@@ -61,10 +61,44 @@ router.get('/', requireAuth, requireRole('proprietor', 'bursar'), async (req, re
 
 router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, async (req, res) => {
   try {
+    const { studentId, term, session, amountExpected } = req.body;
+
+    // If a fee record already exists for this student/term/session, top it up
+    // instead of creating a second, separate row.
+    const existing = await Fee.findOne({ tenantId: req.user.tenantId, studentId, term, session });
+    if (existing) {
+      existing.amountExpected += amountExpected;
+      await existing.save();
+      return res.status(200).json(existing);
+    }
+
     const fee = new Fee({
       ...req.body,
       tenantId: req.user.tenantId,
     });
+
+    // Auto-apply any wallet credit the student is carrying (e.g. from a prior overpayment)
+    const student = await Student.findOne({ _id: fee.studentId, tenantId: req.user.tenantId });
+    if (student && student.walletBalance > 0) {
+      const applied = Math.min(student.walletBalance, fee.amountExpected);
+      fee.amountPaid += applied;
+      student.walletBalance -= applied;
+      await student.save();
+
+      await AuditLog.create({
+        tenantId: req.user.tenantId,
+        action: 'update',
+        entityType: 'Fee',
+        entityId: fee._id,
+        snapshot: {
+          reason: 'Wallet credit applied to new fee',
+          amountApplied: applied,
+          remainingWalletBalance: student.walletBalance,
+        },
+        performedBy: req.user?.email || req.user?.id,
+      });
+    }
+
     await fee.save();
     res.status(201).json(fee);
   } catch (err) {
@@ -75,13 +109,60 @@ router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, 
 // Record a payment against an existing fee record
 router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), validateMongoId, validateAmount, async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, paymentMethod, notes } = req.body;
     const fee = await Fee.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
 
-    fee.amountPaid += amount;
+    const balance = fee.amountExpected - fee.amountPaid;
+    // Cap what's applied to this fee at the outstanding balance; anything beyond that is an overpayment.
+    const appliedToFee = Math.max(Math.min(amount, balance), 0);
+    const excess = amount - appliedToFee;
+
+    fee.amountPaid += appliedToFee;
+    // Record the full amount received (not just what was applied) so the history
+    // reflects what actually changed hands — the receipt/wallet note explains the split.
+    fee.payments.push({
+      amount,
+      paymentMethod: paymentMethod && ['Cash', 'Bank Transfer', 'Card', 'Paystack', 'Other'].includes(paymentMethod) ? paymentMethod : 'Cash',
+      receivedBy: req.user?.id,
+      notes,
+    });
     await fee.save();
-    res.json(fee);
+
+    let studentWalletBalance;
+    if (excess > 0) {
+      // Route the overpayment into the student's wallet as credit for a future term,
+      // rather than letting it silently inflate amountPaid past what was actually owed.
+      const student = await Student.findOneAndUpdate(
+        { _id: fee.studentId, tenantId: req.user.tenantId },
+        { $inc: { walletBalance: excess } },
+        { new: true }
+      );
+      studentWalletBalance = student?.walletBalance;
+
+      await AuditLog.create({
+        tenantId: req.user.tenantId,
+        action: 'update',
+        entityType: 'Student',
+        entityId: fee.studentId,
+        snapshot: {
+          reason: 'Fee overpayment credited to wallet',
+          feeId: fee._id,
+          overpaymentAmount: excess,
+          newWalletBalance: studentWalletBalance,
+        },
+        performedBy: req.user?.email || req.user?.id,
+      });
+    }
+
+    res.json({
+      fee,
+      ...(excess > 0 && {
+        overpayment: excess,
+        studentWalletBalance,
+        message: `Payment exceeded the balance due by ₦${excess.toLocaleString()}. The excess has been credited to the student's wallet and will auto-apply to their next fee.`,
+      }),
+    });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -134,13 +215,23 @@ router.post('/bulk-by-class', requireAuth, requireRole('proprietor', 'bursar'), 
         await existing.save();
         results.updated++;
       } else {
-        await Fee.create({
+        const fee = new Fee({
           tenantId: req.user.tenantId,
           studentId: student._id,
           term,
           session,
           amountExpected,
         });
+
+        // Auto-apply any wallet credit the student is carrying from a prior overpayment
+        if (student.walletBalance > 0) {
+          const applied = Math.min(student.walletBalance, fee.amountExpected);
+          fee.amountPaid += applied;
+          student.walletBalance -= applied;
+          await student.save();
+        }
+
+        await fee.save();
         results.created++;
       }
     }

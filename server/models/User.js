@@ -7,12 +7,17 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
   password: { type: String, required: true },
   role: {
-  type: String,
-  enum: ['super_admin', 'proprietor', 'admin', 'teacher', 'bursar', 'parent'],
-  required: true,
-},
+    type: String,
+    enum: ['super_admin', 'proprietor', 'admin', 'teacher', 'bursar', 'parent'],
+    required: true,
+  },
+  assignedClassId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Class',
+    default: null,
+  }, // Only used for teachers — their form class for attendance
   resetToken: { type: String, default: null },
-resetTokenExpires: { type: Date, default: null },
+  resetTokenExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 // Indexes for better query performance

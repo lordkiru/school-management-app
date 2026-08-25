@@ -23,6 +23,7 @@ const parentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Student',
   }],
+  whatsappOptIn: { type: Boolean, default: true }, // Parent can opt out of WhatsApp messages
 }, {
   timestamps: true,
 });

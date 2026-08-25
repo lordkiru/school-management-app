@@ -10,6 +10,7 @@ function AddFee({ onFeeAdded }) {
   const [session, setSession] = useState('');
   const [sessions, setSessions] = useState([]);
   const [amountExpected, setAmountExpected] = useState('');
+  const [selectedStudentWallet, setSelectedStudentWallet] = useState(0);
   const [students, setStudents] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -66,6 +67,7 @@ function AddFee({ onFeeAdded }) {
   const handleSelectStudent = (student) => {
     setStudentId(student._id);
     setStudentQuery(student.name);
+    setSelectedStudentWallet(student.walletBalance || 0);
     setShowDropdown(false);
   };
 
@@ -97,8 +99,11 @@ function AddFee({ onFeeAdded }) {
         throw new Error(data.error || 'Failed to add fee record');
       }
 
-      setSuccess('Fee record added successfully');
+      setSuccess('Fee record saved — a new record was created, or the existing one for this term/session was topped up.');
       setAmountExpected('');
+      setStudentId('');
+      setStudentQuery('');
+      setSelectedStudentWallet(0);
       onFeeAdded();
     } catch (err) {
       setError(err.message);
@@ -136,6 +141,7 @@ function AddFee({ onFeeAdded }) {
           onChange={(e) => {
             setStudentQuery(e.target.value);
             setStudentId('');
+            setSelectedStudentWallet(0);
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
@@ -162,6 +168,12 @@ function AddFee({ onFeeAdded }) {
           </div>
         )}
       </div>
+
+      {selectedStudentWallet > 0 && (
+        <div className="bg-sky-50 dark:bg-sky-900 text-sky-700 dark:text-sky-200 text-sm p-2 rounded-lg mb-3">
+          This student has ₦{selectedStudentWallet.toLocaleString()} in wallet credit — it will be automatically applied to this fee.
+        </div>
+      )}
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Term</label>
       <select value={term} onChange={(e) => setTerm(e.target.value)} required className={inputClass}>

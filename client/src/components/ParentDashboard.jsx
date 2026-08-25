@@ -1,10 +1,79 @@
 import { useState, useEffect } from 'react';
-import { LogOut, User, DollarSign, FileText } from 'lucide-react';
+import { LogOut, User, DollarSign, FileText, ClipboardCheck, CheckCircle, XCircle } from 'lucide-react';
+
+function AttendancePanel({ child }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        const token = localStorage.getItem('parentToken');
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/attendance/parent/child/${child._id}?limit=30`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const d = await res.json();
+        if (res.ok) setData(d);
+      } catch {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAttendance();
+  }, [child._id]);
+
+  if (loading) return <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Loading attendance...</p>;
+  if (!data) return <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">No attendance data available.</p>;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-1 mb-2">
+        <ClipboardCheck size={14} className="text-indigo-500" />
+        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Attendance (last 30 days)</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        <div className="text-center bg-emerald-50 dark:bg-emerald-900/30 rounded-lg p-2">
+          <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{data.present}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Present</div>
+        </div>
+        <div className="text-center bg-rose-50 dark:bg-rose-900/30 rounded-lg p-2">
+          <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{data.absent}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Absent</div>
+        </div>
+        <div className="text-center bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-2">
+          <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+            {data.attendancePercent ?? 'N/A'}{data.attendancePercent != null ? '%' : ''}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Rate</div>
+        </div>
+      </div>
+      {/* Last 10 days mini-calendar */}
+      <div className="flex gap-1 flex-wrap">
+        {data.records.slice(0, 14).map((r) => (
+          <span
+            key={r._id}
+            title={`${new Date(r.date).toLocaleDateString('en-NG')} — ${r.status}`}
+            className={`w-5 h-5 rounded-sm text-center text-xs flex items-center justify-center ${
+              r.status === 'Present' ? 'bg-emerald-400 dark:bg-emerald-600' :
+              r.status === 'Absent' ? 'bg-rose-400 dark:bg-rose-600' :
+              r.status === 'Late' ? 'bg-amber-400 dark:bg-amber-600' :
+              'bg-blue-400 dark:bg-blue-600'
+            }`}
+          />
+        ))}
+      </div>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">● Green=Present · Red=Absent · Amber=Late · Blue=Excused</p>
+    </div>
+  );
+}
 
 function ParentDashboard({ parent, onLogout }) {
   const [children, setChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedAttendance, setExpandedAttendance] = useState({});
 
   useEffect(() => {
     fetchChildren();
@@ -109,6 +178,15 @@ function ParentDashboard({ parent, onLogout }) {
                     Fees
                   </a>
                 </div>
+                {/* Attendance toggle */}
+                <button
+                  onClick={() => setExpandedAttendance((prev) => ({ ...prev, [child._id]: !prev[child._id] }))}
+                  className="mt-2 w-full flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <ClipboardCheck size={13} />
+                  {expandedAttendance[child._id] ? 'Hide attendance' : 'View attendance'}
+                </button>
+                {expandedAttendance[child._id] && <AttendancePanel child={child} />}
               </div>
             ))}
           </div>

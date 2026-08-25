@@ -1,2 +1,9 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Keep table row text readable on hover in dark mode — some rows use a
+   light hover background even when dark mode is active, which made white
+   text disappear. This overrides text color for any hovered row, everywhere. */
+.dark table tbody tr:hover td {
+  color: #1e293b;
+}

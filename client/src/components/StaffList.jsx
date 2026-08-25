@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Trash2, Pencil, X, Check } from 'lucide-react';
+import { Trash2, Pencil, X, Check, GraduationCap } from 'lucide-react';
 
 function StaffList({ refreshKey }) {
   const [staff, setStaff] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
@@ -14,6 +15,7 @@ function StaffList({ refreshKey }) {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editAssignedClassId, setEditAssignedClassId] = useState('');
   const [editError, setEditError] = useState('');
   const [savingId, setSavingId] = useState(null);
 
@@ -23,13 +25,20 @@ function StaffList({ refreshKey }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/staff`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load staff');
-      setStaff(data);
+      const [staffRes, classesRes] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_URL}/staff`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        }),
+        fetch(`${import.meta.env.VITE_API_URL}/classes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      const staffData = await staffRes.json();
+      const classesData = await classesRes.json();
+      if (!staffRes.ok) throw new Error(staffData.error || 'Failed to load staff');
+      setStaff(staffData);
+      if (classesRes.ok) setClasses(classesData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,6 +55,7 @@ function StaffList({ refreshKey }) {
     setEditName(member.name);
     setEditEmail(member.email);
     setEditRole(member.role);
+    setEditAssignedClassId(member.assignedClassId || '');
     setEditError('');
   };
 
@@ -65,7 +75,12 @@ function StaffList({ refreshKey }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: editName, email: editEmail, role: editRole }),
+        body: JSON.stringify({
+          name: editName,
+          email: editEmail,
+          role: editRole,
+          assignedClassId: editAssignedClassId || null,
+        }),
       });
 
       const data = await res.json();
@@ -76,7 +91,11 @@ function StaffList({ refreshKey }) {
 
       // Update local state immediately (no full refetch needed)
       setStaff((prev) =>
-        prev.map((m) => (m._id === staffId ? { ...m, name: data.name, email: data.email, role: data.role } : m))
+        prev.map((m) =>
+          m._id === staffId
+            ? { ...m, name: data.name, email: data.email, role: data.role, assignedClassId: data.assignedClassId }
+            : m
+        )
       );
       setEditingId(null);
     } catch (err) {
@@ -149,13 +168,14 @@ function StaffList({ refreshKey }) {
                 <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Name</th>
                 <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Email</th>
                 <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Role</th>
+                <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Form Class</th>
                 <th className="py-3 px-4"></th>
               </tr>
             </thead>
             <tbody>
               {staff.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-6 px-5 text-slate-500 dark:text-gray-400">
+                  <td colSpan={5} className="py-6 px-5 text-slate-500 dark:text-gray-400">
                     No staff members yet.
                   </td>
                 </tr>
@@ -196,6 +216,23 @@ function StaffList({ refreshKey }) {
                           <span className="text-sm text-slate-600 dark:text-gray-300 capitalize">{editRole}</span>
                         )}
                       </td>
+                      {/* Class assignment — only shown for teachers */}
+                      <td className="py-2 px-4">
+                        {(editRole === 'teacher') ? (
+                          <select
+                            value={editAssignedClassId}
+                            onChange={(e) => setEditAssignedClassId(e.target.value)}
+                            className={inputClass}
+                          >
+                            <option value="">-- No class --</option>
+                            {classes.map((cls) => (
+                              <option key={cls._id} value={cls._id}>{cls.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-xs text-slate-400 dark:text-gray-500 italic">N/A</span>
+                        )}
+                      </td>
                       <td className="py-2 px-4">
                         <div className="flex flex-col gap-1">
                           {editError && (
@@ -226,6 +263,18 @@ function StaffList({ refreshKey }) {
                       <td className="py-3 px-4 text-slate-800 dark:text-white">{member.name}</td>
                       <td className="py-3 px-4 text-slate-600 dark:text-gray-300">{member.email}</td>
                       <td className="py-3 px-4 text-slate-600 dark:text-gray-300 capitalize">{member.role}</td>
+                      <td className="py-3 px-4">
+                        {member.role === 'teacher' && member.assignedClassId ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full">
+                            <GraduationCap size={11} />
+                            {classes.find((c) => c._id === member.assignedClassId)?.name || 'Assigned'}
+                          </span>
+                        ) : member.role === 'teacher' ? (
+                          <span className="text-xs text-slate-400 dark:text-gray-500 italic">Not assigned</span>
+                        ) : (
+                          <span className="text-xs text-slate-300 dark:text-gray-600">—</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           {/* Edit */}

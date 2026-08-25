@@ -97,6 +97,9 @@ const tenantRoutes = require('./routes/tenants');
 const subscriptionRoutes = require('./routes/subscriptions');
 const superAdminRoutes = require('./routes/superadmin');
 const feeStructureRoutes = require('./routes/feeStructure');
+const attendanceRoutes = require('./routes/attendance');
+const notificationRoutes = require('./routes/notifications');
+const remarkRoutes = require('./routes/remarks');
 
 // Register routes
 app.use('/students', studentRoutes);
@@ -116,6 +119,9 @@ app.use('/tenants', tenantRoutes);
 app.use('/subscriptions', subscriptionRoutes);
 app.use('/superadmin', superAdminRoutes);
 app.use('/fee-structure', feeStructureRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/remarks', remarkRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

@@ -270,6 +270,28 @@ function ReportCardView() {
 
               <p className="text-sm font-medium mb-6">Overall Total: {printing.totalScore}</p>
 
+              {/* Remarks section */}
+              {(printing.teacherRemark || printing.principalRemark) && (
+                <div className="border border-slate-200 rounded-lg overflow-hidden mb-6">
+                  {printing.teacherRemark && (
+                    <div className="p-3 border-b border-slate-100">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                        Class Teacher's Remark
+                      </p>
+                      <p className="text-sm text-slate-800 italic">"{printing.teacherRemark}"</p>
+                    </div>
+                  )}
+                  {printing.principalRemark && (
+                    <div className="p-3">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                        Principal's Remark
+                      </p>
+                      <p className="text-sm text-slate-800 italic">"{printing.principalRemark}"</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-400">
                 <p>Issued: {new Date().toLocaleDateString()}</p>
                 <div className="text-right">

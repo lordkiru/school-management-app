@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, WifiOff, RefreshCw } from 'lucide-react';
+import { syncOfflineQueue, getPendingCount } from './utils/offlineQueue';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
@@ -38,6 +39,10 @@ import ParentPortal from './components/ParentPortal';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import TenantManagement from './pages/TenantManagement';
 import SubscriptionManagement from './pages/SubscriptionManagement';
+import AttendanceMarking from './components/AttendanceMarking';
+import AttendanceDashboard from './components/AttendanceDashboard';
+import NotificationsPanel from './components/NotificationsPanel';
+import TeacherRemarks from './components/TeacherRemarks';
 
 const getDefaultPage = (role) => {
   if (role === 'super_admin') return 'superadmin';
@@ -58,6 +63,9 @@ function App() {
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
   const [parentRefreshKey, setParentRefreshKey] = useState(0);
   const [navParams, setNavParams] = useState({});
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingSync, setPendingSync] = useState(0);
+  const [syncStatus, setSyncStatus] = useState(''); // 'syncing' | 'synced' | ''
 
   useEffect(() => {
     if (darkMode) {
@@ -74,6 +82,41 @@ function App() {
       setUser(parsedUser);
       setActivePage(getDefaultPage(parsedUser.role));
     }
+  }, []);
+
+  // Online/offline detection + auto-sync queued attendance when back online
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      const count = await getPendingCount();
+      if (count > 0) {
+        setSyncStatus('syncing');
+        const token = localStorage.getItem('token');
+        const apiUrl = import.meta.env.VITE_API_URL;
+        if (token && apiUrl) {
+          const result = await syncOfflineQueue(token, apiUrl);
+          setSyncStatus('synced');
+          setPendingSync(0);
+          setTimeout(() => setSyncStatus(''), 4000);
+        }
+      }
+    };
+    const handleOffline = async () => {
+      setIsOnline(false);
+      const count = await getPendingCount();
+      setPendingSync(count);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check pending on mount
+    getPendingCount().then(setPendingSync);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -212,6 +255,19 @@ function App() {
     if (activePage === 'reportcards') {
       return <ReportCardView />;
     }
+    if (activePage === 'remarks') {
+      return <TeacherRemarks userRole={user.role} />;
+    }
+    if (activePage === 'notifications') {
+      return <NotificationsPanel />;
+    }
+    // Attendance — teachers see marking UI, admin/proprietor see the dashboard
+    if (activePage === 'attendance') {
+      if (user.role === 'teacher') {
+        return <AttendanceMarking userRole={user.role} />;
+      }
+      return <AttendanceDashboard />;
+    }
     // Super Admin Routes
     if (activePage === 'superadmin') {
       return (
@@ -252,7 +308,31 @@ function App() {
     <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
 
-      <div className="flex">
+      {/* Offline / Sync banner */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
+          <WifiOff size={15} />
+          You're offline — attendance will sync automatically when reconnected
+          {pendingSync > 0 && (
+            <span className="bg-white text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+              {pendingSync} queued
+            </span>
+          )}
+        </div>
+      )}
+      {isOnline && syncStatus === 'syncing' && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-medium py-2 px-4">
+          <RefreshCw size={15} className="animate-spin" />
+          Syncing offline attendance records...
+        </div>
+      )}
+      {isOnline && syncStatus === 'synced' && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-500 text-white text-sm font-medium py-2 px-4">
+          ✅ Offline attendance synced successfully!
+        </div>
+      )}
+
+      <div className={`flex ${!isOnline ? 'pt-8' : ''}`}>
         <Sidebar
           activePage={activePage}
           onSelectPage={(page) => {

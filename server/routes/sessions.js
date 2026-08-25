@@ -17,6 +17,11 @@ router.get('/', requireAuth, async (req, res) => {
 // Create a new session (proprietor or admin only)
 router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
+    const { name } = req.body;
+    if (!name || !/^\d{4}\/\d{4}$/.test(name)) {
+      return res.status(400).json({ error: 'Session name must be in format YYYY/YYYY (e.g., 2025/2026)' });
+    }
+
     const session = new Session({
       ...req.body,
       tenantId: req.user.tenantId,

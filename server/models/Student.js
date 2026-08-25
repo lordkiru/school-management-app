@@ -12,6 +12,7 @@ const studentSchema = new mongoose.Schema({
     enum: ['Active', 'Graduated', 'Withdrawn', 'Transferred'],
     default: 'Active',
   },
+  walletBalance: { type: Number, default: 0, min: 0 }, // Credit from fee overpayments, auto-applied to future fees
 }, { timestamps: true });
 
 // Indexes for better query performance

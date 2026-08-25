@@ -9,6 +9,7 @@ function FeeList({ refreshKey }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [payAmount, setPayAmount] = useState({});
+  const [payMethod, setPayMethod] = useState({});
   const [payingId, setPayingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [receiptFee, setReceiptFee] = useState(null);
@@ -85,7 +86,7 @@ function FeeList({ refreshKey }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, paymentMethod: payMethod[feeId] || 'Cash' }),
       });
 
       const data = await res.json();
@@ -93,6 +94,14 @@ function FeeList({ refreshKey }) {
 
       setPayAmount((prev) => ({ ...prev, [feeId]: '' }));
       fetchFees(searchTerm);
+
+      if (data.overpayment > 0) {
+        alert(
+          `Payment recorded. This exceeded the balance due by ₦${data.overpayment.toLocaleString()} — ` +
+          `that amount has been credited to the student's wallet (new balance: ₦${data.studentWalletBalance.toLocaleString()}) ` +
+          `and will auto-apply to their next fee.`
+        );
+      }
     } catch (err) {
       alert(err.message);
     } finally {
@@ -222,6 +231,7 @@ function FeeList({ refreshKey }) {
                   <tr className="border-b border-slate-100 dark:border-gray-700">
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Student</th>
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Term</th>
+                    <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Session</th>
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Expected</th>
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Paid</th>
                     <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Balance</th>
@@ -234,15 +244,28 @@ function FeeList({ refreshKey }) {
                 <tbody>
                   {pageFees.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-6 px-5 text-slate-500 dark:text-gray-400">
+                      <td colSpan={10} className="py-6 px-5 text-slate-500 dark:text-gray-400">
                         No fee records found.
                       </td>
                     </tr>
                   ) : (
                     pageFees.map((fee) => (
                       <tr key={fee._id} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
-                        <td className="py-3 px-5 text-slate-800 dark:text-white">{fee.studentId?.name || '—'}</td>
+                        <td className="py-3 px-5 text-slate-800 dark:text-white">
+                          <div className="flex items-center gap-2">
+                            <span>{fee.studentId?.name || '—'}</span>
+                            {fee.studentId?.walletBalance > 0 && (
+                              <span
+                                className="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 dark:bg-sky-900 text-sky-700 dark:text-sky-200"
+                                title="Credit from a prior overpayment, auto-applied to future fees"
+                              >
+                                ₦{fee.studentId.walletBalance.toLocaleString()} credit
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-5 text-slate-600 dark:text-gray-300">{fee.term}</td>
+                        <td className="py-3 px-5 text-slate-600 dark:text-gray-300 whitespace-nowrap">{fee.session}</td>
                         <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
                           {editingId === fee._id ? (
                             <div className="flex items-center gap-1">
@@ -312,6 +335,18 @@ function FeeList({ refreshKey }) {
                                 }
                                 className="w-24 p-1 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
                               />
+                              <select
+                                value={payMethod[fee._id] || 'Cash'}
+                                onChange={(e) =>
+                                  setPayMethod((prev) => ({ ...prev, [fee._id]: e.target.value }))
+                                }
+                                className="p-1 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                              >
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Card">Card</option>
+                                <option value="Other">Other</option>
+                              </select>
                               <button
                                 onClick={() => handlePay(fee._id)}
                                 disabled={payingId === fee._id}

@@ -107,8 +107,35 @@ function FeeReceipt({ fee, onClose }) {
                 <td className="py-2 text-slate-500">Status</td>
                 <td className="py-2 text-right font-semibold">{fee.status}</td>
               </tr>
+              {fee.studentId?.walletBalance > 0 && (
+                <tr className="border-t border-slate-100">
+                  <td className="py-2 text-slate-500">Wallet Credit (from prior overpayment)</td>
+                  <td className="py-2 text-right font-medium text-sky-600">
+                    ₦{fee.studentId.walletBalance.toLocaleString()}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+
+          {fee.payments?.length > 0 && (
+            <div className="mt-6">
+              <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Payment History</p>
+              <table className="w-full text-xs">
+                <tbody>
+                  {fee.payments.map((p, i) => (
+                    <tr key={i} className="border-b border-slate-100">
+                      <td className="py-1.5 text-slate-500">
+                        {new Date(p.paymentDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-1.5 text-slate-500">{p.paymentMethod}</td>
+                      <td className="py-1.5 text-right font-medium">₦{p.amount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-400">
             <div>

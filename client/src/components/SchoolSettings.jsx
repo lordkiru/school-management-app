@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Copy, Check, Link2 } from 'lucide-react';
+import { Copy, Check, Link2, MessageSquare, Eye, EyeOff, Send } from 'lucide-react';
 
 function SchoolSettings() {
   const [name, setName] = useState('');
@@ -15,6 +15,16 @@ function SchoolSettings() {
   const [success, setSuccess] = useState('');
   const [tenantId, setTenantId] = useState('');
   const [copiedField, setCopiedField] = useState('');
+
+  // WhatsApp settings
+  const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('');
+  const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
+  const [whatsappBusinessAccountId, setWhatsappBusinessAccountId] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [waTestPhone, setWaTestPhone] = useState('');
+  const [waTesting, setWaTesting] = useState(false);
+  const [waTestResult, setWaTestResult] = useState('');
 
   useEffect(() => {
     // Fetch the school's tenantId so admins can view/share the Parent Portal link.
@@ -49,6 +59,10 @@ function SchoolSettings() {
         setCa1Max(data.ca1Max ?? 20);
         setCa2Max(data.ca2Max ?? 20);
         setExamMax(data.examMax ?? 60);
+        setWhatsappEnabled(data.whatsappEnabled || false);
+        setWhatsappPhoneNumberId(data.whatsappPhoneNumberId || '');
+        setWhatsappAccessToken(data.whatsappAccessToken || '');
+        setWhatsappBusinessAccountId(data.whatsappBusinessAccountId || '');
       } catch (err) {
         setError('Failed to load school settings');
       } finally {
@@ -124,6 +138,53 @@ function SchoolSettings() {
       setError(err.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSaveWhatsApp = async (e) => {
+    e.preventDefault();
+    setWaTestResult('');
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          whatsappEnabled,
+          whatsappPhoneNumberId,
+          whatsappAccessToken,
+          whatsappBusinessAccountId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save WhatsApp settings');
+      setSuccess('WhatsApp settings saved!');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTestWhatsApp = async () => {
+    if (!waTestPhone) return;
+    setWaTesting(true);
+    setWaTestResult('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notifications/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ phone: waTestPhone }),
+      });
+      const data = await res.json();
+      if (!res.ok) setWaTestResult(`❌ ${data.error}`);
+      else setWaTestResult('✅ Test message sent! Check your WhatsApp.');
+    } catch (err) {
+      setWaTestResult(`❌ ${err.message}`);
+    } finally {
+      setWaTesting(false);
     }
   };
 
@@ -295,6 +356,108 @@ function SchoolSettings() {
           </button>
         </div>
       </div>
+
+      {/* WhatsApp Business API Settings */}
+      <form
+        onSubmit={handleSaveWhatsApp}
+        className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md mt-6"
+      >
+        <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
+          <MessageSquare size={18} className="text-green-500" /> WhatsApp Integration
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
+          Connect your Meta Business WhatsApp account to send absence alerts, fee reminders and broadcasts to parents.{' '}
+          <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noreferrer" className="text-indigo-500 underline">
+            Get credentials →
+          </a>
+        </p>
+
+        {/* Enable toggle */}
+        <label className="flex items-center gap-3 mb-4 cursor-pointer">
+          <div
+            onClick={() => setWhatsappEnabled((v) => !v)}
+            className={`relative w-11 h-6 rounded-full transition ${whatsappEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-gray-600'}`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${whatsappEnabled ? 'translate-x-5' : ''}`}
+            />
+          </div>
+          <span className="text-sm font-medium text-slate-700 dark:text-gray-300">
+            {whatsappEnabled ? 'WhatsApp messaging enabled' : 'WhatsApp messaging disabled'}
+          </span>
+        </label>
+
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Phone Number ID</label>
+        <input
+          type="text"
+          value={whatsappPhoneNumberId}
+          onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
+          placeholder="e.g. 123456789012345"
+          className={inputClass}
+        />
+
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">System User Access Token</label>
+        <div className="relative mb-3">
+          <input
+            type={showToken ? 'text' : 'password'}
+            value={whatsappAccessToken}
+            onChange={(e) => setWhatsappAccessToken(e.target.value)}
+            placeholder="EAAxxxxxxxxxxxxx..."
+            className="w-full p-2 pr-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+          />
+          <button
+            type="button"
+            onClick={() => setShowToken((v) => !v)}
+            className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+          >
+            {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">WhatsApp Business Account ID <span className="text-slate-400">(optional)</span></label>
+        <input
+          type="text"
+          value={whatsappBusinessAccountId}
+          onChange={(e) => setWhatsappBusinessAccountId(e.target.value)}
+          placeholder="e.g. 987654321098765"
+          className={inputClass}
+        />
+
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-2 rounded-lg transition mb-4"
+        >
+          {saving ? 'Saving...' : 'Save WhatsApp Settings'}
+        </button>
+
+        {/* Test message */}
+        <div className="border-t border-slate-100 dark:border-gray-700 pt-4">
+          <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 mb-2">Test your connection</p>
+          <div className="flex gap-2">
+            <input
+              type="tel"
+              value={waTestPhone}
+              onChange={(e) => setWaTestPhone(e.target.value)}
+              placeholder="2348012345678 (no + sign)"
+              className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-green-400 outline-none transition"
+            />
+            <button
+              type="button"
+              onClick={handleTestWhatsApp}
+              disabled={waTesting || !waTestPhone}
+              className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
+            >
+              <Send size={13} /> {waTesting ? 'Sending...' : 'Test'}
+            </button>
+          </div>
+          {waTestResult && (
+            <p className={`text-xs mt-2 ${waTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {waTestResult}
+            </p>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

@@ -105,6 +105,8 @@ router.get('/report-card', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'classId, term, and session are required' });
     }
 
+    const TeacherRemark = require('../models/TeacherRemark');
+
     const school = await School.findOne({ tenantId: req.user.tenantId });
     const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
 
@@ -113,6 +115,18 @@ router.get('/report-card', requireAuth, async (req, res) => {
       classId, 
       status: 'Active' 
     }).populate('classId');
+
+    // Fetch all remarks for this class/term/session in one query
+    const allRemarks = await TeacherRemark.find({
+      tenantId: req.user.tenantId,
+      classId,
+      term,
+      session,
+    });
+    const remarkByStudent = {};
+    allRemarks.forEach((r) => {
+      remarkByStudent[r.studentId.toString()] = r;
+    });
 
     const results = [];
 
@@ -135,6 +149,7 @@ router.get('/report-card', requireAuth, async (req, res) => {
       });
 
       const totalScore = scores.reduce((sum, s) => sum + s.total, 0);
+      const remarkDoc = remarkByStudent[student._id.toString()];
 
       results.push({
         student: {
@@ -142,9 +157,12 @@ router.get('/report-card', requireAuth, async (req, res) => {
           name: student.name,
           admissionNumber: student.admissionNumber,
           className: student.classId?.name || '—',
+          classId: student.classId?._id || classId,
         },
         scores,
         totalScore,
+        teacherRemark: remarkDoc?.remark || '',
+        principalRemark: remarkDoc?.principalRemark || '',
       });
     }
 

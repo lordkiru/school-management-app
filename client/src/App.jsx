@@ -43,6 +43,7 @@ import AttendanceMarking from './components/AttendanceMarking';
 import AttendanceDashboard from './components/AttendanceDashboard';
 import NotificationsPanel from './components/NotificationsPanel';
 import TeacherRemarks from './components/TeacherRemarks';
+import DataImport from './components/DataImport';
 
 const getDefaultPage = (role) => {
   if (role === 'super_admin') return 'superadmin';
@@ -257,6 +258,9 @@ function App() {
     }
     if (activePage === 'remarks') {
       return <TeacherRemarks userRole={user.role} />;
+    }
+    if (activePage === 'dataimport') {
+      return <DataImport userRole={user.role} />;
     }
     if (activePage === 'notifications') {
       return <NotificationsPanel />;

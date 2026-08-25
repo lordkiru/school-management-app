@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -19,6 +19,7 @@ const navItems = [
   { key: 'parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
   { key: 'remarks', label: 'Remarks', icon: PenLine, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'notifications', label: 'WhatsApp', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'dataimport', label: 'Data Import', icon: Upload, allowedRoles: ['proprietor', 'admin'] },
   { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
   { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
   // Super Admin Menu Items

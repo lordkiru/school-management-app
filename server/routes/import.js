@@ -30,7 +30,7 @@ function sendTemplate(res, sheetData, filename) {
   // Set column widths
   ws['!cols'] = sheetData[0].map(() => ({ wch: 22 }));
   XLSX.utils.book_append_sheet(wb, ws, 'Template');
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx', compression: true });
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);

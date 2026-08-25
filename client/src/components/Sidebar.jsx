@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload } from 'lucide-react';
+import { X, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -27,28 +27,65 @@ const navItems = [
   { key: 'superadmin-tenants', label: '🏫 Manage Schools', icon: Building2, allowedRoles: ['super_admin'] },
 ];
 
-function Sidebar({ activePage, onSelectPage, userRole }) {
+function Sidebar({ activePage, onSelectPage, userRole, mobileOpen, onClose }) {
   const visibleItems = navItems.filter((item) => item.allowedRoles.includes(userRole));
 
+  const navContent = (
+    <nav className="flex flex-col gap-1 py-2">
+      {visibleItems.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          onClick={() => {
+            onSelectPage(key);
+            onClose?.(); // close drawer on mobile after selecting
+          }}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+            activePage === key
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          <Icon size={18} />
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+
   return (
-    <aside className="w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm print:hidden">
-      <nav className="flex flex-col gap-1">
-        {visibleItems.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => onSelectPage(key)}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-              activePage === key
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            <Icon size={18} />
-            {label}
-          </button>
-        ))}
-      </nav>
-    </aside>
+    <>
+      {/* ── Desktop sidebar (always visible on md+) ── */}
+      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm print:hidden flex-shrink-0">
+        {navContent}
+      </aside>
+
+      {/* ── Mobile drawer overlay ── */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden print:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={onClose}
+          />
+          {/* Drawer panel */}
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-800 shadow-2xl flex flex-col">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-gray-700">
+              <span className="font-bold text-slate-800 dark:text-white text-base">Menu</span>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3">
+              {navContent}
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
 

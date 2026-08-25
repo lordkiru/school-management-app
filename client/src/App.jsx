@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, WifiOff, RefreshCw } from 'lucide-react';
+import { LogOut, WifiOff, RefreshCw, Menu } from 'lucide-react';
 import { syncOfflineQueue, getPendingCount } from './utils/offlineQueue';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './components/Login';
@@ -67,6 +67,7 @@ function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncStatus, setSyncStatus] = useState(''); // 'syncing' | 'synced' | ''
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (darkMode) {
@@ -336,7 +337,40 @@ function App() {
         </div>
       )}
 
-      <div className={`flex ${!isOnline ? 'pt-8' : ''}`}>
+      {/* ── Fixed top header bar ── */}
+      <header className={`fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm print:hidden ${!isOnline ? 'mt-8' : ''}`}>
+        <div className="flex items-center justify-between px-4 h-14">
+          {/* Hamburger (mobile only) */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
+            aria-label="Open menu"
+          >
+            <Menu size={22} />
+          </button>
+
+          {/* App name / logo (center on mobile, left on desktop) */}
+          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-base md:text-lg truncate">
+            🏫 SchoolManager
+          </span>
+
+          {/* Right side: welcome + logout */}
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:block text-sm text-slate-600 dark:text-gray-300 truncate max-w-[140px]">
+              {user.name}
+            </span>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Log out</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className={`flex pt-14 ${!isOnline ? 'mt-8' : ''}`}>
         <Sidebar
           activePage={activePage}
           onSelectPage={(page) => {
@@ -344,21 +378,13 @@ function App() {
             setSelectedStudentId(null);
           }}
           userRole={user.role}
+          mobileOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
 
-        <div className="flex-1">
-          <div className="flex items-center justify-between px-6 pt-16 pb-4">
-            <h1 className="text-2xl font-bold">Welcome, {user.name} 👋</h1>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:underline"
-            >
-              <LogOut size={16} /> Log out
-            </button>
-          </div>
-
+        <main className="flex-1 min-w-0 overflow-x-hidden">
           {renderPage()}
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -4,6 +4,24 @@ import printArea from '../utils/printArea';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
+const ENTRY_TYPES = [
+  { value: 'lesson', label: '📚 Lesson' },
+  { value: 'short_break', label: '☕ Short Break' },
+  { value: 'long_break', label: '🍽 Long Break' },
+];
+
+function entryTypeLabel(type) {
+  if (type === 'short_break') return '☕ Short Break';
+  if (type === 'long_break') return '🍽 Long Break';
+  return null;
+}
+
+function entryRowClass(type) {
+  if (type === 'short_break') return 'bg-amber-50 dark:bg-amber-900/20';
+  if (type === 'long_break') return 'bg-orange-50 dark:bg-orange-900/20';
+  return '';
+}
+
 function TimetableView() {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -14,6 +32,7 @@ function TimetableView() {
   const [deletingId, setDeletingId] = useState(null);
   const [school, setSchool] = useState(null);
 
+  const [entryType, setEntryType] = useState('lesson');
   const [subjectId, setSubjectId] = useState('');
   const [dayOfWeek, setDayOfWeek] = useState('Monday');
   const [startTime, setStartTime] = useState('');
@@ -22,6 +41,8 @@ function TimetableView() {
   const [saving, setSaving] = useState(false);
 
   const printRef = useRef(null);
+
+  const isBreak = entryType === 'short_break' || entryType === 'long_break';
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -102,19 +123,25 @@ function TimetableView() {
 
     try {
       const token = localStorage.getItem('token');
+      const body = {
+        classId: selectedClass,
+        dayOfWeek,
+        startTime,
+        endTime,
+        type: entryType,
+      };
+      // Only include subjectId for lessons
+      if (!isBreak && subjectId) {
+        body.subjectId = subjectId;
+      }
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/timetable`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          classId: selectedClass,
-          subjectId,
-          dayOfWeek,
-          startTime,
-          endTime,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -192,22 +219,42 @@ function TimetableView() {
             )}
 
             <div className="flex flex-wrap gap-3 items-end">
+              {/* Entry type */}
               <div>
-                <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Subject</label>
+                <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Type</label>
                 <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  required
+                  value={entryType}
+                  onChange={(e) => {
+                    setEntryType(e.target.value);
+                    setSubjectId('');
+                  }}
                   className={inputClass}
                 >
-                  <option value="">Select a subject</option>
-                  {classSubjects.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.name}
-                    </option>
+                  {ENTRY_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Subject — only for lessons */}
+              {!isBreak && (
+                <div>
+                  <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Subject</label>
+                  <select
+                    value={subjectId}
+                    onChange={(e) => setSubjectId(e.target.value)}
+                    required={!isBreak}
+                    className={inputClass}
+                  >
+                    <option value="">Select a subject</option>
+                    {classSubjects.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Day</label>
@@ -261,7 +308,7 @@ function TimetableView() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
             {/* Table toolbar */}
             {entries.length > 0 && (
-              <div className="flex items-center justify-between px-5 pt-4 pb-2">
+              <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-wrap gap-2">
                 <p className="text-sm text-slate-500 dark:text-gray-400">
                   {entries.length} entr{entries.length === 1 ? 'y' : 'ies'} — {selectedClassName}
                 </p>
@@ -298,7 +345,7 @@ function TimetableView() {
                     <tr className="border-b border-slate-100 dark:border-gray-700">
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Day</th>
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Time</th>
-                      <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Subject</th>
+                      <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Subject / Break</th>
                       <th className="py-3 px-5 text-slate-500 dark:text-gray-400 text-sm font-medium">Teacher</th>
                       <th className="py-3 px-5 no-print"></th>
                     </tr>
@@ -315,29 +362,39 @@ function TimetableView() {
                         entries
                           .filter((e) => e.dayOfWeek === day)
                           .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                          .map((entry) => (
-                            <tr key={entry._id} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
-                              <td className="py-3 px-5 text-slate-800 dark:text-white">{entry.dayOfWeek}</td>
-                              <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
-                                {entry.startTime} – {entry.endTime}
-                              </td>
-                              <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
-                                {entry.subjectId?.name || '—'}
-                              </td>
-                              <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
-                                {entry.subjectId?.teacherId?.name || 'Unassigned'}
-                              </td>
-                              <td className="py-3 px-5 no-print">
-                                <button
-                                  onClick={() => handleDelete(entry._id)}
-                                  disabled={deletingId === entry._id}
-                                  className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
+                          .map((entry) => {
+                            const breakLabel = entryTypeLabel(entry.type);
+                            const rowBg = entryRowClass(entry.type);
+                            return (
+                              <tr key={entry._id} className={`border-b border-slate-50 dark:border-gray-700 last:border-0 ${rowBg}`}>
+                                <td className="py-3 px-5 text-slate-800 dark:text-white font-medium">{entry.dayOfWeek}</td>
+                                <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
+                                  {entry.startTime} – {entry.endTime}
+                                </td>
+                                <td className="py-3 px-5">
+                                  {breakLabel ? (
+                                    <span className={`font-semibold ${entry.type === 'short_break' ? 'text-amber-600 dark:text-amber-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                                      {breakLabel}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-600 dark:text-gray-300">{entry.subjectId?.name || '—'}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-5 text-slate-500 dark:text-gray-400">
+                                  {breakLabel ? '—' : (entry.subjectId?.teacherId?.name || 'Unassigned')}
+                                </td>
+                                <td className="py-3 px-5 no-print">
+                                  <button
+                                    onClick={() => handleDelete(entry._id)}
+                                    disabled={deletingId === entry._id}
+                                    className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
                       )
                     )}
                   </tbody>

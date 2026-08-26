@@ -27,10 +27,25 @@ router.get('/', requireAuth, async (req, res) => {
 // Add a new timetable entry
 router.post('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const entry = new Timetable({
-      ...req.body,
+    const { type, subjectId, classId, dayOfWeek, startTime, endTime } = req.body;
+    const entryType = type || 'lesson';
+    const isBreak = entryType === 'short_break' || entryType === 'long_break';
+
+    const entryData = {
       tenantId: req.user.tenantId,
-    });
+      classId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      type: entryType,
+    };
+
+    // Only set subjectId for lesson entries — breaks don't have a subject
+    if (!isBreak && subjectId) {
+      entryData.subjectId = subjectId;
+    }
+
+    const entry = new Timetable(entryData);
     await entry.save();
     res.status(201).json(entry);
   } catch (err) {

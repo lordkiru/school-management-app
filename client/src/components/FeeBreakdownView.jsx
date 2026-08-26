@@ -77,7 +77,7 @@ function FeeBreakdownView() {
   };
 
   const grandTotal = structures.reduce((sum, s) => {
-    return sum + s.items.reduce((iSum, item) => iSum + item.amount, 0);
+    return sum + (s.items || []).reduce((iSum, item) => iSum + (item.amount || 0), 0);
   }, 0);
 
   return (
@@ -155,7 +155,7 @@ function FeeBreakdownView() {
           ) : (
             <>
               {structures.map((structure) => {
-                const classTotal = structure.items.reduce((sum, item) => sum + item.amount, 0);
+                const classTotal = (structure.items || []).reduce((sum, item) => sum + (item.amount || 0), 0);
                 return (
                   <div
                     key={structure._id}
@@ -188,14 +188,14 @@ function FeeBreakdownView() {
                           </tr>
                         </thead>
                         <tbody>
-                          {structure.items.length === 0 ? (
+                          {(structure.items || []).length === 0 ? (
                             <tr>
                               <td colSpan={2} className="py-3 px-5 text-slate-400 dark:text-gray-500 text-xs">
                                 No items defined for this class.
                               </td>
                             </tr>
                           ) : (
-                            structure.items.map((item) => (
+                            (structure.items || []).map((item) => (
                               <tr key={item._id} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
                                 <td className="py-2 px-5 text-slate-700 dark:text-gray-300">{item.name}</td>
                                 <td className="py-2 px-5 text-right text-slate-600 dark:text-gray-300">

@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
 function AddScore({ onScoreAdded }) {
+  const [classes, setClasses] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
   const [studentId, setStudentId] = useState('');
   const [studentQuery, setStudentQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -24,18 +26,22 @@ function AddScore({ onScoreAdded }) {
     const fetchOptions = async () => {
       try {
         const token = localStorage.getItem('token');
-        const [studentsRes, subjectsRes] = await Promise.all([
+        const [studentsRes, subjectsRes, classesRes] = await Promise.all([
           fetch(`${import.meta.env.VITE_API_URL}/students`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch(`${import.meta.env.VITE_API_URL}/classes`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
         setStudents(await studentsRes.json());
         setSubjects(await subjectsRes.json());
+        setClasses(await classesRes.json());
       } catch (err) {
-        console.error('Failed to load students/subjects', err);
+        console.error('Failed to load data', err);
       }
     };
     fetchOptions();
@@ -59,7 +65,7 @@ function AddScore({ onScoreAdded }) {
     fetchSessions();
   }, []);
 
-  // Close the dropdown when clicking outside it
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -70,16 +76,33 @@ function AddScore({ onScoreAdded }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // When class changes, reset student and subject selection
+  const handleClassChange = (classId) => {
+    setSelectedClassId(classId);
+    setStudentId('');
+    setStudentQuery('');
+    setSubjectId('');
+  };
+
   const selectedStudent = students.find((s) => s._id === studentId);
   const studentClassId = selectedStudent?.classId?._id || selectedStudent?.classId;
 
+  // Filter students by selected class (if a class is chosen)
+  const studentsInClass = selectedClassId
+    ? students.filter((s) => {
+        const sClassId = s.classId?._id || s.classId;
+        return sClassId === selectedClassId;
+      })
+    : students;
+
+  const matchingStudents = studentQuery
+    ? studentsInClass.filter((s) => s.name.toLowerCase().includes(studentQuery.toLowerCase()))
+    : studentsInClass.slice(0, 30);
+
+  // Filter subjects by student's class
   const filteredSubjects = subjects.filter(
     (subj) => subj.classId?._id === studentClassId
   );
-
-  const matchingStudents = studentQuery
-    ? students.filter((s) => s.name.toLowerCase().includes(studentQuery.toLowerCase()))
-    : students.slice(0, 20);
 
   const handleSelectStudent = (student) => {
     setStudentId(student._id);
@@ -123,6 +146,9 @@ function AddScore({ onScoreAdded }) {
       setCa1('');
       setCa2('');
       setExam('');
+      setStudentId('');
+      setStudentQuery('');
+      setSubjectId('');
       onScoreAdded();
     } catch (err) {
       setError(err.message);
@@ -152,6 +178,24 @@ function AddScore({ onScoreAdded }) {
         </div>
       )}
 
+      {/* Class filter */}
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
+        Filter by Class <span className="text-slate-400">(optional)</span>
+      </label>
+      <select
+        value={selectedClassId}
+        onChange={(e) => handleClassChange(e.target.value)}
+        className={inputClass}
+      >
+        <option value="">All classes</option>
+        {classes.map((cls) => (
+          <option key={cls._id} value={cls._id}>
+            {cls.name} {cls.section ? `(${cls.section})` : ''}
+          </option>
+        ))}
+      </select>
+
+      {/* Student search */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Student</label>
       <div className="relative mb-1" ref={wrapperRef}>
         <input
@@ -164,14 +208,16 @@ function AddScore({ onScoreAdded }) {
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
-          placeholder="Type a student's name..."
+          placeholder={selectedClassId ? 'Type a student name in this class...' : "Type a student's name..."}
           required
           className={inputClass}
         />
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-lg shadow-lg max-h-56 overflow-y-auto">
             {matchingStudents.length === 0 ? (
-              <p className="p-3 text-sm text-slate-400">No matching students</p>
+              <p className="p-3 text-sm text-slate-400">
+                {selectedClassId ? 'No students found in this class' : 'No matching students'}
+              </p>
             ) : (
               matchingStudents.map((s) => (
                 <button
@@ -196,6 +242,7 @@ function AddScore({ onScoreAdded }) {
         </p>
       )}
 
+      {/* Subject */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Subject</label>
       <select
         value={subjectId}
@@ -217,6 +264,7 @@ function AddScore({ onScoreAdded }) {
         </p>
       )}
 
+      {/* Term */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Term</label>
       <select value={term} onChange={(e) => setTerm(e.target.value)} required className={inputClass}>
         {TERMS.map((t) => (
@@ -226,13 +274,9 @@ function AddScore({ onScoreAdded }) {
         ))}
       </select>
 
+      {/* Session */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Session</label>
-      <select
-        value={session}
-        onChange={(e) => setSession(e.target.value)}
-        required
-        className={inputClass}
-      >
+      <select value={session} onChange={(e) => setSession(e.target.value)} required className={inputClass}>
         <option value="">Select a session</option>
         {sessions.map((s) => (
           <option key={s._id} value={s.name}>
@@ -241,11 +285,13 @@ function AddScore({ onScoreAdded }) {
         ))}
       </select>
 
+      {/* Scores */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
           <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">CA1</label>
           <input
             type="number"
+            min="0"
             value={ca1}
             onChange={(e) => setCa1(e.target.value)}
             required
@@ -256,6 +302,7 @@ function AddScore({ onScoreAdded }) {
           <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">CA2</label>
           <input
             type="number"
+            min="0"
             value={ca2}
             onChange={(e) => setCa2(e.target.value)}
             required
@@ -266,6 +313,7 @@ function AddScore({ onScoreAdded }) {
           <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Exam</label>
           <input
             type="number"
+            min="0"
             value={exam}
             onChange={(e) => setExam(e.target.value)}
             required

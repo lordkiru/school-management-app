@@ -311,8 +311,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
-      <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
-
       {/* Offline / Sync banner */}
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
@@ -349,19 +347,20 @@ function App() {
             <Menu size={22} />
           </button>
 
-          {/* App name / logo (center on mobile, left on desktop) */}
+          {/* App name / logo */}
           <span className="font-bold text-indigo-600 dark:text-indigo-400 text-base md:text-lg truncate">
-            🏫 SchoolManager
+            🏫 Lemida SchoolManager
           </span>
 
-          {/* Right side: welcome + logout */}
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-sm text-slate-600 dark:text-gray-300 truncate max-w-[140px]">
+          {/* Right side: welcome + theme toggle + logout */}
+          <div className="flex items-center gap-1">
+            <span className="hidden sm:block text-sm text-slate-600 dark:text-gray-300 truncate max-w-[130px] mr-1">
               {user.name}
             </span>
+            <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} inline />
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline"
+              className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline px-1"
             >
               <LogOut size={16} />
               <span className="hidden sm:inline">Log out</span>

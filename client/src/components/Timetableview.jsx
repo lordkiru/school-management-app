@@ -39,6 +39,7 @@ function TimetableView() {
   const [endTime, setEndTime] = useState('');
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const printRef = useRef(null);
 
@@ -93,6 +94,7 @@ function TimetableView() {
       return;
     }
     setLoading(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/timetable?classId=${selectedClass}`, {
@@ -107,7 +109,7 @@ function TimetableView() {
     } finally {
       setLoading(false);
     }
-  }, [selectedClass]);
+  }, [selectedClass, refreshKey]);
 
   useEffect(() => {
     fetchEntries();
@@ -150,7 +152,7 @@ function TimetableView() {
       setSubjectId('');
       setStartTime('');
       setEndTime('');
-      fetchEntries();
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       setFormError(err.message);
     } finally {

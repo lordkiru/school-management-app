@@ -7,7 +7,11 @@ const notificationSchema = new mongoose.Schema({
     enum: ['absence_alert', 'fee_reminder', 'result_published', 'custom_broadcast', 'custom_individual'],
     required: true,
   },
-  channel: { type: String, default: 'whatsapp' },
+  channel: {
+    type: String,
+    enum: ['whatsapp', 'sms'],
+    default: 'whatsapp',
+  },
   recipientPhone: { type: String, required: true },
   recipientName: { type: String, default: '' },
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent', default: null },
@@ -18,7 +22,7 @@ const notificationSchema = new mongoose.Schema({
     enum: ['sent', 'failed', 'queued'],
     default: 'queued',
   },
-  metaMessageId: { type: String, default: '' }, // WhatsApp message ID from Meta API
+  metaMessageId: { type: String, default: '' }, // WhatsApp message ID from Meta API / Termii message ID
   errorMessage: { type: String, default: '' },
   sentAt: { type: Date, default: null },
   sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // null = system/cron
@@ -26,6 +30,7 @@ const notificationSchema = new mongoose.Schema({
 
 notificationSchema.index({ tenantId: 1 });
 notificationSchema.index({ tenantId: 1, type: 1 });
+notificationSchema.index({ tenantId: 1, channel: 1 });
 notificationSchema.index({ tenantId: 1, parentId: 1 });
 notificationSchema.index({ tenantId: 1, createdAt: -1 });
 

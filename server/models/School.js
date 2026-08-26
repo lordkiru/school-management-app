@@ -13,6 +13,10 @@ const schoolSchema = new mongoose.Schema({
   whatsappPhoneNumberId: { type: String, default: '' }, // Meta Phone Number ID
   whatsappAccessToken: { type: String, default: '' },   // Meta System User Access Token
   whatsappBusinessAccountId: { type: String, default: '' }, // WABA ID
+  // Termii SMS settings
+  smsEnabled: { type: Boolean, default: false },
+  smsApiKey: { type: String, default: '' },      // Termii API key
+  smsSenderId: { type: String, default: '' },    // Approved sender ID (e.g. "GREENWOOD")
 }, { timestamps: true });
 
 // Indexes

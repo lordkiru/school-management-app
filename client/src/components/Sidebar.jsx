@@ -18,7 +18,7 @@ const navItems = [
   { key: 'staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'] },
   { key: 'parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
   { key: 'remarks', label: 'Remarks', icon: PenLine, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'notifications', label: 'WhatsApp', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'notifications', label: 'Messaging', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
   { key: 'dataimport', label: 'Data Import', icon: Upload, allowedRoles: ['proprietor', 'admin'] },
   { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
   { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },

@@ -10,9 +10,10 @@ const TYPE_LABELS = {
 };
 
 const CHANNEL_OPTIONS = [
-  { value: 'whatsapp', label: '💬 WhatsApp' },
+  { value: 'whatsapp', label: '💬 WhatsApp (Meta)' },
+  { value: 'termii-whatsapp', label: '📲 WhatsApp (Termii)' },
   { value: 'sms', label: '📱 SMS' },
-  { value: 'both', label: '📡 Both' },
+  { value: 'all', label: '📡 All Channels' },
 ];
 
 function ChannelBadge({ channel }) {
@@ -20,6 +21,13 @@ function ChannelBadge({ channel }) {
     return (
       <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">
         📱 SMS
+      </span>
+    );
+  }
+  if (channel === 'termii-whatsapp') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full">
+        📲 WA (Termii)
       </span>
     );
   }
@@ -35,7 +43,7 @@ function NotificationsPanel() {
   const [parents, setParents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [history, setHistory] = useState([]);
-  const [historyStats, setHistoryStats] = useState({ totalSent: 0, totalFailed: 0, waSent: 0, smsSent: 0 });
+  const [historyStats, setHistoryStats] = useState({ totalSent: 0, totalFailed: 0, waSent: 0, twSent: 0, smsSent: 0 });
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyChannel, setHistoryChannel] = useState(''); // filter
@@ -95,6 +103,7 @@ function NotificationsPanel() {
           totalSent: data.totalSent,
           totalFailed: data.totalFailed,
           waSent: data.waSent || 0,
+          twSent: data.twSent || 0,
           smsSent: data.smsSent || 0,
         });
       }
@@ -347,7 +356,7 @@ function NotificationsPanel() {
       {activeTab === 'history' && (
         <div>
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{historyStats.totalSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">Total Sent</div>
@@ -358,7 +367,11 @@ function NotificationsPanel() {
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">{historyStats.waSent}</div>
-              <div className="text-xs text-slate-500 dark:text-gray-400">💬 WhatsApp</div>
+              <div className="text-xs text-slate-500 dark:text-gray-400">💬 WA (Meta)</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+              <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">{historyStats.twSent}</div>
+              <div className="text-xs text-slate-500 dark:text-gray-400">📲 WA (Termii)</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{historyStats.smsSent}</div>
@@ -367,8 +380,13 @@ function NotificationsPanel() {
           </div>
 
           {/* Channel filter */}
-          <div className="flex gap-2 mb-4">
-            {[{ value: '', label: 'All' }, { value: 'whatsapp', label: '💬 WhatsApp' }, { value: 'sms', label: '📱 SMS' }].map((opt) => (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {[
+              { value: '', label: 'All' },
+              { value: 'whatsapp', label: '💬 WA (Meta)' },
+              { value: 'termii-whatsapp', label: '📲 WA (Termii)' },
+              { value: 'sms', label: '📱 SMS' },
+            ].map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setHistoryChannel(opt.value)}

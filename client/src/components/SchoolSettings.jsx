@@ -28,6 +28,7 @@ function SchoolSettings() {
 
   // SMS (Termii) settings
   const [smsEnabled, setSmsEnabled] = useState(false);
+  const [termiiWhatsappEnabled, setTermiiWhatsappEnabled] = useState(false);
   const [smsApiKey, setSmsApiKey] = useState('');
   const [smsSenderId, setSmsSenderId] = useState('');
   const [showSmsKey, setShowSmsKey] = useState(false);
@@ -73,6 +74,7 @@ function SchoolSettings() {
         setSmsEnabled(data.smsEnabled || false);
         setSmsApiKey(data.smsApiKey || '');
         setSmsSenderId(data.smsSenderId || '');
+        setTermiiWhatsappEnabled(data.termiiWhatsappEnabled || false);
       } catch (err) {
         setError('Failed to load school settings');
       } finally {
@@ -191,7 +193,7 @@ function SchoolSettings() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ smsEnabled, smsApiKey, smsSenderId }),
+        body: JSON.stringify({ smsEnabled, smsApiKey, smsSenderId, termiiWhatsappEnabled }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save SMS settings');
@@ -389,22 +391,32 @@ function SchoolSettings() {
       {/* ── SMS Integration (Termii) ── */}
       <form onSubmit={handleSaveSMS} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md mt-6">
         <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
-          <Smartphone size={18} className="text-indigo-500" /> SMS Integration (Termii)
+          <Smartphone size={18} className="text-indigo-500" /> SMS &amp; WhatsApp via Termii
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
-          Connect your Termii account to send SMS alerts to parents — works even without WhatsApp.{' '}
+          One Termii account — use it for SMS, WhatsApp, or both. Same API key for all channels.{' '}
           <a href="https://termii.com" target="_blank" rel="noreferrer" className="text-indigo-500 underline">
             Get Termii API key →
           </a>
         </p>
 
-        {/* Enable toggle */}
-        <label className="flex items-center gap-3 mb-4 cursor-pointer">
+        {/* SMS Enable toggle */}
+        <label className="flex items-center gap-3 mb-3 cursor-pointer">
           <div onClick={() => setSmsEnabled((v) => !v)} className={`relative w-11 h-6 rounded-full transition ${smsEnabled ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-gray-600'}`}>
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${smsEnabled ? 'translate-x-5' : ''}`} />
           </div>
           <span className="text-sm font-medium text-slate-700 dark:text-gray-300">
-            {smsEnabled ? 'SMS messaging enabled' : 'SMS messaging disabled'}
+            📱 {smsEnabled ? 'SMS enabled' : 'SMS disabled'}
+          </span>
+        </label>
+
+        {/* Termii WhatsApp Enable toggle */}
+        <label className="flex items-center gap-3 mb-4 cursor-pointer">
+          <div onClick={() => setTermiiWhatsappEnabled((v) => !v)} className={`relative w-11 h-6 rounded-full transition ${termiiWhatsappEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${termiiWhatsappEnabled ? 'translate-x-5' : ''}`} />
+          </div>
+          <span className="text-sm font-medium text-slate-700 dark:text-gray-300">
+            💬 {termiiWhatsappEnabled ? 'WhatsApp via Termii enabled' : 'WhatsApp via Termii disabled'}
           </span>
         </label>
 
@@ -431,30 +443,54 @@ function SchoolSettings() {
           maxLength={11}
           className={inputClass}
         />
-        <p className="text-xs text-slate-400 -mt-2 mb-3">Max 11 characters. Must be pre-approved by Termii. Use your school's name or abbreviation.</p>
+        <p className="text-xs text-slate-400 -mt-2 mb-3">Max 11 chars. Must be pre-approved by Termii.</p>
 
         <button type="submit" disabled={saving} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition mb-4">
-          {saving ? 'Saving...' : 'Save SMS Settings'}
+          {saving ? 'Saving...' : 'Save Termii Settings'}
         </button>
 
-        <div className="border-t border-slate-100 dark:border-gray-700 pt-4">
-          <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 mb-2">Test your SMS connection</p>
+        {/* Test SMS */}
+        <div className="border-t border-slate-100 dark:border-gray-700 pt-4 mb-4">
+          <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 mb-2">📱 Test SMS</p>
           <div className="flex gap-2">
-            <input
-              type="tel"
-              value={smsTestPhone}
-              onChange={(e) => setSmsTestPhone(e.target.value)}
-              placeholder="08012345678 or 2348012345678"
-              className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-indigo-400 outline-none transition"
-            />
+            <input type="tel" value={smsTestPhone} onChange={(e) => setSmsTestPhone(e.target.value)} placeholder="08012345678" className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-indigo-400 outline-none transition" />
             <button type="button" onClick={handleTestSMS} disabled={smsTesting || !smsTestPhone} className="flex items-center gap-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap">
-              <Send size={13} /> {smsTesting ? 'Sending...' : 'Test'}
+              <Send size={13} /> {smsTesting ? '...' : 'Test SMS'}
             </button>
           </div>
           {smsTestResult && (
-            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {smsTestResult}
-            </p>
+            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{smsTestResult}</p>
+          )}
+        </div>
+
+        {/* Test Termii WhatsApp */}
+        <div className="border-t border-slate-100 dark:border-gray-700 pt-4">
+          <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 mb-2">💬 Test WhatsApp via Termii</p>
+          <div className="flex gap-2">
+            <input type="tel" value={smsTestPhone} onChange={(e) => setSmsTestPhone(e.target.value)} placeholder="08012345678" className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-green-400 outline-none transition" />
+            <button
+              type="button"
+              disabled={smsTesting || !smsTestPhone}
+              onClick={async () => {
+                setSmsTesting(true); setSmsTestResult('');
+                try {
+                  const token = localStorage.getItem('token');
+                  const res = await fetch(`${import.meta.env.VITE_API_URL}/notifications/test-termii-whatsapp`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ phone: smsTestPhone }),
+                  });
+                  const data = await res.json();
+                  setSmsTestResult(res.ok ? '✅ WhatsApp (Termii) sent! Check your phone.' : `❌ ${data.error}`);
+                } catch (e) { setSmsTestResult(`❌ ${e.message}`); }
+                finally { setSmsTesting(false); }
+              }}
+              className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
+            >
+              <Send size={13} /> {smsTesting ? '...' : 'Test WA'}
+            </button>
+          </div>
+          {smsTestResult && (
+            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{smsTestResult}</p>
           )}
         </div>
       </form>

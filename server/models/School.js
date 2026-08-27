@@ -15,6 +15,7 @@ const schoolSchema = new mongoose.Schema({
   whatsappBusinessAccountId: { type: String, default: '' }, // WABA ID
   // Termii SMS settings
   smsEnabled: { type: Boolean, default: false },
+  termiiWhatsappEnabled: { type: Boolean, default: false }, // WhatsApp via Termii (reuses same key)
   smsApiKey: { type: String, default: '' },      // Termii API key
   smsSenderId: { type: String, default: '' },    // Approved sender ID (e.g. "GREENWOOD")
 }, { timestamps: true });

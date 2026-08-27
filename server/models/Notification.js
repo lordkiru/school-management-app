@@ -9,7 +9,10 @@ const notificationSchema = new mongoose.Schema({
   },
   channel: {
     type: String,
-    enum: ['whatsapp', 'sms'],
+    // whatsapp        = Meta Cloud API
+    // termii-whatsapp = WhatsApp delivered via Termii (same API key as SMS)
+    // sms             = SMS via Termii
+    enum: ['whatsapp', 'termii-whatsapp', 'sms'],
     default: 'whatsapp',
   },
   recipientPhone: { type: String, required: true },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, User, DollarSign, FileText, ClipboardCheck, CheckCircle, XCircle } from 'lucide-react';
+import { LogOut, User, DollarSign, FileText, ClipboardCheck } from 'lucide-react';
 
 function AttendancePanel({ child }) {
   const [data, setData] = useState(null);
@@ -75,10 +75,6 @@ function ParentDashboard({ parent, onLogout }) {
   const [error, setError] = useState('');
   const [expandedAttendance, setExpandedAttendance] = useState({});
 
-  useEffect(() => {
-    fetchChildren();
-  }, []);
-
   const fetchChildren = async () => {
     try {
       const token = localStorage.getItem('parentToken');
@@ -96,6 +92,10 @@ function ParentDashboard({ parent, onLogout }) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchChildren();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('parentToken');
@@ -164,14 +164,14 @@ function ParentDashboard({ parent, onLogout }) {
 
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
                   <a
-                    href={`/results?studentId=${child._id}`}
+                    href={`/results?admissionNumber=${encodeURIComponent(child.admissionNumber)}&studentName=${encodeURIComponent(child.name)}`}
                     className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 px-3 rounded-lg transition"
                   >
                     <FileText size={16} />
                     Results
                   </a>
                   <a
-                    href={`/pay?studentId=${child._id}`}
+                    href={`/pay?admissionNumber=${encodeURIComponent(child.admissionNumber)}&studentName=${encodeURIComponent(child.name)}`}
                     className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-3 rounded-lg transition"
                   >
                     <DollarSign size={16} />

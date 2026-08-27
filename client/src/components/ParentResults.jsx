@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Printer, ArrowLeft } from 'lucide-react';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
@@ -21,11 +21,43 @@ function getParentTenantId() {
 
 function ParentResults() {
   const tenantId = getParentTenantId();
-  const [admissionNumber, setAdmissionNumber] = useState('');
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlAdmissionNumber = urlParams.get('admissionNumber') || '';
+  const urlStudentName = urlParams.get('studentName') || '';
+  const isAutofilled = !!urlAdmissionNumber;
+
+  const [admissionNumber, setAdmissionNumber] = useState(urlAdmissionNumber);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [termFilter, setTermFilter] = useState('');
+
+  const fetchResults = async (admNum) => {
+    setError('');
+    setResult(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/students/public/results/${admNum}?tenantId=${encodeURIComponent(tenantId)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lookup failed');
+      setResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (urlAdmissionNumber && tenantId) {
+      const timer = setTimeout(() => {
+        fetchResults(urlAdmissionNumber);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
 
   // Guard: if no tenantId, the parent hasn't come through a school portal link
   if (!tenantId) {
@@ -49,20 +81,7 @@ function ParentResults() {
 
   const handleLookup = async (e) => {
     e.preventDefault();
-    setError('');
-    setResult(null);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/students/public/results/${admissionNumber}?tenantId=${encodeURIComponent(tenantId)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Lookup failed');
-      setResult(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    await fetchResults(admissionNumber);
   };
 
   const handlePrint = () => {
@@ -91,27 +110,37 @@ function ParentResults() {
           </div>
 
           <h1 className="text-xl font-bold text-slate-800 text-center mb-1">Student Results</h1>
-          <p className="text-sm text-slate-500 text-center mb-4">
-            Enter your child's admission number to view their results.
-          </p>
+          {isAutofilled && !error ? (
+            loading && (
+              <p className="text-sm text-slate-500 text-center mb-4">
+                Loading results for {urlStudentName}...
+              </p>
+            )
+          ) : (
+            <>
+              <p className="text-sm text-slate-500 text-center mb-4">
+                Enter your child's admission number to view their results.
+              </p>
 
-          <form onSubmit={handleLookup} className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={admissionNumber}
-              onChange={(e) => setAdmissionNumber(e.target.value)}
-              placeholder="e.g. SEC0001"
-              required
-              className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 rounded-lg transition"
-            >
-              <Search size={18} />
-            </button>
-          </form>
+              <form onSubmit={handleLookup} className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  value={admissionNumber}
+                  onChange={(e) => setAdmissionNumber(e.target.value)}
+                  placeholder="e.g. SEC0001"
+                  required
+                  className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 rounded-lg transition"
+                >
+                  <Search size={18} />
+                </button>
+              </form>
+            </>
+          )}
 
           {error && (
             <div className="bg-rose-50 text-rose-600 text-sm p-3 rounded-lg mb-4">{error}</div>

@@ -1,12 +1,49 @@
 import { useState } from 'react';
 import { Search, ArrowLeft } from 'lucide-react';
 
+// Get tenantId from the logged-in parent's stored session, or fall back to URL param
+function getParentTenantId() {
+  try {
+    const urlParam = new URLSearchParams(window.location.search).get('tenantId');
+    if (urlParam) return urlParam;
+    const saved = localStorage.getItem('parent');
+    if (saved) {
+      const parent = JSON.parse(saved);
+      return parent.tenantId || '';
+    }
+  } catch {
+    // ignore
+  }
+  return '';
+}
+
 function ParentPay() {
+  const tenantId = getParentTenantId();
   const [admissionNumber, setAdmissionNumber] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [payingId, setPayingId] = useState(null);
+
+  // Guard: if no tenantId, the parent hasn't come through a school portal link
+  if (!tenantId) {
+    return (
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-sm border border-slate-100 p-8 text-center">
+          <h1 className="text-xl font-bold text-slate-800 mb-3">School not identified</h1>
+          <p className="text-sm text-slate-500 mb-6">
+            Please sign in through your school's portal link first. Ask your school admin for the correct link.
+          </p>
+          <a
+            href="/portal"
+            className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg transition"
+          >
+            Go to Parent Portal
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const handleLookup = async (e) => {
     e.preventDefault();
@@ -15,7 +52,7 @@ function ParentPay() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/lookup/${admissionNumber}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/lookup/${admissionNumber}?tenantId=${encodeURIComponent(tenantId)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       setResult(data);

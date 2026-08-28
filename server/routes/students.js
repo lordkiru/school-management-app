@@ -95,6 +95,50 @@ router.get('/public/results/:admissionNumber', apiLimiter, async (req, res) => {
   }
 });
 
+// Student self-service: view own profile (used by the CBT dashboard)
+router.get('/me', requireAuth, requireRole('student'), async (req, res) => {
+  try {
+    const student = await Student.findOne({ _id: req.user.id, tenantId: req.user.tenantId }).populate('classId');
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+    res.json({
+      id: student._id,
+      name: student.name,
+      admissionNumber: student.admissionNumber,
+      classId: student.classId,
+      mustChangePassword: student.mustChangePassword,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Student self-service: set a new PIN (required on first login, optional after)
+router.patch('/me/change-pin', requireAuth, requireRole('student'), async (req, res) => {
+  try {
+    const { currentPin, newPin } = req.body;
+    if (!newPin || newPin.length < 4) {
+      return res.status(400).json({ error: 'New PIN must be at least 4 characters' });
+    }
+
+    const student = await Student.findOne({ _id: req.user.id, tenantId: req.user.tenantId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // Skip the currentPin check only on a forced first-time change
+    if (!student.mustChangePassword) {
+      const isMatch = await student.comparePassword(currentPin || '');
+      if (!isMatch) return res.status(401).json({ error: 'Current PIN is incorrect' });
+    }
+
+    student.password = newPin;
+    student.mustChangePassword = false;
+    await student.save();
+
+    res.json({ message: 'PIN updated' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Get one student with their scores and fees
 router.get('/:id', requireAuth, async (req, res) => {
   try {
@@ -211,6 +255,53 @@ router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMo
     );
     if (!student) return res.status(404).json({ error: 'Student not found' });
     res.json(student);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Generate (or reset) a CBT login PIN for a single student.
+// Returns the plaintext PIN once — it is never retrievable again, only re-generatable.
+router.post('/:id/generate-pin', requireAuth, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
+  try {
+    const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const pin = String(Math.floor(1000 + Math.random() * 9000)); // random 4-digit PIN
+    student.password = pin; // hashed by the pre('save') hook
+    student.mustChangePassword = true;
+    await student.save();
+
+    res.json({
+      studentId: student._id,
+      name: student.name,
+      admissionNumber: student.admissionNumber,
+      pin, // plaintext — only ever shown here, print/share immediately
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Bulk-generate CBT login PINs for every active student in a class — e.g. before a CBT session.
+// Returns a list of { admissionNumber, name, pin } for the teacher to print as login slips.
+router.post('/generate-pins', requireAuth, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
+  try {
+    const { classId } = req.body;
+    if (!classId) return res.status(400).json({ error: 'classId is required' });
+
+    const students = await Student.find({ tenantId: req.user.tenantId, classId, status: 'Active' });
+    const results = [];
+
+    for (const student of students) {
+      const pin = String(Math.floor(1000 + Math.random() * 9000));
+      student.password = pin;
+      student.mustChangePassword = true;
+      await student.save();
+      results.push({ studentId: student._id, name: student.name, admissionNumber: student.admissionNumber, pin });
+    }
+
+    res.json(results);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

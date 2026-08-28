@@ -101,6 +101,7 @@ const attendanceRoutes = require('./routes/attendance');
 const notificationRoutes = require('./routes/notifications');
 const remarkRoutes = require('./routes/remarks');
 const importRoutes = require('./routes/import');
+const cbtRoutes = require('./routes/cbt');
 
 // Register routes
 app.use('/students', studentRoutes);
@@ -124,6 +125,7 @@ app.use('/attendance', attendanceRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/remarks', remarkRoutes);
 app.use('/import', importRoutes);
+app.use('/cbt', cbtRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running');

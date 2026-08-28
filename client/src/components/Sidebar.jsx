@@ -1,4 +1,4 @@
-import { X, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload } from 'lucide-react';
+import { X, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -7,6 +7,7 @@ const navItems = [
   { key: 'classes', label: 'Classes', icon: GraduationCap, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'subjects', label: 'Subjects', icon: BookOpen, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'cbt', label: 'CBT Tests', icon: Monitor, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
   { key: 'feesetup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'] },
   { key: 'feedownown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'] },

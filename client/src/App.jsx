@@ -36,6 +36,11 @@ import ForgotPassword from './components/ForgotPassword';
 import ParentList from './components/ParentList';
 import AddParent from './components/AddParent';
 import ParentPortal from './components/ParentPortal';
+import StudentLogin from './components/StudentLogin';
+import CbtTestTaking from './components/CbtTestTaking';
+import CbtBuilder from './components/CbtBuilder';
+import CbtResults from './components/CbtResults';
+import CbtHistory from './components/CbtHistory';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import TenantManagement from './pages/TenantManagement';
 import SubscriptionManagement from './pages/SubscriptionManagement';
@@ -63,6 +68,8 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [staffRefreshKey, setStaffRefreshKey] = useState(0);
   const [parentRefreshKey, setParentRefreshKey] = useState(0);
+  const [cbtRefreshKey, setCbtRefreshKey] = useState(0);
+  const [cbtView, setCbtView] = useState('tests'); // 'tests' | 'history' — student CBT portal only
   const [navParams, setNavParams] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingSync, setPendingSync] = useState(0);
@@ -143,6 +150,54 @@ function App() {
   if (window.location.pathname === '/portal') {
     return <ParentPortal />;
   }
+  if (window.location.pathname === '/cbt-login') {
+    const loggedInStudent = localStorage.getItem('student') ? JSON.parse(localStorage.getItem('student')) : null;
+    if (loggedInStudent) {
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+          <div className="max-w-2xl mx-auto mb-4 px-6 flex items-center justify-between">
+            <span className="text-slate-600 dark:text-gray-300">
+              Logged in as <strong>{loggedInStudent.name}</strong>
+            </span>
+            <button
+              onClick={() => {
+                localStorage.removeItem('studentToken');
+                localStorage.removeItem('student');
+                window.location.reload();
+              }}
+              className="text-sm text-rose-600 dark:text-rose-400 hover:underline"
+            >
+              Log out
+            </button>
+          </div>
+          <div className="max-w-2xl mx-auto mb-4 px-6 flex gap-2">
+            <button
+              onClick={() => setCbtView('tests')}
+              className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
+                cbtView === 'tests'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
+              }`}
+            >
+              Take a test
+            </button>
+            <button
+              onClick={() => setCbtView('history')}
+              className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
+                cbtView === 'history'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
+              }`}
+            >
+              History
+            </button>
+          </div>
+          {cbtView === 'history' ? <CbtHistory /> : <CbtTestTaking />}
+        </div>
+      );
+    }
+    return <StudentLogin onLoginSuccess={() => window.location.reload()} />;
+  }
 
   if (!user) {
     return (
@@ -197,6 +252,14 @@ function App() {
         <div className="grid md:grid-cols-2 gap-6 p-6">
           <AddScore onScoreAdded={() => setScoreRefreshKey((k) => k + 1)} />
           <ScoreList refreshKey={scoreRefreshKey} />
+        </div>
+      );
+    }
+    if (activePage === 'cbt') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6 p-6">
+          <CbtBuilder onTestCreated={() => setCbtRefreshKey((k) => k + 1)} />
+          <CbtResults refreshKey={cbtRefreshKey} />
         </div>
       );
     }

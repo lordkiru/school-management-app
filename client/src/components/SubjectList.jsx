@@ -5,6 +5,8 @@ const PAGE_SIZE = 16;
 
 function SubjectList({ refreshKey }) {
   const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
@@ -35,6 +37,19 @@ function SubjectList({ refreshKey }) {
     }
   }, []);
 
+  const fetchClasses = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setClasses(data);
+    } catch (err) {
+      console.error('Failed to load classes', err);
+    }
+  }, []);
+
   const fetchStaff = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -55,8 +70,17 @@ function SubjectList({ refreshKey }) {
   }, [fetchSubjects, refreshKey]);
 
   useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
+
+  useEffect(() => {
     fetchStaff();
   }, [fetchStaff]);
+
+  // Reset to page 1 whenever the class filter changes, so you don't land on an empty page
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClassId]);
 
   const handleDelete = async (subjectId, subjectName) => {
     const confirmed = window.confirm(
@@ -109,15 +133,31 @@ function SubjectList({ refreshKey }) {
 
   if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
 
-  const totalPages = Math.ceil(subjects.length / PAGE_SIZE) || 1;
+  const filteredSubjects = selectedClassId
+    ? subjects.filter((s) => (s.classId?._id || s.classId) === selectedClassId)
+    : subjects;
+
+  const totalPages = Math.ceil(filteredSubjects.length / PAGE_SIZE) || 1;
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const pageSubjects = subjects.slice(startIndex, startIndex + PAGE_SIZE);
+  const pageSubjects = filteredSubjects.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
     <div className="p-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
-        <div className="p-5 border-b border-slate-100 dark:border-gray-700">
+        <div className="p-5 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Subjects</h2>
+          <select
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-slate-700 dark:text-gray-200"
+          >
+            <option value="">All classes</option>
+            {classes.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {loading ? (
@@ -138,7 +178,7 @@ function SubjectList({ refreshKey }) {
                   {pageSubjects.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-6 px-5 text-slate-500 dark:text-gray-400">
-                        No subjects found.
+                        {selectedClassId ? 'No subjects found for this class.' : 'No subjects found.'}
                       </td>
                     </tr>
                   ) : (
@@ -204,11 +244,11 @@ function SubjectList({ refreshKey }) {
               </table>
             </div>
 
-            {subjects.length > 0 && (
+            {filteredSubjects.length > 0 && (
               <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
                 <span className="text-slate-500 dark:text-gray-400">
-                  Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, subjects.length)} of{' '}
-                  {subjects.length}
+                  Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredSubjects.length)} of{' '}
+                  {filteredSubjects.length}
                 </span>
                 <div className="flex items-center gap-2">
                   <button

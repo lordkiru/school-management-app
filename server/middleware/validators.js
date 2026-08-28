@@ -27,6 +27,21 @@ const validateLogin = [
   handleValidationErrors,
 ];
 
+// Student login validation (admission number + PIN, not email/password)
+const validateStudentLogin = [
+  body('admissionNumber')
+    .trim()
+    .notEmpty()
+    .withMessage('Admission number is required'),
+  body('pin')
+    .trim()
+    .notEmpty()
+    .withMessage('PIN is required')
+    .isLength({ min: 4, max: 10 })
+    .withMessage('PIN must be between 4 and 10 characters'),
+  handleValidationErrors,
+];
+
 // Student validation (admissionNumber is auto-generated)
 const validateStudent = [
   body('name')
@@ -173,6 +188,68 @@ const validateScore = [
   handleValidationErrors,
 ];
 
+// CBT test validation
+const validateCbtTest = [
+  body('title')
+    .trim()
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ min: 2, max: 150 })
+    .withMessage('Title must be between 2 and 150 characters'),
+  body('subjectId')
+    .notEmpty()
+    .withMessage('Subject ID is required')
+    .isMongoId()
+    .withMessage('Invalid subject ID'),
+  body('classId')
+    .notEmpty()
+    .withMessage('Class ID is required')
+    .isMongoId()
+    .withMessage('Invalid class ID'),
+  body('term')
+    .notEmpty()
+    .withMessage('Term is required')
+    .isIn(['First Term', 'Second Term', 'Third Term'])
+    .withMessage('Invalid term'),
+  body('session')
+    .notEmpty()
+    .withMessage('Session is required')
+    .matches(/^\d{4}\/\d{4}$/)
+    .withMessage('Session must be in format YYYY/YYYY'),
+  body('durationMinutes')
+    .notEmpty()
+    .withMessage('Duration is required')
+    .isInt({ min: 1, max: 300 })
+    .withMessage('Duration must be between 1 and 300 minutes'),
+  body('caSlot')
+    .notEmpty()
+    .withMessage('CA slot is required')
+    .isIn(['ca1', 'ca2'])
+    .withMessage('caSlot must be ca1 or ca2'),
+  body('questions')
+    .isArray({ min: 1 })
+    .withMessage('At least one question is required'),
+  body('questions.*.text')
+    .trim()
+    .notEmpty()
+    .withMessage('Every question needs text'),
+  body('questions.*.options')
+    .isArray({ min: 2, max: 6 })
+    .withMessage('Every question needs 2 to 6 options'),
+  body('questions.*.correctIndex')
+    .isInt({ min: 0 })
+    .withMessage('Every question needs a valid correct answer index'),
+  handleValidationErrors,
+];
+
+// CBT attempt submission validation
+const validateCbtSubmit = [
+  body('answers')
+    .isArray()
+    .withMessage('Answers must be an array'),
+  handleValidationErrors,
+];
+
 // MongoDB ID validation
 const validateMongoId = [
   param('id')
@@ -271,11 +348,14 @@ const validateSubject = [
 
 module.exports = {
   validateLogin,
+  validateStudentLogin,
   validateStudent,
   validateParent,
   validateStaff,
   validateFee,
   validateScore,
+  validateCbtTest,
+  validateCbtSubmit,
   validateMongoId,
   validatePasswordReset,
   validateGenerateReset,

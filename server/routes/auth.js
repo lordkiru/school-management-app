@@ -5,9 +5,10 @@ const crypto = require('crypto');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const User = require('../models/User');
+const Student = require('../models/Student');
 const Tenant = require('../models/Tenant');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { validateLogin, validatePasswordReset, validateGenerateReset } = require('../middleware/validators');
+const { validateLogin, validateStudentLogin, validatePasswordReset, validateGenerateReset } = require('../middleware/validators');
 const { sendMail } = require('../utils/mailer');
 
 // Login
@@ -63,6 +64,80 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
       { expiresIn: tokenExpiry }
     );
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: user.tenantId } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Student login — admission number + PIN, not email/password.
+// Like the parent portal, this is a shared link students access directly (not a staff
+// subdomain login), so it accepts tenantId directly the same way parents.js does. A
+// subdomain is also accepted for schools that have that set up, for consistency with staff login.
+router.post('/student-login', authLimiter, validateStudentLogin, async (req, res) => {
+  try {
+    const { admissionNumber, pin, tenantId, subdomain } = req.body;
+    const normalizedAdmissionNumber = admissionNumber.trim();
+
+    let student;
+
+    if (subdomain && subdomain.trim()) {
+      const tenant = await Tenant.findOne({ subdomain: subdomain.toLowerCase().trim() });
+      if (!tenant) {
+        return res.status(401).json({ error: 'Invalid admission number or PIN' });
+      }
+      student = await Student.findOne({ admissionNumber: normalizedAdmissionNumber, tenantId: tenant.tenantId });
+    } else if (tenantId && tenantId.trim()) {
+      student = await Student.findOne({ admissionNumber: normalizedAdmissionNumber, tenantId: tenantId.trim() });
+    } else {
+      return res.status(400).json({ error: 'School ID is required to identify your school' });
+    }
+
+    if (!student) return res.status(401).json({ error: 'Invalid admission number or PIN' });
+
+    if (!student.password) {
+      // No PIN has been provisioned for this student yet
+      return res.status(403).json({ error: 'CBT login has not been set up for this student yet. Ask your teacher.' });
+    }
+
+    if (student.status !== 'Active') {
+      return res.status(403).json({ error: 'This student account is not active.' });
+    }
+
+    const isMatch = await student.comparePassword(pin);
+    if (!isMatch) return res.status(401).json({ error: 'Invalid admission number or PIN' });
+
+    const tenant = await Tenant.findOne({ tenantId: student.tenantId });
+    if (!tenant) {
+      return res.status(403).json({ error: 'School account not found. Please contact support.' });
+    }
+    if (tenant.status === 'suspended') {
+      return res.status(403).json({ error: 'Your school account has been suspended. Please contact support.' });
+    }
+    if (tenant.status === 'deleted') {
+      return res.status(403).json({ error: 'This school account no longer exists.' });
+    }
+
+    student.lastLoginAt = new Date();
+    await student.save();
+
+    // Short-lived token — students are logging in for a timed test, not a persistent session
+    const token = jwt.sign(
+      { id: student._id, role: 'student', name: student.name, admissionNumber: student.admissionNumber, classId: student.classId, tenantId: student.tenantId },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h' }
+    );
+
+    res.json({
+      token,
+      student: {
+        id: student._id,
+        name: student.name,
+        admissionNumber: student.admissionNumber,
+        classId: student.classId,
+        tenantId: student.tenantId,
+        mustChangePassword: student.mustChangePassword,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -10,7 +10,7 @@ const Student = require('../models/Student');
 const { validateScore, validateMongoId } = require('../middleware/validators');
 
 // Get scores — supports ?page=1&limit=50&classId=&term=&session=
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
   try {
     const { page, limit, classId, term, session } = req.query;
 
@@ -97,7 +97,7 @@ router.delete('/:id', requireAuth, requireRole('proprietor', 'admin'), validateM
 });
 
 // Get all scores for every active student in a class, for a given term/session
-router.get('/report-card', requireAuth, async (req, res) => {
+router.get('/report-card', requireAuth, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
   try {
     const { classId, term, session } = req.query;
 

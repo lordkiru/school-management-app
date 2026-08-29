@@ -1,18 +1,25 @@
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
 const Fee = require('../models/Fee');
 
 // Paystack calls this automatically when a payment event happens
-router.post('/', express.json(), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     // Verify this request genuinely came from Paystack, not an impersonator
-    const hash = crypto
+    const signature = req.headers['x-paystack-signature'];
+    const expectedHash = crypto
       .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body))
-      .digest('hex');
+      .update(Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.alloc(0))
+      .digest();
+    const signatureBuffer = typeof signature === 'string' && /^[a-f0-9]{128}$/i.test(signature)
+      ? Buffer.from(signature, 'hex')
+      : null;
 
-    if (hash !== req.headers['x-paystack-signature']) {
+    if (
+      !signatureBuffer ||
+      !crypto.timingSafeEqual(signatureBuffer, expectedHash)
+    ) {
       return res.status(401).send('Invalid signature');
     }
 

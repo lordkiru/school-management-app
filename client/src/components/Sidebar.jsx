@@ -1,4 +1,5 @@
-import { X, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, ChevronDown, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
@@ -8,11 +9,18 @@ const navItems = [
   { key: 'subjects', label: 'Subjects', icon: BookOpen, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'cbt', label: 'CBT Tests', icon: Monitor, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
-  { key: 'feesetup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'] },
-  { key: 'feedownown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+  {
+    key: 'fees-menu',
+    label: 'Fees',
+    icon: Wallet,
+    children: [
+      { key: 'fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
+      { key: 'feesetup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+      { key: 'feedownown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+      { key: 'feereport', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'] },
+    ],
+  },
   { key: 'reportcards', label: 'Report Card', icon: FileText, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'feereport', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'] },
   { key: 'timetable', label: 'Timetable', icon: Calendar, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   { key: 'sessions', label: 'Sessions', icon: CalendarRange, allowedRoles: ['proprietor'] },
   { key: 'promote', label: 'Promote Class', icon: ArrowUpCircle, allowedRoles: ['proprietor', 'admin'] },
@@ -29,27 +37,82 @@ const navItems = [
 ];
 
 function Sidebar({ activePage, onSelectPage, userRole, mobileOpen, onClose }) {
-  const visibleItems = navItems.filter((item) => item.allowedRoles.includes(userRole));
+  const visibleItems = navItems
+    .map((item) => item.children
+      ? { ...item, children: item.children.filter((child) => child.allowedRoles.includes(userRole)) }
+      : item)
+    .filter((item) => item.children ? item.children.length > 0 : item.allowedRoles.includes(userRole));
+  const feesMenu = visibleItems.find((item) => item.key === 'fees-menu');
+  const [feesOpen, setFeesOpen] = useState(Boolean(feesMenu?.children.some((item) => item.key === activePage)));
+
+  useEffect(() => {
+    if (feesMenu?.children.some((item) => item.key === activePage)) {
+      setFeesOpen(true);
+    }
+  }, [activePage, feesMenu]);
 
   const navContent = (
     <nav className="flex flex-col gap-1 py-2">
-      {visibleItems.map(({ key, label, icon: Icon }) => (
-        <button
-          key={key}
-          onClick={() => {
-            onSelectPage(key);
-            onClose?.(); // close drawer on mobile after selecting
-          }}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-            activePage === key
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
-          }`}
-        >
-          <Icon size={18} />
-          {label}
-        </button>
-      ))}
+      {visibleItems.map((item) => {
+        if (item.children) {
+          const isChildActive = item.children.some((child) => child.key === activePage);
+          return (
+            <div key={item.key}>
+              <button
+                onClick={() => setFeesOpen((open) => !open)}
+                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                  isChildActive
+                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className="flex items-center gap-3"><item.icon size={18} />{item.label}</span>
+                <ChevronDown size={16} className={`transition-transform ${feesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {feesOpen && (
+                <div className="ml-4 border-l border-slate-200 dark:border-gray-700 pl-2">
+                  {item.children.map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        onSelectPage(key);
+                        onClose?.();
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        activePage === key
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.key}
+            onClick={() => {
+              onSelectPage(item.key);
+              onClose?.();
+            }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+              activePage === item.key
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Icon size={18} />
+            {item.label}
+          </button>
+        );
+      })}
     </nav>
   );
 

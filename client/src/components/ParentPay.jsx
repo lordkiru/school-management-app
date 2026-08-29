@@ -21,22 +21,24 @@ function ParentPay() {
   const tenantId = getParentTenantId();
   const urlParams = new URLSearchParams(window.location.search);
   const urlAdmissionNumber = urlParams.get('admissionNumber') || '';
+  const urlAccessToken = urlParams.get('accessToken') || '';
   const urlStudentName = urlParams.get('studentName') || '';
   const isAutofilled = !!urlAdmissionNumber;
 
   const [admissionNumber, setAdmissionNumber] = useState(urlAdmissionNumber);
+  const [accessToken, setAccessToken] = useState(urlAccessToken);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [payingId, setPayingId] = useState(null);
 
-  const fetchFees = async (admNum) => {
+  const fetchFees = async (admNum, token) => {
     setError('');
     setResult(null);
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/lookup/${admNum}?tenantId=${encodeURIComponent(tenantId)}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/lookup/${admNum}?tenantId=${encodeURIComponent(tenantId)}&accessToken=${encodeURIComponent(token)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       setResult(data);
@@ -48,9 +50,9 @@ function ParentPay() {
   };
 
   useEffect(() => {
-    if (urlAdmissionNumber && tenantId) {
+    if (urlAdmissionNumber && urlAccessToken && tenantId) {
       const timer = setTimeout(() => {
-        fetchFees(urlAdmissionNumber);
+        fetchFees(urlAdmissionNumber, urlAccessToken);
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -79,7 +81,7 @@ function ParentPay() {
 
   const handleLookup = async (e) => {
     e.preventDefault();
-    await fetchFees(admissionNumber);
+    await fetchFees(admissionNumber, accessToken);
   };
 
   const handlePay = async (feeId) => {
@@ -87,6 +89,8 @@ function ParentPay() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/fees/public/${feeId}/initiate-payment`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId, accessToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start payment');
@@ -135,6 +139,14 @@ function ParentPay() {
                 value={admissionNumber}
                 onChange={(e) => setAdmissionNumber(e.target.value)}
                 placeholder="e.g. SEC0001"
+                required
+                className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+              />
+              <input
+                type="password"
+                value={accessToken}
+                onChange={(e) => setAccessToken(e.target.value)}
+                placeholder="School-issued access token"
                 required
                 className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
               />

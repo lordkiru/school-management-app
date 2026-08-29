@@ -73,6 +73,23 @@ function StudentDetail({ studentId, onBack }) {
   if (!data) return null;
 
   const { student, scores, fees } = data;
+  const formatDate = (value) => (value
+    ? new Date(value).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+    : '—');
+  const detailItems = [
+    ['Full name', student.name],
+    ['Admission number', student.admissionNumber],
+    ['Class', student.classId?.name || student.className || '—'],
+    ['Date of birth', formatDate(student.dateOfBirth)],
+    ['Gender', student.gender || '—'],
+    ['Status', student.status || '—'],
+    ['Wallet balance', `₦${Number(student.walletBalance || 0).toLocaleString()}`],
+    ['CBT login', student.cbtLoginConfigured ? 'Configured' : 'Not configured'],
+  ];
 
   return (
     <div className="p-6">
@@ -88,6 +105,18 @@ function StudentDetail({ studentId, onBack }) {
         <p className="text-gray-600 dark:text-gray-300">
           {student.classId?.name || student.className || '—'} · {student.admissionNumber}
         </p>
+      </div>
+
+      <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">
+        <h3 className="text-lg font-semibold mb-4">Student details</h3>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {detailItems.map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</dt>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-white">{value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
       <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">

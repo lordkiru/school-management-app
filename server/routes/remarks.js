@@ -30,7 +30,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), asyn
 // GET /remarks/student/:studentId?term=&session=
 // Get a single student's remark for a term/session
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/student/:studentId', requireAuth, async (req, res) => {
+router.get('/student/:studentId', requireAuth, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
   try {
     const { term, session } = req.query;
     const remark = await TeacherRemark.findOne({

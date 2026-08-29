@@ -306,16 +306,19 @@ router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bur
   }
 });
 
-// Public lookup — no login required. Returns only minimal info needed to pay.
-// Requires tenantId query param to scope to the correct school (since admission numbers are not globally unique).
+// Public lookup — requires a school-issued opaque access token.
 router.get('/public/lookup/:admissionNumber', apiLimiter, async (req, res) => {
   try {
-    const { tenantId } = req.query;
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId query parameter is required to identify your school' });
+    const { tenantId, accessToken } = req.query;
+    if (!tenantId || !accessToken) {
+      return res.status(400).json({ error: 'tenantId and accessToken are required' });
     }
-    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber, tenantId });
-    if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
+    const student = await Student.findOne({
+      admissionNumber: req.params.admissionNumber,
+      tenantId,
+      publicAccessToken: accessToken,
+    });
+    if (!student) return res.status(404).json({ error: 'Invalid student access details' });
 
     const allFees = await Fee.find({ tenantId: student.tenantId, studentId: student._id });
     const outstandingFees = allFees.filter((f) => f.amountExpected > f.amountPaid);
@@ -338,7 +341,15 @@ router.get('/public/lookup/:admissionNumber', apiLimiter, async (req, res) => {
 // Public payment initiation — no login required
 router.post('/public/:id/initiate-payment', paymentLimiter, async (req, res) => {
   try {
-    const fee = await Fee.findById(req.params.id).populate('studentId');
+    const { tenantId, accessToken } = req.body;
+    if (!tenantId || !accessToken) {
+      return res.status(400).json({ error: 'tenantId and accessToken are required' });
+    }
+
+    const student = await Student.findOne({ tenantId, publicAccessToken: accessToken });
+    if (!student) return res.status(404).json({ error: 'Invalid student access details' });
+
+    const fee = await Fee.findOne({ _id: req.params.id, tenantId, studentId: student._id }).populate('studentId');
     if (!fee) return res.status(404).json({ error: 'Fee record not found' });
 
     // Cross-tenant protection: verify the fee belongs to the same tenant as the student

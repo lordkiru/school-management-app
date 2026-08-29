@@ -164,14 +164,14 @@ function ParentDashboard({ parent, onLogout }) {
 
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
                   <a
-                    href={`/results?admissionNumber=${encodeURIComponent(child.admissionNumber)}&studentName=${encodeURIComponent(child.name)}`}
+                    href={`/results?admissionNumber=${encodeURIComponent(child.admissionNumber)}&accessToken=${encodeURIComponent(child.publicAccessToken)}&studentName=${encodeURIComponent(child.name)}`}
                     className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-2 px-3 rounded-lg transition"
                   >
                     <FileText size={16} />
                     Results
                   </a>
                   <a
-                    href={`/pay?admissionNumber=${encodeURIComponent(child.admissionNumber)}&studentName=${encodeURIComponent(child.name)}`}
+                    href={`/pay?admissionNumber=${encodeURIComponent(child.admissionNumber)}&accessToken=${encodeURIComponent(child.publicAccessToken)}&studentName=${encodeURIComponent(child.name)}`}
                     className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-3 rounded-lg transition"
                   >
                     <DollarSign size={16} />

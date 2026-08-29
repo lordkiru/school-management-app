@@ -23,22 +23,24 @@ function ParentResults() {
   const tenantId = getParentTenantId();
   const urlParams = new URLSearchParams(window.location.search);
   const urlAdmissionNumber = urlParams.get('admissionNumber') || '';
+  const urlAccessToken = urlParams.get('accessToken') || '';
   const urlStudentName = urlParams.get('studentName') || '';
   const isAutofilled = !!urlAdmissionNumber;
 
   const [admissionNumber, setAdmissionNumber] = useState(urlAdmissionNumber);
+  const [accessToken, setAccessToken] = useState(urlAccessToken);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [termFilter, setTermFilter] = useState('');
 
-  const fetchResults = async (admNum) => {
+  const fetchResults = async (admNum, token) => {
     setError('');
     setResult(null);
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/students/public/results/${admNum}?tenantId=${encodeURIComponent(tenantId)}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/students/public/results/${admNum}?tenantId=${encodeURIComponent(tenantId)}&accessToken=${encodeURIComponent(token)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lookup failed');
       setResult(data);
@@ -50,9 +52,9 @@ function ParentResults() {
   };
 
   useEffect(() => {
-    if (urlAdmissionNumber && tenantId) {
+    if (urlAdmissionNumber && urlAccessToken && tenantId) {
       const timer = setTimeout(() => {
-        fetchResults(urlAdmissionNumber);
+        fetchResults(urlAdmissionNumber, urlAccessToken);
       }, 0);
       return () => clearTimeout(timer);
     }
@@ -81,7 +83,7 @@ function ParentResults() {
 
   const handleLookup = async (e) => {
     e.preventDefault();
-    await fetchResults(admissionNumber);
+    await fetchResults(admissionNumber, accessToken);
   };
 
   const handlePrint = () => {
@@ -128,6 +130,14 @@ function ParentResults() {
                   value={admissionNumber}
                   onChange={(e) => setAdmissionNumber(e.target.value)}
                   placeholder="e.g. SEC0001"
+                  required
+                  className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+                />
+                <input
+                  type="password"
+                  value={accessToken}
+                  onChange={(e) => setAccessToken(e.target.value)}
+                  placeholder="School-issued access token"
                   required
                   className="flex-1 p-2 rounded-lg border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
                 />

@@ -23,8 +23,10 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { initSentry, getSentryMiddleware } = require('./config/sentry');
+const paystackWebhookRoutes = require('./routes/paystackWebhook');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Initialize Sentry FIRST (before any other middleware)
 initSentry(app);
@@ -73,10 +75,18 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.json({ limit: '10mb' })); // Limit body size
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => {
+    req.rawBody = Buffer.from(buf);
+  },
+})); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Apply rate limiting to ALL routes
+// Paystack must receive webhook retries without competing with user traffic
+app.use('/paystack/webhook', paystackWebhookRoutes);
+
+// Apply rate limiting to all remaining routes
 app.use(apiLimiter);
 
 // Import routes
@@ -88,7 +98,6 @@ const feeRoutes = require('./routes/fees');
 const authRoutes = require('./routes/auth');
 const schoolRoutes = require('./routes/school');
 const auditLogRoutes = require('./routes/auditlog');
-const paystackWebhookRoutes = require('./routes/paystackWebhook');
 const staffRoutes = require('./routes/staff');
 const timetableRoutes = require('./routes/timetable');
 const sessionRoutes = require('./routes/sessions');
@@ -112,7 +121,6 @@ app.use('/fees', feeRoutes);
 app.use('/auth', authRoutes);
 app.use('/school', schoolRoutes);
 app.use('/auditlog', auditLogRoutes);
-app.use('/paystack/webhook', paystackWebhookRoutes);
 app.use('/staff', staffRoutes);
 app.use('/timetable', timetableRoutes);
 app.use('/sessions', sessionRoutes);

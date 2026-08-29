@@ -14,7 +14,7 @@ const { apiLimiter } = require('../middleware/rateLimiter');
 const { validateStudent, validateMongoId } = require('../middleware/validators');
 
 // Get all students — supports ?page=1&limit=50&search=
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
   try {
     const { search, page, limit } = req.query;
 
@@ -56,16 +56,19 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// Public results lookup — no login required.
-// Requires tenantId query param to scope to the correct school.
+// Public results lookup — requires a school-issued opaque access token.
 router.get('/public/results/:admissionNumber', apiLimiter, async (req, res) => {
   try {
-    const { tenantId } = req.query;
-    if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId query parameter is required to identify your school' });
+    const { tenantId, accessToken } = req.query;
+    if (!tenantId || !accessToken) {
+      return res.status(400).json({ error: 'tenantId and accessToken are required' });
     }
-    const student = await Student.findOne({ admissionNumber: req.params.admissionNumber, tenantId }).populate('classId');
-    if (!student) return res.status(404).json({ error: 'No student found with that admission number' });
+    const student = await Student.findOne({
+      admissionNumber: req.params.admissionNumber,
+      tenantId,
+      publicAccessToken: accessToken,
+    }).populate('classId');
+    if (!student) return res.status(404).json({ error: 'Invalid student access details' });
 
     const school = await School.findOne({ tenantId: student.tenantId });
     const maxTotal = school ? school.ca1Max + school.ca2Max + school.examMax : 100;
@@ -140,9 +143,11 @@ router.patch('/me/change-pin', requireAuth, requireRole('student'), async (req, 
 });
 
 // Get one student with their scores and fees
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
   try {
-    const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId }).populate('classId');
+    const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId })
+      .select('+password -publicAccessToken')
+      .populate('classId');
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const school = await School.findOne({ tenantId: req.user.tenantId });
@@ -162,7 +167,12 @@ router.get('/:id', requireAuth, async (req, res) => {
 
     const fees = await Fee.find({ tenantId: req.user.tenantId, studentId: req.params.id });
 
-    res.json({ student, scores, fees });
+    const studentResponse = student.toObject();
+    studentResponse.cbtLoginConfigured = Boolean(student.password);
+    delete studentResponse.password;
+    delete studentResponse.publicAccessToken;
+
+    res.json({ student: studentResponse, scores, fees });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -19,6 +19,11 @@ const storage = cloudinaryStorage({
   transformation: [{ width: 400, height: 400, crop: 'limit' }],
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+});
 
 module.exports = upload;

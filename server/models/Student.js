@@ -1,11 +1,19 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const studentSchema = new mongoose.Schema({
   tenantId: { type: String, required: true }, // Multi-tenant support
   name: { type: String, required: true },
   classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
   admissionNumber: { type: String, required: true },
+  publicAccessToken: {
+    type: String,
+    required: true,
+    unique: true,
+    sparse: true,
+    default: () => crypto.randomBytes(32).toString('hex'),
+  },
   dateOfBirth: { type: Date },
   gender: { type: String, enum: ['Male', 'Female'] },
   status: {

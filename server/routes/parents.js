@@ -89,6 +89,15 @@ router.get('/me/children', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Parent not found' });
     }
 
+    // Provision access for legacy students created before public tokens existed.
+    const Student = require('../models/Student');
+    for (const child of parent.children) {
+      if (!child.publicAccessToken) {
+        child.publicAccessToken = require('crypto').randomBytes(32).toString('hex');
+        await child.save();
+      }
+    }
+
     res.json(parent.children);
   } catch (err) {
     res.status(500).json({ error: err.message });

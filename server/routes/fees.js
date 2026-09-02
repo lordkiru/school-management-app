@@ -63,6 +63,10 @@ router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, 
   try {
     const { studentId, term, session, amountExpected } = req.body;
 
+    // Confirm the student belongs to this tenant before creating anything against them
+    const student = await Student.findOne({ _id: studentId, tenantId: req.user.tenantId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
     // If a fee record already exists for this student/term/session, top it up
     // instead of creating a second, separate row.
     const existing = await Fee.findOne({ tenantId: req.user.tenantId, studentId, term, session });
@@ -78,8 +82,7 @@ router.post('/', requireAuth, requireRole('proprietor', 'bursar'), validateFee, 
     });
 
     // Auto-apply any wallet credit the student is carrying (e.g. from a prior overpayment)
-    const student = await Student.findOne({ _id: fee.studentId, tenantId: req.user.tenantId });
-    if (student && student.walletBalance > 0) {
+    if (student.walletBalance > 0) {
       const applied = Math.min(student.walletBalance, fee.amountExpected);
       fee.amountPaid += applied;
       student.walletBalance -= applied;

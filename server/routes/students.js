@@ -258,9 +258,11 @@ router.patch('/promote-class', requireAuth, requireRole('proprietor', 'admin'), 
 // Update a student
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
+    // Never let the client move a record between tenants via the update body
+    const { tenantId, _id, ...updates } = req.body;
     const student = await Student.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },
-      req.body,
+      updates,
       { new: true, runValidators: true }
     );
     if (!student) return res.status(404).json({ error: 'Student not found' });

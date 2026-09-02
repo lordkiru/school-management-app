@@ -21,13 +21,15 @@ router.get('/', requireAuth, async (req, res) => {
 // Update school info (proprietor or admin only)
 router.patch('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
+    // Never let the client move a record between tenants via the update body
+    const { tenantId, _id, ...updates } = req.body;
     let school = await School.findOne({ tenantId: req.user.tenantId });
     if (!school) {
-      school = await School.create({ ...req.body, tenantId: req.user.tenantId });
+      school = await School.create({ ...updates, tenantId: req.user.tenantId });
     } else {
       school = await School.findOneAndUpdate(
         { tenantId: req.user.tenantId },
-        req.body,
+        updates,
         { new: true, runValidators: true }
       );
     }

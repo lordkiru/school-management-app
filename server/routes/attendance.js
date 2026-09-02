@@ -39,6 +39,18 @@ router.post('/mark', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
       return res.status(409).json({ error: 'Attendance for this class has already been submitted today. Contact an admin to make corrections.' });
     }
 
+    // Confirm every student in the register actually belongs to this tenant
+    const submittedStudentIds = records.map((r) => r.studentId);
+    const validStudents = await Student.find({
+      tenantId: req.user.tenantId,
+      _id: { $in: submittedStudentIds },
+    }).select('_id');
+    const validStudentIds = new Set(validStudents.map((s) => String(s._id)));
+    const unknownIds = submittedStudentIds.filter((id) => !validStudentIds.has(String(id)));
+    if (unknownIds.length > 0) {
+      return res.status(400).json({ error: 'One or more students do not belong to this school' });
+    }
+
     // Build attendance documents
     const docs = records.map((r) => ({
       tenantId: req.user.tenantId,

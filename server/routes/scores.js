@@ -7,6 +7,7 @@ const Score = require('../models/Score');
 const computeGrade = require('../utils/grading');
 const School = require('../models/School');
 const Student = require('../models/Student');
+const Subject = require('../models/Subject');
 const { validateScore, validateMongoId } = require('../middleware/validators');
 
 // Get scores — supports ?page=1&limit=50&classId=&term=&session=
@@ -61,6 +62,14 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), asyn
 
 router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin', 'teacher'), validateScore, async (req, res) => {
   try {
+    const { studentId, subjectId } = req.body;
+    const [studentOk, subjectOk] = await Promise.all([
+      Student.exists({ _id: studentId, tenantId: req.user.tenantId }),
+      Subject.exists({ _id: subjectId, tenantId: req.user.tenantId }),
+    ]);
+    if (!studentOk) return res.status(404).json({ error: 'Student not found' });
+    if (!subjectOk) return res.status(404).json({ error: 'Subject not found' });
+
     const score = new Score({
       ...req.body,
       tenantId: req.user.tenantId,
@@ -74,9 +83,23 @@ router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor
 
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
   try {
+    // Never let the client move a record between tenants, or re-point it at
+    // another tenant's student/subject, via the update body
+    const { tenantId, _id, studentId, subjectId, ...updates } = req.body;
+    if (studentId) {
+      const studentOk = await Student.exists({ _id: studentId, tenantId: req.user.tenantId });
+      if (!studentOk) return res.status(404).json({ error: 'Student not found' });
+      updates.studentId = studentId;
+    }
+    if (subjectId) {
+      const subjectOk = await Subject.exists({ _id: subjectId, tenantId: req.user.tenantId });
+      if (!subjectOk) return res.status(404).json({ error: 'Subject not found' });
+      updates.subjectId = subjectId;
+    }
+
     const updated = await Score.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },
-      req.body,
+      updates,
       { new: true, runValidators: true }
     );
     if (!updated) return res.status(404).json({ error: 'Score not found' });

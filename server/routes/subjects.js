@@ -32,9 +32,11 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin'), validateSubjec
 
 router.patch('/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, validateSubject, async (req, res) => {
   try {
+    // Never let the client move a record between tenants via the update body
+    const { tenantId, _id, ...updates } = req.body;
     const updated = await Subject.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.user.tenantId },
-      req.body,
+      updates,
       { new: true, runValidators: true }
     );
     if (!updated) return res.status(404).json({ error: 'Subject not found' });

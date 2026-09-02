@@ -64,7 +64,10 @@ const corsOptions = {
       ? process.env.ALLOWED_ORIGINS.split(',')
       : ['http://localhost:5173', 'http://localhost:3000'];
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+        const isExactMatch = allowedOrigins.indexOf(origin) !== -1;
+    const isLemidaSubdomain = /^https:\/\/([a-z0-9-]+\.)?lemidaitsolutions\.com$/.test(origin);
+
+    if (isExactMatch || isLemidaSubdomain) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

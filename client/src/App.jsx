@@ -411,7 +411,7 @@ function App() {
           </button>
 
           {/* App name / logo */}
-          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-base md:text-lg truncate">
+          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-lg md:text-xl truncate">
             🏫 Lemida SchoolManager
           </span>
 

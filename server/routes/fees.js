@@ -1,5 +1,6 @@
 const Student = require('../models/Student');
 const AuditLog = require('../models/AuditLog');
+const Tenant = require('../models/Tenant');
 const axios = require('axios');
 
 const requireAuth = require('../middleware/auth');
@@ -285,11 +286,20 @@ router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bur
       return res.status(400).json({ error: 'This fee is already fully paid' });
     }
 
+    const tenant = await Tenant.findOne({ tenantId: req.user.tenantId });
+    if (!tenant?.paystackSubaccountCode) {
+      return res.status(400).json({
+        error: 'This school has not completed bank details setup yet. Contact the platform admin to enable online payments.',
+      });
+    }
+
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
         email: `${fee.studentId.admissionNumber}@placeholder.school`,
         amount: balance * 100,
+        subaccount: tenant.paystackSubaccountCode,
+        bearer_type: 'subaccount',
         metadata: {
           feeId: fee._id.toString(),
           studentName: fee.studentId.name,
@@ -365,11 +375,20 @@ router.post('/public/:id/initiate-payment', paymentLimiter, async (req, res) => 
       return res.status(400).json({ error: 'This fee is already fully paid' });
     }
 
+    const tenant = await Tenant.findOne({ tenantId });
+    if (!tenant?.paystackSubaccountCode) {
+      return res.status(400).json({
+        error: 'Online payment is not yet available for this school. Please contact the school office.',
+      });
+    }
+
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
         email: `${fee.studentId.admissionNumber}@placeholder.school`,
         amount: balance * 100,
+        subaccount: tenant.paystackSubaccountCode,
+        bearer_type: 'subaccount',
         metadata: {
           feeId: fee._id.toString(),
           studentName: fee.studentId.name,

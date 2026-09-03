@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const Tenant = require('../models/Tenant');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const bcrypt = require('bcryptjs');
+const { createSubaccount } = require('../services/paystackSubaccount');
 
 // Get all tenants (Super Admin only - for platform management)
 router.get('/', requireAuth, async (req, res) => {
@@ -206,6 +208,95 @@ router.delete('/:tenantId', requireAuth, async (req, res) => {
     res.json({ message: 'Tenant cancelled successfully', tenant });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /tenants/banks - list Nigerian banks for a bank-selection dropdown (Super Admin only)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/banks', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Access denied. Super admin only.' });
+    }
+
+    const response = await axios.get('https://api.paystack.co/bank', {
+      params: { country: 'nigeria' },
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+    });
+
+    const banks = response.data.data.map((b) => ({ name: b.name, code: b.code }));
+    res.json(banks);
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch bank list' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /tenants/resolve-account?accountNumber=&bankCode= - verify the account holder
+// name before saving bank details (Super Admin only)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/resolve-account', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Access denied. Super admin only.' });
+    }
+
+    const { accountNumber, bankCode } = req.query;
+    if (!accountNumber || !bankCode) {
+      return res.status(400).json({ error: 'accountNumber and bankCode are required' });
+    }
+
+    const response = await axios.get('https://api.paystack.co/bank/resolve', {
+      params: { account_number: accountNumber, bank_code: bankCode },
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+    });
+
+    res.json({ accountName: response.data.data.account_name });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(400).json({ error: err.response?.data?.message || 'Could not verify account number' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /tenants/:tenantId/setup-subaccount - create the school's Paystack Subaccount
+// so their fee income settles directly into their own bank account (Super Admin only)
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/:tenantId/setup-subaccount', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ error: 'Access denied. Super admin only.' });
+    }
+
+    const { accountNumber, bankCode } = req.body;
+    if (!accountNumber || !bankCode) {
+      return res.status(400).json({ error: 'accountNumber and bankCode are required' });
+    }
+
+    const tenant = await Tenant.findOne({ tenantId: req.params.tenantId });
+    if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+    const subaccount = await createSubaccount({
+      businessName: tenant.schoolName,
+      bankCode,
+      accountNumber,
+    });
+
+    tenant.settlementBank = bankCode;
+    tenant.accountNumber = accountNumber;
+    tenant.resolvedAccountName = subaccount.account_name || '';
+    tenant.paystackSubaccountCode = subaccount.subaccount_code;
+    await tenant.save();
+
+    res.json({
+      message: "Subaccount created — fee payments will now settle directly to this school's bank account.",
+      tenant,
+    });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(400).json({ error: err.response?.data?.message || 'Failed to create Paystack subaccount' });
   }
 });
 

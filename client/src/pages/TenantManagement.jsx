@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant } from '../services/superAdminApi';
+import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount } from '../services/superAdminApi';
 import './TenantManagement.css';
 
 const TenantManagement = ({ initialStatusFilter = '' }) => {
@@ -265,13 +265,77 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Bank details for the Paystack subaccount (optional — can be set up later if skipped here)
+  const [banks, setBanks] = useState([]);
+  const [bankCode, setBankCode] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [resolvedAccountName, setResolvedAccountName] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState(null);
+
+  useEffect(() => {
+    getBanks().then(setBanks).catch(() => setBanks([]));
+  }, []);
+
+  // Any change to bank/account number invalidates a prior verification
+  const handleBankCodeChange = (value) => {
+    setBankCode(value);
+    setResolvedAccountName('');
+    setVerifyError(null);
+  };
+  const handleAccountNumberChange = (value) => {
+    setAccountNumber(value);
+    setResolvedAccountName('');
+    setVerifyError(null);
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerifyError(null);
+    try {
+      const { accountName } = await resolveAccountNumber(accountNumber, bankCode);
+      setResolvedAccountName(accountName);
+    } catch (err) {
+      setResolvedAccountName('');
+      setVerifyError(err.response?.data?.error || 'Could not verify this account number');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
+    // Bank details are optional at creation time, but if either field was
+    // touched, require a successful verification before proceeding — better
+    // to block than silently create a subaccount against an unverified number.
+    const settingUpBank = bankCode || accountNumber;
+    if (settingUpBank && !resolvedAccountName) {
+      setError('Verify the account number before creating the school, or clear the bank fields to set this up later.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await createTenant(formData);
+      const { tenant } = await createTenant(formData);
+
+      if (settingUpBank) {
+        try {
+          await setupTenantSubaccount(tenant.tenantId, { bankCode, accountNumber });
+        } catch (subaccountErr) {
+          // The school account was already created — don't lose that. Let the admin
+          // know payments aren't wired up yet so they can retry from the school's record.
+          alert(
+            `School created, but the Paystack subaccount could not be set up: ${
+              subaccountErr.response?.data?.error || 'Unknown error'
+            }. You can complete this later from the school's settings.`
+          );
+          onSuccess();
+          return;
+        }
+      }
+
       alert('School created successfully!');
       onSuccess();
     } catch (err) {
@@ -356,6 +420,48 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
               <option value="enterprise">Enterprise</option>
             </select>
           </div>
+
+          <div className="form-group">
+            <label>Settlement Bank (optional)</label>
+            <select
+              value={bankCode}
+              onChange={(e) => handleBankCodeChange(e.target.value)}
+            >
+              <option value="">Set up later</option>
+              {banks.map((b) => (
+                <option key={b.code} value={b.code}>{b.name}</option>
+              ))}
+            </select>
+            <small>Fee payments will settle directly into this account — the school keeps 100% (Paystack's own processing fee still applies).</small>
+          </div>
+
+          {bankCode && (
+            <div className="form-group">
+              <label>Account Number</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={accountNumber}
+                  onChange={(e) => handleAccountNumberChange(e.target.value)}
+                  placeholder="10-digit account number"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={!accountNumber || verifying}
+                  className="btn-cancel"
+                >
+                  {verifying ? 'Verifying...' : 'Verify'}
+                </button>
+              </div>
+              {resolvedAccountName && (
+                <small style={{ color: 'green' }}>✓ Verified: {resolvedAccountName}</small>
+              )}
+              {verifyError && (
+                <small style={{ color: 'red' }}>{verifyError}</small>
+              )}
+            </div>
+          )}
 
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="btn-cancel">

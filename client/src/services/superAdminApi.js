@@ -40,6 +40,24 @@ export const createTenant = async (data) => {
   return response.data;
 };
 
+export const getBanks = async () => {
+  const api = createAuthAxios();
+  const response = await api.get('/tenants/banks');
+  return response.data;
+};
+
+export const resolveAccountNumber = async (accountNumber, bankCode) => {
+  const api = createAuthAxios();
+  const response = await api.get('/tenants/resolve-account', { params: { accountNumber, bankCode } });
+  return response.data;
+};
+
+export const setupTenantSubaccount = async (tenantId, data) => {
+  const api = createAuthAxios();
+  const response = await api.post(`/tenants/${tenantId}/setup-subaccount`, data);
+  return response.data;
+};
+
 export const updateTenantStatus = async (tenantId, status) => {
   const api = createAuthAxios();
   const response = await api.patch(`/superadmin/tenants/${tenantId}/status`, { status });

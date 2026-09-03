@@ -105,6 +105,13 @@ const tenantSchema = new mongoose.Schema({
     default: 'active'
   },
   
+  // Paystack Subaccount — lets fee payments settle directly into the school's
+  // own bank account (0% platform commission; Paystack's own fee still applies)
+  settlementBank: { type: String },       // Paystack bank code, e.g. "058" for GTBank
+  accountNumber: { type: String },
+  resolvedAccountName: { type: String },  // Verified via Paystack's Resolve Account Number API
+  paystackSubaccountCode: { type: String }, // e.g. "ACCT_xxxxx", set once the subaccount is created
+
   // Metadata
   onboardedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   onboardedAt: { type: Date, default: Date.now },

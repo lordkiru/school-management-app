@@ -87,6 +87,9 @@ function TeacherRemarks({ userRole }) {
         { headers }
       );
       const remarksData = await remarksRes.json();
+      if (!remarksRes.ok) {
+        throw new Error(remarksData.error || 'Failed to load remarks');
+      }
       const remarkMap = {};
       (remarksData || []).forEach((r) => {
         remarkMap[r.studentId?._id || r.studentId] = {

@@ -34,6 +34,9 @@ function TeacherRemarks({ userRole }) {
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
   const isAdmin = ['proprietor', 'admin'].includes(userRole);
+  const isTeacher = userRole === 'teacher';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const assignedClassId = user.assignedClassId || '';
 
   useEffect(() => {
     const loadMeta = async () => {
@@ -44,10 +47,12 @@ function TeacherRemarks({ userRole }) {
         ]);
         const classData = await classRes.json();
         const sessionData = await sessionRes.json();
-        setClasses(classData);
+        // Teachers can only pick their own assigned class
+        setClasses(isTeacher ? classData.filter((c) => c._id === assignedClassId) : classData);
         setSessions(sessionData);
         const current = sessionData.find((s) => s.isCurrent);
         if (current) setSession(current.name);
+        if (isTeacher && assignedClassId) setClassId(assignedClassId);
       } catch (err) {
         setError('Failed to load classes/sessions');
       }
@@ -157,12 +162,24 @@ function TeacherRemarks({ userRole }) {
         </div>
       )}
 
+      {isTeacher && !assignedClassId && (
+        <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 p-3 rounded-lg text-sm mb-4">
+          <AlertCircle size={15} /> You have not been assigned to a class. Contact your admin to get a class assigned before you can add remarks.
+        </div>
+      )}
+
       {/* Filter form */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
         <form onSubmit={handleLoad} className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Class</label>
-            <select value={classId} onChange={(e) => setClassId(e.target.value)} required className={inputClass}>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              required
+              disabled={isTeacher}
+              className={inputClass}
+            >
               <option value="">Select class</option>
               {classes.map((c) => (
                 <option key={c._id} value={c._id}>{c.name} {c.section && `(${c.section})`}</option>

@@ -14,6 +14,9 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), asyn
     if (!classId || !term || !session) {
       return res.status(400).json({ error: 'classId, term, and session are required' });
     }
+    if (req.user.role === 'teacher' && req.user.assignedClassId !== classId) {
+      return res.status(403).json({ error: 'You are not assigned to this class' });
+    }
     const remarks = await TeacherRemark.find({
       tenantId: req.user.tenantId,
       classId,
@@ -54,6 +57,9 @@ router.post('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), asy
     const { studentId, classId, term, session, remark, principalRemark } = req.body;
     if (!studentId || !classId || !term || !session) {
       return res.status(400).json({ error: 'studentId, classId, term, and session are required' });
+    }
+    if (req.user.role === 'teacher' && req.user.assignedClassId !== classId) {
+      return res.status(403).json({ error: 'You are not assigned to this class' });
     }
 
     const filter = { tenantId: req.user.tenantId, studentId, term, session };

@@ -59,11 +59,11 @@ router.post('/login', authLimiter, validateLogin, async (req, res) => {
     const tokenExpiry = process.env.NODE_ENV === 'production' ? '24h' : '7d';
 
     const token = jwt.sign(
-      { id: user._id, role: user.role, email: user.email, name: user.name, tenantId: user.tenantId },
+      { id: user._id, role: user.role, email: user.email, name: user.name, tenantId: user.tenantId, assignedClassId: user.assignedClassId },
       process.env.JWT_SECRET,
       { expiresIn: tokenExpiry }
     );
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: user.tenantId } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role, tenantId: user.tenantId, assignedClassId: user.assignedClassId } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

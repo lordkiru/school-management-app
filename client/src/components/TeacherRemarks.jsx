@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Save, CheckCircle, AlertCircle, Loader, Search } from 'lucide-react';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
@@ -29,6 +29,7 @@ function TeacherRemarks({ userRole }) {
   const [saving, setSaving] = useState({}); // { studentId: true/false }
   const [saved, setSaved] = useState({}); // { studentId: true } for green tick flash
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -60,6 +61,7 @@ function TeacherRemarks({ userRole }) {
     setLoading(true);
     setRemarks({});
     setStudents([]);
+    setSearchQuery('');
     try {
       // Load all students and filter by classId client-side
       const studentsRes = await fetch(
@@ -133,6 +135,10 @@ function TeacherRemarks({ userRole }) {
     }));
   };
 
+  const filteredStudents = students.filter((s) =>
+    s.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
+
   const inputClass =
     'p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition';
 
@@ -196,8 +202,21 @@ function TeacherRemarks({ userRole }) {
       )}
 
       {!loading && students.length > 0 && (
+        <div className="relative mb-4 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by student name..."
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
+          />
+        </div>
+      )}
+
+      {!loading && students.length > 0 && (
         <div className="space-y-4">
-          {students.map((student) => (
+          {filteredStudents.map((student) => (
             <div
               key={student._id}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5"
@@ -275,6 +294,11 @@ function TeacherRemarks({ userRole }) {
               )}
             </div>
           ))}
+          {filteredStudents.length === 0 && (
+            <p className="text-slate-500 dark:text-gray-400 text-sm">
+              No student matches "{searchQuery}".
+            </p>
+          )}
         </div>
       )}
 

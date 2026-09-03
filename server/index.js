@@ -114,6 +114,7 @@ const notificationRoutes = require('./routes/notifications');
 const remarkRoutes = require('./routes/remarks');
 const importRoutes = require('./routes/import');
 const cbtRoutes = require('./routes/cbt');
+const whatsappWebhookRoutes = require('./routes/whatsappWebhook');
 
 // Register routes
 app.use('/students', studentRoutes);
@@ -137,7 +138,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/remarks', remarkRoutes);
 app.use('/import', importRoutes);
 app.use('/cbt', cbtRoutes);
-
+app.use('/whatsapp', whatsappWebhookRoutes);
 app.get('/', (req, res) => {
   res.send('API is running');
 });

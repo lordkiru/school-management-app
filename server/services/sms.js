@@ -38,10 +38,14 @@ async function _termiiSend(config, toPhone, message, channel) {
   if (!normalized) {
     return { success: false, error: 'Invalid phone number: ' + toPhone };
   }
+
+  const payload = { to: normalized, from: senderId, sms: message, type: 'plain', channel, api_key: apiKey };
+  console.log('Termii request payload:', JSON.stringify({ ...payload, api_key: '***HIDDEN***' }, null, 2));
+
   try {
     const response = await axios.post(
       TERMII_SEND_URL,
-      { to: normalized, from: senderId, sms: message, type: 'plain', channel, api_key: apiKey },
+      payload,
       { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
     );
     const messageId = response.data?.message_id || response.data?.message?.message_id || '';
@@ -126,4 +130,3 @@ module.exports = {
   smsTemplates,
   normalizePhone,
 };
-

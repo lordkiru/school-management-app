@@ -22,4 +22,26 @@ async function createSubaccount({ businessName, bankCode, accountNumber }) {
   return response.data.data;
 }
 
-module.exports = { createSubaccount };
+/**
+ * Update an existing Paystack Subaccount's bank details (e.g. when a school
+ * changes accounts later). Used instead of createSubaccount whenever a
+ * subaccount_code already exists, so editing bank details doesn't leave
+ * duplicate/orphaned subaccounts on Paystack's side.
+ */
+async function updateSubaccount(subaccountCode, { businessName, bankCode, accountNumber }) {
+  const response = await axios.put(
+    `https://api.paystack.co/subaccount/${subaccountCode}`,
+    {
+      business_name: businessName,
+      bank_code: bankCode,
+      account_number: accountNumber,
+      percentage_charge: 0,
+    },
+    {
+      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+    }
+  );
+  return response.data.data;
+}
+
+module.exports = { createSubaccount, updateSubaccount };

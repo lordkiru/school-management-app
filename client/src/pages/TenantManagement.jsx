@@ -12,6 +12,7 @@ const TenantManagement = ({ initialStatusFilter = '' }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(null);
+  const [showBankModal, setShowBankModal] = useState(null); // holds the tenant being edited, or null
 
   useEffect(() => {
     fetchTenants();
@@ -172,6 +173,13 @@ const TenantManagement = ({ initialStatusFilter = '' }) => {
                           <option value="cancelled">Cancel</option>
                         </select>
                         <button
+                          onClick={() => setShowBankModal(tenant)}
+                          className="btn-cancel"
+                          title={tenant.paystackSubaccountCode ? 'Edit Payment Setup' : 'Set Up Payment Setup'}
+                        >
+                          {tenant.paystackSubaccountCode ? '💳' : '⚠️💳'}
+                        </button>
+                        <button
                           onClick={() => handleSoftDelete(tenant.tenantId)}
                           className="btn-delete"
                           title="Cancel School"
@@ -218,6 +226,18 @@ const TenantManagement = ({ initialStatusFilter = '' }) => {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
+            fetchTenants();
+          }}
+        />
+      )}
+
+      {/* Bank / Payment Setup Modal */}
+      {showBankModal && (
+        <BankSetupModal
+          tenant={showBankModal}
+          onClose={() => setShowBankModal(null)}
+          onSuccess={() => {
+            setShowBankModal(null);
             fetchTenants();
           }}
         />
@@ -469,6 +489,135 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
             </button>
             <button type="submit" disabled={loading} className="btn-create">
               {loading ? 'Creating...' : 'Create School'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Bank / Payment Setup Modal — set up a school's Paystack subaccount after
+// creation, or edit an existing one (e.g. the school changed bank accounts)
+const BankSetupModal = ({ tenant, onClose, onSuccess }) => {
+  const [banks, setBanks] = useState([]);
+  const [bankCode, setBankCode] = useState(tenant.settlementBank || '');
+  const [accountNumber, setAccountNumber] = useState(tenant.accountNumber || '');
+  const [resolvedAccountName, setResolvedAccountName] = useState(tenant.resolvedAccountName || '');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    getBanks().then(setBanks).catch(() => setBanks([]));
+  }, []);
+
+  // Changing either field invalidates whatever verification (existing or new) was in place
+  const handleBankCodeChange = (value) => {
+    setBankCode(value);
+    setResolvedAccountName('');
+    setVerifyError(null);
+  };
+  const handleAccountNumberChange = (value) => {
+    setAccountNumber(value);
+    setResolvedAccountName('');
+    setVerifyError(null);
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerifyError(null);
+    try {
+      const { accountName } = await resolveAccountNumber(accountNumber, bankCode);
+      setResolvedAccountName(accountName);
+    } catch (err) {
+      setResolvedAccountName('');
+      setVerifyError(err.response?.data?.error || 'Could not verify this account number');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!bankCode || !accountNumber) {
+      setError('Select a bank and enter an account number.');
+      return;
+    }
+    if (!resolvedAccountName) {
+      setError('Verify the account number before saving.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await setupTenantSubaccount(tenant.tenantId, { bankCode, accountNumber });
+      alert('Bank details saved — fee payments will now settle directly to this account.');
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save bank details');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h2>💳 Payment Setup — {tenant.schoolName}</h2>
+        {tenant.paystackSubaccountCode ? (
+          <p style={{ color: 'green' }}>✓ Subaccount active ({tenant.paystackSubaccountCode})</p>
+        ) : (
+          <p style={{ color: '#b45309' }}>⚠️ No subaccount yet — online fee payments are blocked until this is saved.</p>
+        )}
+        {error && <div className="error-message">{error}</div>}
+
+        <form onSubmit={handleSave}>
+          <div className="form-group">
+            <label>Settlement Bank</label>
+            <select value={bankCode} onChange={(e) => handleBankCodeChange(e.target.value)}>
+              <option value="">Select a bank</option>
+              {banks.map((b) => (
+                <option key={b.code} value={b.code}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Account Number</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={accountNumber}
+                onChange={(e) => handleAccountNumberChange(e.target.value)}
+                placeholder="10-digit account number"
+              />
+              <button
+                type="button"
+                onClick={handleVerify}
+                disabled={!accountNumber || !bankCode || verifying}
+                className="btn-cancel"
+              >
+                {verifying ? 'Verifying...' : 'Verify'}
+              </button>
+            </div>
+            {resolvedAccountName && (
+              <small style={{ color: 'green' }}>✓ Verified: {resolvedAccountName}</small>
+            )}
+            {verifyError && (
+              <small style={{ color: 'red' }}>{verifyError}</small>
+            )}
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="btn-cancel">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="btn-create">
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>

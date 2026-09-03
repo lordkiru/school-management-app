@@ -7,7 +7,7 @@ const User = require('../models/User');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const bcrypt = require('bcryptjs');
-const { createSubaccount } = require('../services/paystackSubaccount');
+const { createSubaccount, updateSubaccount } = require('../services/paystackSubaccount');
 
 // Get all tenants (Super Admin only - for platform management)
 router.get('/', requireAuth, async (req, res) => {
@@ -261,8 +261,10 @@ router.get('/resolve-account', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /tenants/:tenantId/setup-subaccount - create the school's Paystack Subaccount
-// so their fee income settles directly into their own bank account (Super Admin only)
+// POST /tenants/:tenantId/setup-subaccount - create or update the school's
+// Paystack Subaccount so their fee income settles directly into their own
+// bank account (Super Admin only). Updates in place (rather than creating a
+// second subaccount) if one already exists for this tenant.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/:tenantId/setup-subaccount', requireAuth, async (req, res) => {
   try {
@@ -278,20 +280,18 @@ router.post('/:tenantId/setup-subaccount', requireAuth, async (req, res) => {
     const tenant = await Tenant.findOne({ tenantId: req.params.tenantId });
     if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
 
-    const subaccount = await createSubaccount({
-      businessName: tenant.schoolName,
-      bankCode,
-      accountNumber,
-    });
+    const subaccount = tenant.paystackSubaccountCode
+      ? await updateSubaccount(tenant.paystackSubaccountCode, { businessName: tenant.schoolName, bankCode, accountNumber })
+      : await createSubaccount({ businessName: tenant.schoolName, bankCode, accountNumber });
 
     tenant.settlementBank = bankCode;
     tenant.accountNumber = accountNumber;
-    tenant.resolvedAccountName = subaccount.account_name || '';
-    tenant.paystackSubaccountCode = subaccount.subaccount_code;
+    tenant.resolvedAccountName = subaccount.account_name || tenant.resolvedAccountName || '';
+    tenant.paystackSubaccountCode = subaccount.subaccount_code || tenant.paystackSubaccountCode;
     await tenant.save();
 
     res.json({
-      message: "Subaccount created — fee payments will now settle directly to this school's bank account.",
+      message: "Bank details saved — fee payments will now settle directly to this school's bank account.",
       tenant,
     });
   } catch (err) {

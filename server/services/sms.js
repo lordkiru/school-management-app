@@ -8,8 +8,8 @@
 
 const axios = require('axios');
 
-const TERMII_SEND_URL = 'https://v3.api.termii.com/api/sms/send';
-const TERMII_BULK_URL = 'https://v3.api.termii.com/api/sms/send/bulk';
+const TERMII_SEND_URL = 'https://api.ng.termii.com/api/sms/send';
+const TERMII_BULK_URL = 'https://api.ng.termii.com/api/sms/send/bulk';
 
 /**
  * Normalize a Nigerian phone number to international format (234XXXXXXXXXX)

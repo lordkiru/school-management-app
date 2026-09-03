@@ -146,7 +146,7 @@ router.patch('/me/change-pin', requireAuth, requireRole('student'), async (req, 
 router.get('/:id', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
   try {
     const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId })
-      .select('+password -publicAccessToken')
+      .select('-publicAccessToken')
       .populate('classId');
     if (!student) return res.status(404).json({ error: 'Student not found' });
 

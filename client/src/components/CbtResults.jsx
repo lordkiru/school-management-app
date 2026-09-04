@@ -219,11 +219,11 @@ function CbtResults({ refreshKey }) {
           {tests.map((test) => (
             <div
               key={test._id}
-              className={`flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-gray-600 ${test.isArchived ? 'opacity-60' : ''}`}
+              className={`flex flex-wrap items-center justify-between gap-3 p-4 rounded-lg border border-slate-200 dark:border-gray-600 ${test.isArchived ? 'opacity-60' : ''}`}
             >
-              <div>
-                <p className="font-medium text-slate-800 dark:text-white">{test.title}</p>
-                <p className="text-sm text-slate-500 dark:text-gray-400 flex items-center gap-2">
+              <div className="min-w-0">
+                <p className="font-medium text-slate-800 dark:text-white truncate">{test.title}</p>
+                <p className="text-sm text-slate-500 dark:text-gray-400 flex flex-wrap items-center gap-2">
                   {test.subjectId?.name} · {test.classId?.name} · {test.questions.length} questions
                   {test.status === 'draft' ? (
                     <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
@@ -239,7 +239,7 @@ function CbtResults({ refreshKey }) {
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => togglePublish(test)}
                   className="text-sm font-medium py-2 px-3 rounded-lg border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 transition"

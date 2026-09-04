@@ -257,7 +257,7 @@ function App() {
     }
     if (activePage === 'cbt') {
       return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
+        <div className="grid xl:grid-cols-2 gap-6 p-6">
           <CbtBuilder onTestCreated={() => setCbtRefreshKey((k) => k + 1)} />
           <CbtResults refreshKey={cbtRefreshKey} />
         </div>

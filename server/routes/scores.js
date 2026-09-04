@@ -62,7 +62,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin', 'teacher'), asyn
 
 router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin', 'teacher'), validateScore, async (req, res) => {
   try {
-    const { studentId, subjectId } = req.body;
+    const { studentId, subjectId, term, session, ca1, ca2, exam } = req.body;
     const [studentOk, subjectOk] = await Promise.all([
       Student.exists({ _id: studentId, tenantId: req.user.tenantId }),
       Subject.exists({ _id: subjectId, tenantId: req.user.tenantId }),
@@ -70,12 +70,22 @@ router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor
     if (!studentOk) return res.status(404).json({ error: 'Student not found' });
     if (!subjectOk) return res.status(404).json({ error: 'Subject not found' });
 
-    const score = new Score({
-      ...req.body,
-      tenantId: req.user.tenantId,
-    });
-    await score.save();
-    res.status(201).json(score);
+    // Only set the fields actually sent — CA1, CA2, and Exam are entered
+    // independently over time, so this upserts on the natural key instead of
+    // blindly inserting (which would hit the unique index and reject a later
+    // CA2-only submission for a student/subject/term/session that already
+    // has a CA1 record).
+    const fieldsToSet = {};
+    if (ca1 !== undefined) fieldsToSet.ca1 = ca1;
+    if (ca2 !== undefined) fieldsToSet.ca2 = ca2;
+    if (exam !== undefined) fieldsToSet.exam = exam;
+
+    const score = await Score.findOneAndUpdate(
+      { tenantId: req.user.tenantId, studentId, subjectId, term, session },
+      { $set: fieldsToSet },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    );
+    res.json(score);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

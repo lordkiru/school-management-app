@@ -119,21 +119,20 @@ function AddScore({ onScoreAdded }) {
 
     try {
       const token = localStorage.getItem('token');
+      // CA1, CA2, and Exam are entered independently — only send the ones
+      // actually filled in, so leaving a field blank doesn't overwrite it with 0.
+      const body = { studentId, subjectId, term, session };
+      if (ca1 !== '') body.ca1 = Number(ca1);
+      if (ca2 !== '') body.ca2 = Number(ca2);
+      if (exam !== '') body.exam = Number(exam);
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/scores`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          studentId,
-          subjectId,
-          term,
-          session,
-          ca1: Number(ca1),
-          ca2: Number(ca2),
-          exam: Number(exam),
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -285,16 +284,17 @@ function AddScore({ onScoreAdded }) {
         ))}
       </select>
 
-      {/* Scores */}
+      {/* Scores — each is optional on its own; leave blank to fill in later */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
           <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">CA1</label>
           <input
             type="number"
             min="0"
+            max="100"
             value={ca1}
             onChange={(e) => setCa1(e.target.value)}
-            required
+            placeholder="—"
             className="w-full p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
           />
         </div>
@@ -303,9 +303,10 @@ function AddScore({ onScoreAdded }) {
           <input
             type="number"
             min="0"
+            max="100"
             value={ca2}
             onChange={(e) => setCa2(e.target.value)}
-            required
+            placeholder="—"
             className="w-full p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
           />
         </div>
@@ -314,9 +315,10 @@ function AddScore({ onScoreAdded }) {
           <input
             type="number"
             min="0"
+            max="100"
             value={exam}
             onChange={(e) => setExam(e.target.value)}
-            required
+            placeholder="—"
             className="w-full p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
           />
         </div>

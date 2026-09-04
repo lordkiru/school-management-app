@@ -160,19 +160,18 @@ const validateScore = [
     .withMessage('Subject ID is required')
     .isMongoId()
     .withMessage('Invalid subject ID'),
+  // ca1/ca2/exam are entered independently over time (e.g. CA1 now, CA2 later),
+  // so each is optional on its own — only validate the range when one is sent.
   body('ca1')
-    .notEmpty()
-    .withMessage('CA1 score is required')
+    .optional({ values: 'null' })
     .isFloat({ min: 0, max: 100 })
     .withMessage('CA1 must be between 0 and 100'),
   body('ca2')
-    .notEmpty()
-    .withMessage('CA2 score is required')
+    .optional({ values: 'null' })
     .isFloat({ min: 0, max: 100 })
     .withMessage('CA2 must be between 0 and 100'),
   body('exam')
-    .notEmpty()
-    .withMessage('Exam score is required')
+    .optional({ values: 'null' })
     .isFloat({ min: 0, max: 100 })
     .withMessage('Exam must be between 0 and 100'),
   body('term')

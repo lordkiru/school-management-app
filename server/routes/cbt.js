@@ -61,6 +61,7 @@ router.get('/tests', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
     if (req.user.role === 'teacher') filter.createdBy = req.user.id;
     if (req.query.classId) filter.classId = req.query.classId;
     if (req.query.subjectId) filter.subjectId = req.query.subjectId;
+    if (req.query.includeArchived !== 'true') filter.isArchived = { $ne: true };
 
     const tests = await CbtTest.find(filter)
       .populate('subjectId')
@@ -110,6 +111,37 @@ router.patch('/tests/:id/publish', requireAuth, requireRole('proprietor', 'admin
   }
 });
 
+// ── Proprietor/admin: archive a test — works even if published, so demo/old
+// data can be cleaned up from view without touching its attempts or scores ──
+router.patch('/tests/:id/archive', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
+  try {
+    const test = await CbtTest.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
+      { isArchived: true },
+      { new: true }
+    );
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    res.json(test);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── Proprietor/admin: unarchive a test ───────────────────────────────────────
+router.patch('/tests/:id/unarchive', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
+  try {
+    const test = await CbtTest.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.user.tenantId },
+      { isArchived: false },
+      { new: true }
+    );
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    res.json(test);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ── Teacher/admin: delete a draft test (never delete once published — attempts may exist) ───
 router.delete('/tests/:id', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
   try {
@@ -120,6 +152,26 @@ router.delete('/tests/:id', requireAuth, requireRole('proprietor', 'admin'), val
     }
     await test.deleteOne();
     res.json({ message: 'Test deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Proprietor/admin: permanently delete an archived test (published or not) —
+// removes the test and its attempts, but never touches Score records: any
+// CA1/CA2 value this test already synced there stays exactly as it is ───────
+router.delete('/tests/:id/permanent', requireAuth, requireRole('proprietor', 'admin'), validateMongoId, async (req, res) => {
+  try {
+    const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    if (!test.isArchived) {
+      return res.status(400).json({ error: 'Archive this test before permanently deleting it' });
+    }
+
+    await CbtAttempt.deleteMany({ tenantId: req.user.tenantId, testId: test._id });
+    await test.deleteOne();
+
+    res.json({ message: 'Test and its attempts permanently deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -148,6 +200,7 @@ router.get('/tests/available', requireAuth, requireRole('student'), async (req, 
       tenantId: req.user.tenantId,
       classId: req.user.classId,
       status: 'published',
+      isArchived: { $ne: true },
     }).populate('subjectId').sort({ createdAt: -1 });
 
     const attempts = await CbtAttempt.find({ tenantId: req.user.tenantId, studentId: req.user.id });
@@ -166,7 +219,7 @@ router.get('/tests/available', requireAuth, requireRole('student'), async (req, 
 // ── Student: start an attempt ────────────────────────────────────────────────
 router.post('/tests/:id/start', requireAuth, requireRole('student'), validateMongoId, async (req, res) => {
   try {
-    const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId, status: 'published' });
+    const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId, status: 'published', isArchived: { $ne: true } });
     if (!test) return res.status(404).json({ error: 'Test not found or not available' });
     if (String(test.classId) !== String(req.user.classId)) {
       return res.status(403).json({ error: 'This test is not for your class' });

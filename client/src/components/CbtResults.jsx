@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Trophy, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Trophy, Clock, AlertTriangle, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
 
 function authHeaders() {
   const token = localStorage.getItem('token');
@@ -10,15 +10,20 @@ function CbtResults({ refreshKey }) {
   const [tests, setTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
   const [error, setError] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   const [selectedTestId, setSelectedTestId] = useState(null);
   const [results, setResults] = useState(null);
   const [loadingResults, setLoadingResults] = useState(false);
 
-  const fetchTests = useCallback(async () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const canArchive = ['proprietor', 'admin'].includes(user.role);
+
+  const fetchTests = useCallback(async (includeArchived) => {
     setLoadingTests(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/cbt/tests`, { headers: authHeaders() });
+      const url = `${import.meta.env.VITE_API_URL}/cbt/tests${includeArchived ? '?includeArchived=true' : ''}`;
+      const res = await fetch(url, { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load tests');
       setTests(data);
@@ -30,8 +35,8 @@ function CbtResults({ refreshKey }) {
   }, []);
 
   useEffect(() => {
-    fetchTests();
-  }, [fetchTests, refreshKey]);
+    fetchTests(showArchived);
+  }, [fetchTests, refreshKey, showArchived]);
 
   const openResults = async (testId) => {
     setSelectedTestId(testId);
@@ -58,6 +63,44 @@ function CbtResults({ refreshKey }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update test');
       setTests((prev) => prev.map((t) => (t._id === test._id ? data : t)));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const toggleArchive = async (test) => {
+    try {
+      const action = test.isArchived ? 'unarchive' : 'archive';
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cbt/tests/${test._id}/${action}`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update test');
+      // Archiving a test hides it once showArchived is off, so just drop it from the
+      // current list rather than trying to patch it in place.
+      if (!showArchived && data.isArchived) {
+        setTests((prev) => prev.filter((t) => t._id !== test._id));
+      } else {
+        setTests((prev) => prev.map((t) => (t._id === test._id ? data : t)));
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const permanentlyDelete = async (test) => {
+    if (!window.confirm(`Permanently delete "${test.title}" and all its attempts? This cannot be undone. (Any CA1/CA2 scores it already synced to students' records will NOT be affected.)`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cbt/tests/${test._id}/permanent`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete test');
+      setTests((prev) => prev.filter((t) => t._id !== test._id));
     } catch (err) {
       setError(err.message);
     }
@@ -145,7 +188,19 @@ function CbtResults({ refreshKey }) {
   // ── Test list view ──────────────────────────────────────────────────────
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700">
-      <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Your CBT Tests</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-slate-800 dark:text-white">Your CBT Tests</h2>
+        {canArchive && (
+          <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+            />
+            Show archived
+          </label>
+        )}
+      </div>
 
       {error && (
         <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
@@ -164,7 +219,7 @@ function CbtResults({ refreshKey }) {
           {tests.map((test) => (
             <div
               key={test._id}
-              className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-gray-600"
+              className={`flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-gray-600 ${test.isArchived ? 'opacity-60' : ''}`}
             >
               <div>
                 <p className="font-medium text-slate-800 dark:text-white">{test.title}</p>
@@ -177,6 +232,11 @@ function CbtResults({ refreshKey }) {
                   ) : (
                     <span className="text-emerald-600 dark:text-emerald-400">Published</span>
                   )}
+                  {test.isArchived && (
+                    <span className="inline-flex items-center gap-1 text-slate-400 dark:text-gray-500">
+                      <Archive size={12} /> Archived
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -186,6 +246,26 @@ function CbtResults({ refreshKey }) {
                 >
                   {test.status === 'draft' ? 'Publish' : 'Unpublish'}
                 </button>
+                {canArchive && (
+                  <button
+                    onClick={() => toggleArchive(test)}
+                    title={test.isArchived ? 'Unarchive this test' : 'Archive this test (hides it without deleting attempts/scores)'}
+                    className="flex items-center gap-1 text-sm font-medium py-2 px-3 rounded-lg border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 transition"
+                  >
+                    {test.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    {test.isArchived ? 'Unarchive' : 'Archive'}
+                  </button>
+                )}
+                {canArchive && test.isArchived && (
+                  <button
+                    onClick={() => permanentlyDelete(test)}
+                    title="Permanently delete this test and its attempts"
+                    className="flex items-center gap-1 text-sm font-medium py-2 px-3 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                )}
                 <button
                   onClick={() => openResults(test._id)}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition"

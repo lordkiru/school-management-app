@@ -33,6 +33,7 @@ const cbtTestSchema = new mongoose.Schema({
   },
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },
   isArchived: { type: Boolean, default: false }, // hides a test (even published) without deleting its attempts/scores
+  shuffleQuestions: { type: Boolean, default: false }, // per-student randomized question order, generated at attempt start
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 

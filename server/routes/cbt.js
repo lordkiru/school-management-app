@@ -17,12 +17,32 @@ async function assertCanManageSubject(req, subjectId) {
   return !!subject && String(subject.teacherId) === String(req.user.id);
 }
 
+// Reorder a test's questions to match a saved questionOrder (an attempt's shuffled
+// question _ids), falling back to the test's own order when there's nothing to reorder by.
+function orderQuestions(questions, questionOrder) {
+  if (!questionOrder || questionOrder.length === 0) return questions;
+  const byId = new Map(questions.map((q) => [String(q._id), q]));
+  return questionOrder.map((id) => byId.get(String(id))).filter(Boolean);
+}
+
+// Fisher-Yates shuffle — returns a new array, doesn't mutate the input.
+function shuffle(arr) {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 // Strip answer keys before sending a test to a student — never let correctIndex leave the server.
-function stripAnswerKey(test) {
+// questionOrder (an attempt's shuffled order, if any) determines the order questions are sent in.
+function stripAnswerKey(test, questionOrder) {
   const obj = test.toObject ? test.toObject() : test;
+  const questions = orderQuestions(obj.questions, questionOrder);
   return {
     ...obj,
-    questions: obj.questions.map(({ correctIndex, ...q }) => q),
+    questions: questions.map(({ correctIndex, ...q }) => q),
   };
 }
 
@@ -231,24 +251,30 @@ router.post('/tests/:id/start', requireAuth, requireRole('student'), validateMon
       if (existing.status === 'submitted') {
         return res.status(400).json({ error: 'You have already submitted this test' });
       }
-      return res.json({ attempt: existing, test: stripAnswerKey(test) });
+      return res.json({ attempt: existing, test: stripAnswerKey(test, existing.questionOrder) });
     }
+
+    // Generate this student's own question order once, at start — it then stays fixed
+    // for the lifetime of the attempt (including on resume, via existing.questionOrder above).
+    const questionOrder = test.shuffleQuestions ? shuffle(test.questions.map((q) => q._id)) : [];
 
     const attempt = new CbtAttempt({
       tenantId: req.user.tenantId,
       testId: test._id,
       studentId: req.user.id,
       answers: new Array(test.questions.length).fill(-1),
+      questionOrder,
       startedAt: new Date(), // server-stamped — this plus durationMinutes is the real deadline
     });
     await attempt.save();
 
-    res.status(201).json({ attempt, test: stripAnswerKey(test) });
+    res.status(201).json({ attempt, test: stripAnswerKey(test, questionOrder) });
   } catch (err) {
     // Unique index race: two near-simultaneous starts from the same student
     if (err.code === 11000) {
       const existing = await CbtAttempt.findOne({ tenantId: req.user.tenantId, testId: req.params.id, studentId: req.user.id });
-      return res.status(200).json({ attempt: existing });
+      const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
+      return res.status(200).json({ attempt: existing, test: stripAnswerKey(test, existing.questionOrder) });
     }
     res.status(400).json({ error: err.message });
   }
@@ -271,10 +297,12 @@ router.post('/attempts/:id/submit', requireAuth, requireRole('student'), validat
     const isLate = new Date() > deadline;
 
     const { answers } = req.body;
-    const rawScore = test.questions.reduce((sum, q, i) => {
+    // Grade against the same order the student was shown (attempt.questionOrder when shuffled).
+    const orderedQuestions = orderQuestions(test.questions, attempt.questionOrder);
+    const rawScore = orderedQuestions.reduce((sum, q, i) => {
       return sum + (answers[i] === q.correctIndex ? q.marks : 0);
     }, 0);
-    const maxScore = test.questions.reduce((sum, q) => sum + q.marks, 0);
+    const maxScore = orderedQuestions.reduce((sum, q) => sum + q.marks, 0);
 
     attempt.answers = answers;
     attempt.score = rawScore;

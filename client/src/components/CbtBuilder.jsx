@@ -24,6 +24,7 @@ function CbtBuilder({ onTestCreated }) {
   const [session, setSession] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [caSlot, setCaSlot] = useState('ca1');
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [questions, setQuestions] = useState([EMPTY_QUESTION()]);
 
   const [error, setError] = useState('');
@@ -132,6 +133,7 @@ function CbtBuilder({ onTestCreated }) {
           session,
           durationMinutes: Number(durationMinutes),
           caSlot,
+          shuffleQuestions,
           questions: questions.map((q) => ({ ...q, marks: Number(q.marks) || 1 })),
         }),
       });
@@ -438,6 +440,15 @@ function CbtBuilder({ onTestCreated }) {
           </select>
         </div>
       </div>
+
+      <label className="flex items-center gap-2 mt-3 mb-1 text-sm text-slate-600 dark:text-gray-300 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={shuffleQuestions}
+          onChange={(e) => setShuffleQuestions(e.target.checked)}
+        />
+        Shuffle question order for each student
+      </label>
 
       <div className="mt-4 mb-2 flex items-center justify-between">
         <h3 className="font-semibold text-slate-800 dark:text-white">Questions</h3>

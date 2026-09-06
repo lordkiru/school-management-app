@@ -225,6 +225,10 @@ const validateCbtTest = [
     .withMessage('CA slot is required')
     .isIn(['ca1', 'ca2'])
     .withMessage('caSlot must be ca1 or ca2'),
+  body('shuffleQuestions')
+    .optional()
+    .isBoolean()
+    .withMessage('shuffleQuestions must be true or false'),
   body('questions')
     .isArray({ min: 1 })
     .withMessage('At least one question is required'),

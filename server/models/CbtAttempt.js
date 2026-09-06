@@ -5,8 +5,11 @@ const cbtAttemptSchema = new mongoose.Schema({
   testId: { type: mongoose.Schema.Types.ObjectId, ref: 'CbtTest', required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
   // Index into each question's options array; null/-1 means unanswered. Same length/order as
-  // the test's questions array at the time the attempt was started.
+  // questionOrder below when set, otherwise the test's questions array at the time the attempt started.
   answers: { type: [Number], default: [] },
+  // Per-student shuffled question order (question _ids from the test), set at start time when
+  // the test has shuffleQuestions: true. Empty when shuffling is off — use the test's own order.
+  questionOrder: { type: [mongoose.Schema.Types.ObjectId], default: [] },
   score: { type: Number, default: null }, // raw marks earned, filled in on submit
   maxScore: { type: Number, default: null }, // total possible marks, snapshotted at submit time
   startedAt: { type: Date, required: true }, // server-stamped — the deadline source of truth

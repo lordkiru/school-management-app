@@ -5,9 +5,12 @@ const PAGE_SIZE = 12;
 
 function ScoreList({ refreshKey }) {
   const [scores, setScores] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [nameQuery, setNameQuery] = useState('');
+  const [classFilter, setClassFilter] = useState('');
 
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({ ca1: 0, ca2: 0, exam: 0 });
@@ -39,6 +42,26 @@ function ScoreList({ refreshKey }) {
   useEffect(() => {
     fetchScores();
   }, [fetchScores, refreshKey]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setClasses(await res.json());
+      } catch (err) {
+        console.error('Failed to load classes', err);
+      }
+    };
+    fetchClasses();
+  }, []);
+
+  // Jump back to page 1 whenever the search narrows or widens the result set
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [nameQuery, classFilter]);
 
   const startEdit = (score) => {
     setEditingId(score._id);
@@ -89,13 +112,55 @@ function ScoreList({ refreshKey }) {
   if (loading) return <p className="p-6">Loading scores...</p>;
   if (error) return <p className="p-6 text-red-600 dark:text-red-400">{error}</p>;
 
-  const totalPages = Math.ceil(scores.length / PAGE_SIZE) || 1;
+  const classNameById = Object.fromEntries(
+    classes.map((cls) => [cls._id, cls.section ? `${cls.name} (${cls.section})` : cls.name])
+  );
+
+  const filteredScores = scores.filter((score) => {
+    const name = score.studentId?.name || '';
+    const matchesName = name.toLowerCase().includes(nameQuery.trim().toLowerCase());
+
+    const studentClassId = score.studentId?.classId?._id || score.studentId?.classId;
+    const matchesClass = !classFilter || String(studentClassId) === classFilter;
+
+    return matchesName && matchesClass;
+  });
+
+  const totalPages = Math.ceil(filteredScores.length / PAGE_SIZE) || 1;
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const pageScores = scores.slice(startIndex, startIndex + PAGE_SIZE);
+  const pageScores = filteredScores.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const inputClass =
+    'w-full p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition';
 
   return (
     <div className="p-6">
       <h2 className="text-xl font-bold mb-4">Scores</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 max-w-xl">
+        <div>
+          <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Search by name</label>
+          <input
+            type="text"
+            value={nameQuery}
+            onChange={(e) => setNameQuery(e.target.value)}
+            placeholder="Student name..."
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class</label>
+          <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className={inputClass}>
+            <option value="">All classes</option>
+            {classes.map((cls) => (
+              <option key={cls._id} value={cls._id}>
+                {cls.name} {cls.section ? `(${cls.section})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {editError && (
         <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded mb-3">
           {editError}
@@ -106,6 +171,7 @@ function ScoreList({ refreshKey }) {
           <thead>
             <tr className="border-b border-gray-300 dark:border-gray-600">
               <th className="py-2 pr-4">Student</th>
+              <th className="py-2 pr-4">Class</th>
               <th className="py-2 pr-4">Subject</th>
               <th className="py-2 pr-4">Term</th>
               <th className="py-2 pr-4">CA1</th>
@@ -119,16 +185,18 @@ function ScoreList({ refreshKey }) {
           <tbody>
             {pageScores.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-4 text-gray-500 dark:text-gray-400">
-                  No scores found.
+                <td colSpan={10} className="py-4 text-gray-500 dark:text-gray-400">
+                  {scores.length === 0 ? 'No scores found.' : 'No scores match your search.'}
                 </td>
               </tr>
             ) : (
               pageScores.map((score) => {
                 const isEditing = editingId === score._id;
+                const studentClassId = score.studentId?.classId?._id || score.studentId?.classId;
                 return (
                   <tr key={score._id} className="border-b border-gray-200 dark:border-gray-700">
                     <td className="py-2 pr-4">{score.studentId?.name || '—'}</td>
+                    <td className="py-2 pr-4">{classNameById[studentClassId] || '—'}</td>
                     <td className="py-2 pr-4">{score.subjectId?.name || '—'}</td>
                     <td className="py-2 pr-4">{score.term}</td>
                     <td className="py-2 pr-4">
@@ -213,11 +281,11 @@ function ScoreList({ refreshKey }) {
         </table>
       </div>
 
-      {scores.length > 0 && (
+      {filteredScores.length > 0 && (
         <div className="flex items-center justify-between mt-4 text-sm">
           <span className="text-gray-500 dark:text-gray-400">
-            Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, scores.length)} of{' '}
-            {scores.length}
+            Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredScores.length)} of{' '}
+            {filteredScores.length}
           </span>
           <div className="flex items-center gap-2">
             <button

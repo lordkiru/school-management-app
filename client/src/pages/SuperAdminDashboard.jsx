@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getDashboard } from '../services/superAdminApi';
 import './SuperAdminDashboard.css';
 
-const SuperAdminDashboard = ({ onNavigate }) => {
+const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,7 +60,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
       <div className="stats-grid">
         <div
           className="stat-card primary clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          onClick={() => navigate('/dashboard/superadmin/tenants')}
           title="View all schools"
         >
           <div className="stat-icon">🏫</div>
@@ -70,7 +72,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card success clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'active' })}
+          onClick={() => navigate('/dashboard/superadmin/tenants?status=active')}
           title="View active schools"
         >
           <div className="stat-icon">✅</div>
@@ -82,7 +84,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card warning clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'trial' })}
+          onClick={() => navigate('/dashboard/superadmin/tenants?status=trial')}
           title="View trial schools"
         >
           <div className="stat-icon">🔄</div>
@@ -94,7 +96,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card danger clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants', { statusFilter: 'suspended' })}
+          onClick={() => navigate('/dashboard/superadmin/tenants?status=suspended')}
           title="View suspended schools"
         >
           <div className="stat-icon">⏸️</div>
@@ -106,7 +108,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card info clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          onClick={() => navigate('/dashboard/superadmin/tenants')}
           title="View all users"
         >
           <div className="stat-icon">👥</div>
@@ -118,7 +120,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card info clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+          onClick={() => navigate('/dashboard/superadmin/tenants')}
           title="View all students"
         >
           <div className="stat-icon">🎓</div>
@@ -130,7 +132,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card success clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
+          onClick={() => navigate('/dashboard/superadmin/subscriptions')}
           title="View active subscriptions"
         >
           <div className="stat-icon">💳</div>
@@ -142,7 +144,7 @@ const SuperAdminDashboard = ({ onNavigate }) => {
 
         <div
           className="stat-card secondary clickable"
-          onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
+          onClick={() => navigate('/dashboard/superadmin/subscriptions')}
           title="View expired subscriptions"
         >
           <div className="stat-icon">📊</div>
@@ -201,25 +203,25 @@ const SuperAdminDashboard = ({ onNavigate }) => {
         <div className="quick-actions">
           <button
             className="action-btn primary"
-            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+            onClick={() => navigate('/dashboard/superadmin/tenants')}
           >
             📋 Manage Schools
           </button>
           <button
             className="action-btn success"
-            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+            onClick={() => navigate('/dashboard/superadmin/tenants')}
           >
             ➕ Create New School
           </button>
           <button
             className="action-btn info"
-            onClick={() => onNavigate && onNavigate('superadmin-subscriptions')}
+            onClick={() => navigate('/dashboard/superadmin/subscriptions')}
           >
             💳 Manage Subscriptions
           </button>
           <button
             className="action-btn secondary"
-            onClick={() => onNavigate && onNavigate('superadmin-tenants')}
+            onClick={() => navigate('/dashboard/superadmin/tenants')}
           >
             👥 View All Users
           </button>

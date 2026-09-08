@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LogOut, WifiOff, RefreshCw, Menu } from 'lucide-react';
 import { syncOfflineQueue, getPendingCount } from './utils/offlineQueue';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import Sidebar from './components/Sidebar';
 import StudentList from './components/StudentList';
 import AddStudent from './components/AddStudent';
@@ -50,31 +52,306 @@ import NotificationsPanel from './components/NotificationsPanel';
 import TeacherRemarks from './components/TeacherRemarks';
 import DataImport from './components/DataImport';
 
-const getDefaultPage = (role) => {
-  if (role === 'super_admin') return 'superadmin';
-  if (role === 'teacher' || role === 'bursar') return 'students';
-  return 'dashboard';
+const getDefaultRoute = (role) => {
+  if (role === 'super_admin') return '/dashboard/superadmin';
+  if (role === 'teacher' || role === 'bursar') return '/dashboard/students';
+  return '/dashboard';
 };
+
+// Role restrictions here used to be UI-only (Sidebar just hid the link) — this is the
+// actual enforcement, so typing the URL directly no longer bypasses it.
+function RequireRole({ roles, userRole, children }) {
+  if (!roles.includes(userRole)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
+// Extracted from the old `/cbt-login` pathname check — its own localStorage-based auth,
+// independent of the main `user` session.
+function CbtLoginRoute() {
+  const [cbtView, setCbtView] = useState('tests'); // 'tests' | 'history'
+  const loggedInStudent = localStorage.getItem('student') ? JSON.parse(localStorage.getItem('student')) : null;
+
+  if (!loggedInStudent) {
+    return <StudentLogin onLoginSuccess={() => window.location.reload()} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-2xl mx-auto mb-4 px-6 flex items-center justify-between">
+        <span className="text-slate-600 dark:text-gray-300">
+          Logged in as <strong>{loggedInStudent.name}</strong>
+        </span>
+        <button
+          onClick={() => {
+            localStorage.removeItem('studentToken');
+            localStorage.removeItem('student');
+            window.location.reload();
+          }}
+          className="text-sm text-rose-600 dark:text-rose-400 hover:underline"
+        >
+          Log out
+        </button>
+      </div>
+      <div className="max-w-2xl mx-auto mb-4 px-6 flex gap-2">
+        <button
+          onClick={() => setCbtView('tests')}
+          className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
+            cbtView === 'tests'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
+          }`}
+        >
+          Take a test
+        </button>
+        <button
+          onClick={() => setCbtView('history')}
+          className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
+            cbtView === 'history'
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
+          }`}
+        >
+          History
+        </button>
+      </div>
+      {cbtView === 'history' ? <CbtHistory /> : <CbtTestTaking />}
+    </div>
+  );
+}
+
+// The persistent chrome (banners, header, sidebar) plus every nested /dashboard/* route.
+function DashboardShell({
+  user,
+  darkMode,
+  setDarkMode,
+  onLogout,
+  isOnline,
+  pendingSync,
+  syncStatus,
+  sidebarOpen,
+  setSidebarOpen,
+  refreshKeys,
+  bumpRefresh,
+}) {
+  return (
+    <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+      {/* Offline / Sync banner */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
+          <WifiOff size={15} />
+          You're offline — attendance will sync automatically when reconnected
+          {pendingSync > 0 && (
+            <span className="bg-white text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+              {pendingSync} queued
+            </span>
+          )}
+        </div>
+      )}
+      {isOnline && syncStatus === 'syncing' && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-medium py-2 px-4">
+          <RefreshCw size={15} className="animate-spin" />
+          Syncing offline attendance records...
+        </div>
+      )}
+      {isOnline && syncStatus === 'synced' && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-500 text-white text-sm font-medium py-2 px-4">
+          ✅ Offline attendance synced successfully!
+        </div>
+      )}
+
+      {/* ── Fixed top header bar ── */}
+      <header className={`fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm print:hidden ${!isOnline ? 'mt-8' : ''}`}>
+        <div className="flex items-center justify-between px-4 h-14">
+          {/* Hamburger (mobile only) */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
+            aria-label="Open menu"
+          >
+            <Menu size={22} />
+          </button>
+
+          {/* App name / logo */}
+          <img src="/assets/logo.png" alt="Lemida SchoolManager" className="h-8 md:h-9 w-auto" />
+
+          {/* Right side: welcome + theme toggle + logout */}
+          <div className="flex items-center gap-1">
+            <span className="hidden sm:block text-sm text-slate-600 dark:text-gray-300 truncate max-w-[130px] mr-1">
+              {user.name}
+            </span>
+            <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} inline />
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline px-1"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Log out</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className={`flex pt-14 ${!isOnline ? 'mt-8' : ''}`}>
+        <Sidebar
+          userRole={user.role}
+          mobileOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+
+        <main className="flex-1 min-w-0 overflow-x-hidden">
+          <Routes>
+            <Route index element={<Dashboard userRole={user.role} />} />
+
+            <Route path="students">
+              <Route
+                index
+                element={
+                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                    <AddStudent onStudentAdded={() => bumpRefresh('student')} />
+                    <StudentList refreshKey={refreshKeys.student} />
+                  </div>
+                }
+              />
+              <Route path=":studentId" element={<StudentDetail />} />
+            </Route>
+
+            <Route
+              path="classes"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <AddClass onClassAdded={() => bumpRefresh('class')} />
+                  <ClassList refreshKey={refreshKeys.class} />
+                </div>
+              }
+            />
+            <Route
+              path="subjects"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
+                  <SubjectList refreshKey={refreshKeys.subject} />
+                </div>
+              }
+            />
+            <Route
+              path="scores"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <AddScore onScoreAdded={() => bumpRefresh('score')} />
+                  <ScoreList refreshKey={refreshKeys.score} />
+                </div>
+              }
+            />
+            <Route
+              path="cbt"
+              element={
+                <div className="grid xl:grid-cols-2 gap-6 p-6">
+                  <CbtBuilder onTestCreated={() => bumpRefresh('cbt')} />
+                  <CbtResults refreshKey={refreshKeys.cbt} />
+                </div>
+              }
+            />
+
+            <Route
+              path="fees"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <div className="flex flex-col gap-6">
+                    <AddClassFee onFeesAdded={() => bumpRefresh('fee')} />
+                    <AdjustClassFee onAdjusted={() => bumpRefresh('fee')} />
+                    <AddFee onFeeAdded={() => bumpRefresh('fee')} />
+                  </div>
+                  <FeeList refreshKey={refreshKeys.fee} />
+                </div>
+              }
+            />
+            <Route path="fees/report" element={<FeeReportByClass />} />
+            <Route path="fees/setup" element={<FeeStructureSetup />} />
+            <Route path="fees/breakdown" element={<FeeBreakdownView />} />
+
+            <Route
+              path="sessions"
+              element={<RequireRole roles={['proprietor']} userRole={user.role}><SessionManager /></RequireRole>}
+            />
+            <Route path="timetable" element={<TimetableView />} />
+            <Route path="promote" element={<PromoteClass />} />
+            <Route
+              path="staff"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <AddStaff onStaffAdded={() => bumpRefresh('staff')} currentUserRole={user.role} />
+                  <StaffList refreshKey={refreshKeys.staff} />
+                </div>
+              }
+            />
+            <Route
+              path="parents"
+              element={
+                <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <AddParent onParentAdded={() => bumpRefresh('parent')} />
+                  <ParentList refreshKey={refreshKeys.parent} />
+                </div>
+              }
+            />
+            <Route
+              path="auditlog"
+              element={<RequireRole roles={['proprietor']} userRole={user.role}><AuditLogList /></RequireRole>}
+            />
+            <Route
+              path="settings"
+              element={<RequireRole roles={['proprietor']} userRole={user.role}><SchoolSettings /></RequireRole>}
+            />
+            <Route path="reportcards" element={<ReportCardView />} />
+            <Route path="remarks" element={<TeacherRemarks userRole={user.role} />} />
+            <Route path="dataimport" element={<DataImport userRole={user.role} />} />
+            <Route path="notifications" element={<NotificationsPanel />} />
+
+            {/* Attendance — teachers see marking UI, admin/proprietor see the dashboard */}
+            <Route
+              path="attendance"
+              element={user.role === 'teacher' ? <AttendanceMarking userRole={user.role} /> : <AttendanceDashboard />}
+            />
+
+            {/* Super Admin routes */}
+            <Route
+              path="superadmin"
+              element={<RequireRole roles={['super_admin']} userRole={user.role}><SuperAdminDashboard /></RequireRole>}
+            />
+            <Route
+              path="superadmin/tenants"
+              element={<RequireRole roles={['super_admin']} userRole={user.role}><TenantManagement /></RequireRole>}
+            />
+            <Route
+              path="superadmin/subscriptions"
+              element={<RequireRole roles={['super_admin']} userRole={user.role}><SubscriptionManagement /></RequireRole>}
+            />
+
+            <Route path="*" element={<div className="p-6 text-gray-500 dark:text-gray-400">Page not found.</div>} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
-  const [user, setUser] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [classRefreshKey, setClassRefreshKey] = useState(0);
-  const [subjectRefreshKey, setSubjectRefreshKey] = useState(0);
-  const [scoreRefreshKey, setScoreRefreshKey] = useState(0);
-  const [feeRefreshKey, setFeeRefreshKey] = useState(0);
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [activePage, setActivePage] = useState('dashboard');
-  const [staffRefreshKey, setStaffRefreshKey] = useState(0);
-  const [parentRefreshKey, setParentRefreshKey] = useState(0);
-  const [cbtRefreshKey, setCbtRefreshKey] = useState(0);
-  const [cbtView, setCbtView] = useState('tests'); // 'tests' | 'history' — student CBT portal only
-  const [navParams, setNavParams] = useState({});
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const [refreshKeys, setRefreshKeys] = useState({
+    student: 0, class: 0, subject: 0, score: 0, fee: 0, staff: 0, parent: 0, cbt: 0,
+  });
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncStatus, setSyncStatus] = useState(''); // 'syncing' | 'synced' | ''
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  const bumpRefresh = (name) => setRefreshKeys((keys) => ({ ...keys, [name]: keys[name] + 1 }));
 
   useEffect(() => {
     if (darkMode) {
@@ -83,15 +360,6 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      setActivePage(getDefaultPage(parsedUser.role));
-    }
-  }, []);
 
   // Online/offline detection + auto-sync queued attendance when back online
   useEffect(() => {
@@ -132,323 +400,68 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    setSelectedStudentId(null);
-  };
-
-  if (window.location.pathname === '/pay') {
-    return <ParentPay />;
-  }
-  if (window.location.pathname === '/results') {
-    return <ParentResults />;
-  }
-  if (window.location.pathname === '/reset-password') {
-    return <ResetPassword />;
-  }
-  if (window.location.pathname === '/forgot-password') {
-    return <ForgotPassword />;
-  }
-  if (window.location.pathname === '/portal') {
-    return <ParentPortal />;
-  }
-  if (window.location.pathname === '/cbt-login') {
-    const loggedInStudent = localStorage.getItem('student') ? JSON.parse(localStorage.getItem('student')) : null;
-    if (loggedInStudent) {
-      return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-          <div className="max-w-2xl mx-auto mb-4 px-6 flex items-center justify-between">
-            <span className="text-slate-600 dark:text-gray-300">
-              Logged in as <strong>{loggedInStudent.name}</strong>
-            </span>
-            <button
-              onClick={() => {
-                localStorage.removeItem('studentToken');
-                localStorage.removeItem('student');
-                window.location.reload();
-              }}
-              className="text-sm text-rose-600 dark:text-rose-400 hover:underline"
-            >
-              Log out
-            </button>
-          </div>
-          <div className="max-w-2xl mx-auto mb-4 px-6 flex gap-2">
-            <button
-              onClick={() => setCbtView('tests')}
-              className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
-                cbtView === 'tests'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
-              }`}
-            >
-              Take a test
-            </button>
-            <button
-              onClick={() => setCbtView('history')}
-              className={`text-sm font-medium py-2 px-4 rounded-lg transition ${
-                cbtView === 'history'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-slate-600 dark:text-gray-300 border border-slate-200 dark:border-gray-600'
-              }`}
-            >
-              History
-            </button>
-          </div>
-          {cbtView === 'history' ? <CbtHistory /> : <CbtTestTaking />}
-        </div>
-      );
-    }
-    return <StudentLogin onLoginSuccess={() => window.location.reload()} />;
-  }
-
-  if (!user) {
-    return (
-      <>
-        <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
-        <Login
-          onLoginSuccess={(loggedInUser) => {
-            setUser(loggedInUser);
-            setActivePage(getDefaultPage(loggedInUser.role));
-          }}
-        />
-      </>
-    );
-  }
-
-  const renderPage = () => {
-    if (activePage === 'dashboard') {
-      return <Dashboard userRole={user.role} />;
-    }
-    if (activePage === 'students') {
-      return selectedStudentId ? (
-        <StudentDetail
-          studentId={selectedStudentId}
-          onBack={() => setSelectedStudentId(null)}
-        />
-      ) : (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddStudent onStudentAdded={() => setRefreshKey((k) => k + 1)} />
-          <StudentList refreshKey={refreshKey} onSelectStudent={setSelectedStudentId} />
-        </div>
-      );
-    }
-
-    if (activePage === 'classes') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddClass onClassAdded={() => setClassRefreshKey((k) => k + 1)} />
-          <ClassList refreshKey={classRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'subjects') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddSubject onSubjectAdded={() => setSubjectRefreshKey((k) => k + 1)} />
-          <SubjectList refreshKey={subjectRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'scores') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddScore onScoreAdded={() => setScoreRefreshKey((k) => k + 1)} />
-          <ScoreList refreshKey={scoreRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'cbt') {
-      return (
-        <div className="grid xl:grid-cols-2 gap-6 p-6">
-          <CbtBuilder onTestCreated={() => setCbtRefreshKey((k) => k + 1)} />
-          <CbtResults refreshKey={cbtRefreshKey} />
-        </div>
-      );
-    }
-
-    if (activePage === 'fees') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <div className="flex flex-col gap-6">
-            <AddClassFee onFeesAdded={() => setFeeRefreshKey((k) => k + 1)} />
-            <AdjustClassFee onAdjusted={() => setFeeRefreshKey((k) => k + 1)} />
-            <AddFee onFeeAdded={() => setFeeRefreshKey((k) => k + 1)} />
-          </div>
-          <FeeList refreshKey={feeRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'sessions') {
-      return <SessionManager />;
-    }
-    if (activePage === 'feereport') {
-      return <FeeReportByClass />;
-    }
-    if (activePage === 'feesetup') {
-      return <FeeStructureSetup />;
-    }
-    if (activePage === 'feedownown') {
-      return <FeeBreakdownView />;
-    }
-
-    if (activePage === 'timetable') {
-      return <TimetableView />;
-    }
-    if (activePage === 'promote') {
-      return <PromoteClass />;
-    }
-    if (activePage === 'staff') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddStaff onStaffAdded={() => setStaffRefreshKey((k) => k + 1)} currentUserRole={user.role} />
-          <StaffList refreshKey={staffRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'parents') {
-      return (
-        <div className="grid md:grid-cols-2 gap-6 p-6">
-          <AddParent onParentAdded={() => setParentRefreshKey((k) => k + 1)} />
-          <ParentList refreshKey={parentRefreshKey} />
-        </div>
-      );
-    }
-    if (activePage === 'auditlog') {
-      return <AuditLogList />;
-    }
-    if (activePage === 'settings') {
-      return <SchoolSettings />;
-    }
-    if (activePage === 'reportcards') {
-      return <ReportCardView />;
-    }
-    if (activePage === 'remarks') {
-      return <TeacherRemarks userRole={user.role} />;
-    }
-    if (activePage === 'dataimport') {
-      return <DataImport userRole={user.role} />;
-    }
-    if (activePage === 'notifications') {
-      return <NotificationsPanel />;
-    }
-    // Attendance — teachers see marking UI, admin/proprietor see the dashboard
-    if (activePage === 'attendance') {
-      if (user.role === 'teacher') {
-        return <AttendanceMarking userRole={user.role} />;
-      }
-      return <AttendanceDashboard />;
-    }
-    // Super Admin Routes
-    if (activePage === 'superadmin') {
-      return (
-        <SuperAdminDashboard
-          onNavigate={(page, params = {}) => {
-            setNavParams(params);
-            setActivePage(page);
-          }}
-        />
-      );
-    }
-    if (activePage === 'superadmin-tenants') {
-      return (
-        <TenantManagement
-          initialStatusFilter={navParams.statusFilter || ''}
-          onNavigate={(page, params = {}) => {
-            setNavParams(params);
-            setActivePage(page);
-          }}
-        />
-      );
-    }
-    if (activePage === 'superadmin-subscriptions') {
-      return (
-        <SubscriptionManagement
-          initialStatusFilter={navParams.statusFilter || ''}
-        />
-      );
-    }
-    return (
-      <div className="p-6 text-gray-500 dark:text-gray-400">
-        {activePage.charAt(0).toUpperCase() + activePage.slice(1)} page coming soon.
-      </div>
-    );
   };
 
   return (
-    <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
-      {/* Offline / Sync banner */}
-      {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
-          <WifiOff size={15} />
-          You're offline — attendance will sync automatically when reconnected
-          {pendingSync > 0 && (
-            <span className="bg-white text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
-              {pendingSync} queued
-            </span>
-          )}
-        </div>
-      )}
-      {isOnline && syncStatus === 'syncing' && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-medium py-2 px-4">
-          <RefreshCw size={15} className="animate-spin" />
-          Syncing offline attendance records...
-        </div>
-      )}
-      {isOnline && syncStatus === 'synced' && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-500 text-white text-sm font-medium py-2 px-4">
-          ✅ Offline attendance synced successfully!
-        </div>
-      )}
+    <Routes>
+      <Route path="/pay" element={<ParentPay />} />
+      <Route path="/results" element={<ParentResults />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/portal" element={<ParentPortal />} />
+      <Route path="/cbt-login" element={<CbtLoginRoute />} />
 
-      {/* ── Fixed top header bar ── */}
-      <header className={`fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm print:hidden ${!isOnline ? 'mt-8' : ''}`}>
-        <div className="flex items-center justify-between px-4 h-14">
-          {/* Hamburger (mobile only) */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 rounded-lg text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
-            aria-label="Open menu"
-          >
-            <Menu size={22} />
-          </button>
+      <Route
+        path="/"
+        element={user ? <Navigate to={getDefaultRoute(user.role)} replace /> : <LandingPage darkMode={darkMode} setDarkMode={setDarkMode} />}
+      />
 
-          {/* App name / logo */}
-          <span className="font-bold text-indigo-600 dark:text-indigo-400 text-lg md:text-xl truncate">
-            🏫 Lemida SchoolManager
-          </span>
+      <Route
+        path="/login"
+        element={
+          user ? (
+            <Navigate
+              to={
+                location.state?.from
+                  ? `${location.state.from.pathname}${location.state.from.search || ''}`
+                  : getDefaultRoute(user.role)
+              }
+              replace
+            />
+          ) : (
+            <>
+              <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} />
+              <Login onLoginSuccess={setUser} />
+            </>
+          )
+        }
+      />
 
-          {/* Right side: welcome + theme toggle + logout */}
-          <div className="flex items-center gap-1">
-            <span className="hidden sm:block text-sm text-slate-600 dark:text-gray-300 truncate max-w-[130px] mr-1">
-              {user.name}
-            </span>
-            <ThemeToggle darkMode={darkMode} setDarkMode={setDarkMode} inline />
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400 hover:underline px-1"
-            >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">Log out</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Route
+        path="/dashboard/*"
+        element={
+          user ? (
+            <DashboardShell
+              user={user}
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              onLogout={handleLogout}
+              isOnline={isOnline}
+              pendingSync={pendingSync}
+              syncStatus={syncStatus}
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              refreshKeys={refreshKeys}
+              bumpRefresh={bumpRefresh}
+            />
+          ) : (
+            <Navigate to="/login" replace state={{ from: location }} />
+          )
+        }
+      />
 
-      <div className={`flex pt-14 ${!isOnline ? 'mt-8' : ''}`}>
-        <Sidebar
-          activePage={activePage}
-          onSelectPage={(page) => {
-            setActivePage(page);
-            setSelectedStudentId(null);
-          }}
-          userRole={user.role}
-          mobileOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
-
-        <main className="flex-1 min-w-0 overflow-x-hidden">
-          {renderPage()}
-        </main>
-      </div>
-    </div>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

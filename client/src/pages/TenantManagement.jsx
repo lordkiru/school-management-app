@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount } from '../services/superAdminApi';
 import './TenantManagement.css';
 
-const TenantManagement = ({ initialStatusFilter = '' }) => {
+const TenantManagement = () => {
+  const [searchParams] = useSearchParams();
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);

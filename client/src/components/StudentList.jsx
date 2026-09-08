@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PAGE_SIZE = 16;
 
-function StudentList({ refreshKey, onSelectStudent }) {
+function StudentList({ refreshKey }) {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,7 +47,8 @@ function StudentList({ refreshKey, onSelectStudent }) {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setClasses(await res.json());
+        const data = await res.json();
+        setClasses(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load classes', err);
       }
@@ -160,7 +163,7 @@ function StudentList({ refreshKey, onSelectStudent }) {
                     pageStudents.map((student) => (
                       <tr
                         key={student._id}
-                        onClick={() => onSelectStudent(student._id)}
+                        onClick={() => navigate(`/dashboard/students/${student._id}`)}
                         className="border-b border-slate-50 dark:border-gray-700 last:border-0 cursor-pointer hover:bg-amber-50/60 dark:hover:bg-gray-700 transition"
                       >
                         <td className="py-3 px-5 text-slate-800 dark:text-white">{student.name}</td>

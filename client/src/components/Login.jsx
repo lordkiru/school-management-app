@@ -50,6 +50,8 @@ function Login({ onLoginSuccess }) {
         onSubmit={handleSubmit}
         className="w-full max-w-sm bg-white dark:bg-gray-800 p-8 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700"
       >
+        <img src="/assets/logo.png" alt="Lemida SchoolManager" className="h-12 w-auto mx-auto mb-6" />
+
         <h1 className="text-2xl font-bold mb-6 text-center text-slate-800 dark:text-white">
           Lemida Login
         </h1>

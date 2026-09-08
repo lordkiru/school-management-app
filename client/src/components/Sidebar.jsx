@@ -1,67 +1,81 @@
 import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { X, ChevronDown, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor } from 'lucide-react';
 
 const navItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
-  { key: 'attendance', label: 'Attendance', icon: ClipboardCheck, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'students', label: 'Students', icon: Users, allowedRoles: ['proprietor', 'admin', 'bursar', 'teacher'] },
-  { key: 'classes', label: 'Classes', icon: GraduationCap, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'subjects', label: 'Subjects', icon: BookOpen, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'cbt', label: 'CBT Tests', icon: Monitor, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'dashboard', to: '/dashboard', end: true, label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+  { key: 'attendance', to: '/dashboard/attendance', label: 'Attendance', icon: ClipboardCheck, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'students', to: '/dashboard/students', label: 'Students', icon: Users, allowedRoles: ['proprietor', 'admin', 'bursar', 'teacher'] },
+  { key: 'classes', to: '/dashboard/classes', label: 'Classes', icon: GraduationCap, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'subjects', to: '/dashboard/subjects', label: 'Subjects', icon: BookOpen, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'scores', to: '/dashboard/scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'cbt', to: '/dashboard/cbt', label: 'CBT Tests', icon: Monitor, allowedRoles: ['proprietor', 'admin', 'teacher'] },
   {
     key: 'fees-menu',
     label: 'Fees',
     icon: Wallet,
     children: [
-      { key: 'fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
-      { key: 'feesetup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'] },
-      { key: 'feedownown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'] },
-      { key: 'feereport', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'] },
+      { key: 'fees', to: '/dashboard/fees', label: 'Fees', icon: Wallet, allowedRoles: ['proprietor', 'bursar'] },
+      { key: 'feesetup', to: '/dashboard/fees/setup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+      { key: 'feedownown', to: '/dashboard/fees/breakdown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'] },
+      { key: 'feereport', to: '/dashboard/fees/report', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'] },
     ],
   },
-  { key: 'reportcards', label: 'Report Card', icon: FileText, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'timetable', label: 'Timetable', icon: Calendar, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'sessions', label: 'Sessions', icon: CalendarRange, allowedRoles: ['proprietor'] },
-  { key: 'promote', label: 'Promote Class', icon: ArrowUpCircle, allowedRoles: ['proprietor', 'admin'] },
-  { key: 'staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'] },
-  { key: 'parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
-  { key: 'remarks', label: 'Remarks', icon: PenLine, allowedRoles: ['proprietor', 'admin', 'teacher'] },
-  { key: 'notifications', label: 'Messaging', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
-  { key: 'dataimport', label: 'Data Import', icon: Upload, allowedRoles: ['proprietor', 'admin'] },
-  { key: 'auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
-  { key: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
+  { key: 'reportcards', to: '/dashboard/reportcards', label: 'Report Card', icon: FileText, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'timetable', to: '/dashboard/timetable', label: 'Timetable', icon: Calendar, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'sessions', to: '/dashboard/sessions', label: 'Sessions', icon: CalendarRange, allowedRoles: ['proprietor'] },
+  { key: 'promote', to: '/dashboard/promote', label: 'Promote Class', icon: ArrowUpCircle, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'staff', to: '/dashboard/staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'parents', to: '/dashboard/parents', label: 'Parents', icon: UserPlus, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'remarks', to: '/dashboard/remarks', label: 'Remarks', icon: PenLine, allowedRoles: ['proprietor', 'admin', 'teacher'] },
+  { key: 'notifications', to: '/dashboard/notifications', label: 'Messaging', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'dataimport', to: '/dashboard/dataimport', label: 'Data Import', icon: Upload, allowedRoles: ['proprietor', 'admin'] },
+  { key: 'auditlog', to: '/dashboard/auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
+  { key: 'settings', to: '/dashboard/settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
   // Super Admin Menu Items
-  { key: 'superadmin', label: '🎯 Super Admin', icon: Shield, allowedRoles: ['super_admin'] },
-  { key: 'superadmin-tenants', label: '🏫 Manage Schools', icon: Building2, allowedRoles: ['super_admin'] },
+  { key: 'superadmin', to: '/dashboard/superadmin', end: true, label: '🎯 Super Admin', icon: Shield, allowedRoles: ['super_admin'] },
+  { key: 'superadmin-tenants', to: '/dashboard/superadmin/tenants', label: '🏫 Manage Schools', icon: Building2, allowedRoles: ['super_admin'] },
 ];
 
-function Sidebar({ activePage, onSelectPage, userRole, mobileOpen, onClose }) {
+const navLinkClass = ({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+  isActive
+    ? 'bg-indigo-600 text-white shadow-sm'
+    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+}`;
+
+const childNavLinkClass = ({ isActive }) => `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+  isActive
+    ? 'bg-indigo-600 text-white shadow-sm'
+    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+}`;
+
+function Sidebar({ userRole, mobileOpen, onClose }) {
+  const location = useLocation();
   const visibleItems = navItems
     .map((item) => item.children
       ? { ...item, children: item.children.filter((child) => child.allowedRoles.includes(userRole)) }
       : item)
     .filter((item) => item.children ? item.children.length > 0 : item.allowedRoles.includes(userRole));
   const feesMenu = visibleItems.find((item) => item.key === 'fees-menu');
-  const [feesOpen, setFeesOpen] = useState(Boolean(feesMenu?.children.some((item) => item.key === activePage)));
+  const isFeesActive = location.pathname.startsWith('/dashboard/fees');
+  const [feesOpen, setFeesOpen] = useState(isFeesActive);
 
   useEffect(() => {
-    if (feesMenu?.children.some((item) => item.key === activePage)) {
+    if (isFeesActive) {
       setFeesOpen(true);
     }
-  }, [activePage, feesMenu]);
+  }, [isFeesActive]);
 
   const navContent = (
     <nav className="flex flex-col gap-1 py-2">
       {visibleItems.map((item) => {
         if (item.children) {
-          const isChildActive = item.children.some((child) => child.key === activePage);
           return (
             <div key={item.key}>
               <button
                 onClick={() => setFeesOpen((open) => !open)}
                 className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                  isChildActive
+                  isFeesActive
                     ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
                     : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
                 }`}
@@ -71,22 +85,11 @@ function Sidebar({ activePage, onSelectPage, userRole, mobileOpen, onClose }) {
               </button>
               {feesOpen && (
                 <div className="ml-4 border-l border-slate-200 dark:border-gray-700 pl-2">
-                  {item.children.map(({ key, label, icon: Icon }) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        onSelectPage(key);
-                        onClose?.();
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        activePage === key
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
+                  {item.children.map(({ key, to, label, icon: Icon }) => (
+                    <NavLink key={key} to={to} onClick={onClose} className={childNavLinkClass}>
                       <Icon size={16} />
                       {label}
-                    </button>
+                    </NavLink>
                   ))}
                 </div>
               )}
@@ -96,21 +99,10 @@ function Sidebar({ activePage, onSelectPage, userRole, mobileOpen, onClose }) {
 
         const Icon = item.icon;
         return (
-          <button
-            key={item.key}
-            onClick={() => {
-              onSelectPage(item.key);
-              onClose?.();
-            }}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-              activePage === item.key
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
-            }`}
-          >
+          <NavLink key={item.key} to={item.to} end={item.end} onClick={onClose} className={navLinkClass}>
             <Icon size={18} />
             {item.label}
-          </button>
+          </NavLink>
         );
       })}
     </nav>

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, KeyRound, Copy, Check } from 'lucide-react';
 
-function StudentDetail({ studentId, onBack }) {
+function StudentDetail() {
+  const { studentId } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -94,7 +97,7 @@ function StudentDetail({ studentId, onBack }) {
   return (
     <div className="p-6">
       <button
-        onClick={onBack}
+        onClick={() => navigate('/dashboard/students')}
         className="flex items-center gap-2 text-sm mb-6 text-blue-600 dark:text-blue-400 hover:underline"
       >
         <ArrowLeft size={16} /> Back to students

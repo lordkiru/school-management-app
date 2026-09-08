@@ -16,7 +16,7 @@ function AddSubject({ onSubjectAdded }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        setClasses(data);
+        setClasses(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load classes', err);
       }

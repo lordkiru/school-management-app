@@ -37,9 +37,12 @@ function AddScore({ onScoreAdded }) {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
-        setStudents(await studentsRes.json());
-        setSubjects(await subjectsRes.json());
-        setClasses(await classesRes.json());
+        const studentsData = await studentsRes.json();
+        const subjectsData = await subjectsRes.json();
+        const classesData = await classesRes.json();
+        setStudents(Array.isArray(studentsData) ? studentsData : []);
+        setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
+        setClasses(Array.isArray(classesData) ? classesData : []);
       } catch (err) {
         console.error('Failed to load data', err);
       }
@@ -55,8 +58,9 @@ function AddScore({ onScoreAdded }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        setSessions(data);
-        const current = data.find((s) => s.isCurrent);
+        const list = Array.isArray(data) ? data : [];
+        setSessions(list);
+        const current = list.find((s) => s.isCurrent);
         if (current) setSession(current.name);
       } catch (err) {
         console.error('Failed to load sessions', err);

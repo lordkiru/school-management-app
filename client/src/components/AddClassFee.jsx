@@ -24,7 +24,8 @@ function AddClassFee({ onFeesAdded }) {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setClasses(await res.json());
+        const data = await res.json();
+        setClasses(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load classes', err);
       }
@@ -40,8 +41,9 @@ function AddClassFee({ onFeesAdded }) {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        setSessions(data);
-        const current = data.find((s) => s.isCurrent);
+        const list = Array.isArray(data) ? data : [];
+        setSessions(list);
+        const current = list.find((s) => s.isCurrent);
         if (current) setSession(current.name);
       } catch (err) {
         console.error('Failed to load sessions', err);

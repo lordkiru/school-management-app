@@ -47,10 +47,12 @@ function CbtBuilder({ onTestCreated }) {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
-        setSubjects(await subjectsRes.json());
+        const subjectsData = await subjectsRes.json();
+        setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
         const sessionData = await sessionsRes.json();
-        setSessions(sessionData);
-        const current = sessionData.find((s) => s.isCurrent);
+        const list = Array.isArray(sessionData) ? sessionData : [];
+        setSessions(list);
+        const current = list.find((s) => s.isCurrent);
         if (current) setSession(current.name);
       } catch (err) {
         console.error('Failed to load data', err);

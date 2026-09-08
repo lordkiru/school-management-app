@@ -35,7 +35,8 @@ function FeeReportByClass() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/sessions`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSessions(await res.json());
+        const data = await res.json();
+        setSessions(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load sessions', err);
       }

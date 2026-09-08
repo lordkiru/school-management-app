@@ -72,7 +72,8 @@ function AttendanceMarking({ userRole }) {
           `${import.meta.env.VITE_API_URL}/students?classId=${selectedClassId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const studentsData = await studentsRes.json();
+        const studentsDataRaw = await studentsRes.json();
+        const studentsData = Array.isArray(studentsDataRaw) ? studentsDataRaw : [];
 
         // Check if attendance already marked today
         const attRes = await fetch(

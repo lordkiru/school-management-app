@@ -47,10 +47,12 @@ function TeacherRemarks({ userRole }) {
         ]);
         const classData = await classRes.json();
         const sessionData = await sessionRes.json();
+        const classList = Array.isArray(classData) ? classData : [];
+        const sessionList = Array.isArray(sessionData) ? sessionData : [];
         // Teachers can only pick their own assigned class
-        setClasses(isTeacher ? classData.filter((c) => c._id === assignedClassId) : classData);
-        setSessions(sessionData);
-        const current = sessionData.find((s) => s.isCurrent);
+        setClasses(isTeacher ? classList.filter((c) => c._id === assignedClassId) : classList);
+        setSessions(sessionList);
+        const current = sessionList.find((s) => s.isCurrent);
         if (current) setSession(current.name);
         if (isTeacher && assignedClassId) setClassId(assignedClassId);
       } catch (err) {
@@ -74,7 +76,8 @@ function TeacherRemarks({ userRole }) {
         { headers }
       );
       const studentsData = await studentsRes.json();
-      const allStudents = studentsData.students || studentsData;
+      const allStudentsRaw = studentsData.students || studentsData;
+      const allStudents = Array.isArray(allStudentsRaw) ? allStudentsRaw : [];
       const activeStudents = allStudents.filter(
         (s) => s.status !== 'Inactive' &&
           (s.classId?._id === classId || s.classId === classId)

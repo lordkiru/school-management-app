@@ -52,7 +52,8 @@ function TimetableView() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setClasses(await res.json());
+        const data = await res.json();
+        setClasses(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load classes', err);
       }
@@ -80,7 +81,8 @@ function TimetableView() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setSubjects(await res.json());
+        const data = await res.json();
+        setSubjects(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load subjects', err);
       }

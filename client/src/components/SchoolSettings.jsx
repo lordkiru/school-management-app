@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Copy, Check, Link2, MessageSquare, Eye, EyeOff, Send, Smartphone } from 'lucide-react';
+import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 
 function SchoolSettings() {
   const [name, setName] = useState('');
@@ -8,6 +9,7 @@ function SchoolSettings() {
   const [ca1Max, setCa1Max] = useState(20);
   const [ca2Max, setCa2Max] = useState(20);
   const [examMax, setExamMax] = useState(60);
+  const [schoolLevels, setSchoolLevels] = useState(SCHOOL_LEVELS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -67,6 +69,9 @@ function SchoolSettings() {
         setCa1Max(data.ca1Max ?? 20);
         setCa2Max(data.ca2Max ?? 20);
         setExamMax(data.examMax ?? 60);
+        if (Array.isArray(data.schoolLevels) && data.schoolLevels.length > 0) {
+          setSchoolLevels(data.schoolLevels);
+        }
         setWhatsappEnabled(data.whatsappEnabled || false);
         setWhatsappPhoneNumberId(data.whatsappPhoneNumberId || '');
         setWhatsappAccessToken(data.whatsappAccessToken || '');
@@ -84,17 +89,27 @@ function SchoolSettings() {
     fetchSchool();
   }, []);
 
+  const toggleLevel = (level) => {
+    setSchoolLevels((prev) =>
+      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    if (schoolLevels.length === 0) {
+      setError('At least one school level must be selected');
+      return;
+    }
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, address, logoUrl, ca1Max, ca2Max, examMax }),
+        body: JSON.stringify({ name, address, logoUrl, ca1Max, ca2Max, examMax, schoolLevels }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save settings');
@@ -293,6 +308,27 @@ function SchoolSettings() {
               <span className="text-amber-600"> (doesn't add up to 100 — grades will still be calculated proportionally)</span>
             )}
           </p>
+        </div>
+
+        <div className="border-t border-slate-100 dark:border-gray-700 pt-4 mt-2 mb-4">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">School Levels</h3>
+          <p className="text-xs text-slate-400 mb-3">
+            Choose the levels your school operates. Deselecting a level only hides it from dashboards and class
+            dropdowns — any existing classes, students, or scores in it stay exactly as they are.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {SCHOOL_LEVELS.map((level) => (
+              <label key={level} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={schoolLevels.includes(level)}
+                  onChange={() => toggleLevel(level)}
+                  className="rounded border-slate-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-400"
+                />
+                {level}
+              </label>
+            ))}
+          </div>
         </div>
 
         <button type="submit" disabled={saving} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition">

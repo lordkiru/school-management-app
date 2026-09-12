@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Users, GraduationCap, ClipboardList, Wallet } from 'lucide-react';
+import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 
-const SECTIONS = ['Creche', 'Kindergarten', 'Nursery', 'Primary', 'Secondary'];
+const SECTIONS = SCHOOL_LEVELS;
 
 function Dashboard({ userRole }) {
   const [stats, setStats] = useState(null);
@@ -20,6 +21,7 @@ function Dashboard({ userRole }) {
         const fetchPromises = [
           fetch(`${import.meta.env.VITE_API_URL}/students`, { headers }),
           fetch(`${import.meta.env.VITE_API_URL}/classes`, { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/school`, { headers }),
         ];
         if (canSeeFees) {
           fetchPromises.push(fetch(`${import.meta.env.VITE_API_URL}/fees`, { headers }));
@@ -28,7 +30,12 @@ function Dashboard({ userRole }) {
         const results = await Promise.all(fetchPromises);
         const students = await results[0].json();
         const classes = await results[1].json();
-        const fees = canSeeFees ? await results[2].json() : [];
+        const school = results[2].ok ? await results[2].json() : null;
+        const fees = canSeeFees ? await results[3].json() : [];
+
+        const enabledSections = Array.isArray(school?.schoolLevels) && school.schoolLevels.length > 0
+          ? SECTIONS.filter((s) => school.schoolLevels.includes(s))
+          : SECTIONS;
 
         const classSectionMap = {};
         classes.forEach((cls) => {
@@ -39,6 +46,18 @@ function Dashboard({ userRole }) {
         students.forEach((student) => {
           const classId = student.classId?._id || student.classId;
           studentSectionMap[student._id] = classSectionMap[classId];
+        });
+
+        // A student/fee with no section at all (not yet linked to a class) is kept in
+        // the totals — it's unclassified, not deselected. Only records whose section
+        // is a real value the school has since turned OFF are excluded.
+        const isVisibleSection = (section) => !section || enabledSections.includes(section);
+
+        const visibleClasses = classes.filter((cls) => isVisibleSection(cls.section));
+        const visibleStudents = students.filter((student) => isVisibleSection(studentSectionMap[student._id]));
+        const visibleFees = fees.filter((fee) => {
+          const studentId = fee.studentId?._id || fee.studentId;
+          return isVisibleSection(studentSectionMap[studentId]);
         });
 
         const studentsBySection = {};
@@ -66,13 +85,13 @@ function Dashboard({ userRole }) {
           }
         });
 
-        const totalExpected = fees.reduce((sum, f) => sum + f.amountExpected, 0);
-        const totalPaid = fees.reduce((sum, f) => sum + f.amountPaid, 0);
+        const totalExpected = visibleFees.reduce((sum, f) => sum + f.amountExpected, 0);
+        const totalPaid = visibleFees.reduce((sum, f) => sum + f.amountPaid, 0);
         const totalOutstanding = totalExpected - totalPaid;
 
         setStats({
-          totalStudents: students.length,
-          totalClasses: classes.length,
+          totalStudents: visibleStudents.length,
+          totalClasses: visibleClasses.length,
           studentsBySection,
           unassignedStudents,
           feesBySection,
@@ -80,6 +99,7 @@ function Dashboard({ userRole }) {
           totalPaid,
           totalOutstanding,
           canSeeFees,
+          enabledSections,
         });
       } catch (err) {
         setError('Failed to load dashboard data');
@@ -149,7 +169,7 @@ function Dashboard({ userRole }) {
 
       <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">Students by Section</h3>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        {SECTIONS.map((section) => (
+        {stats.enabledSections.map((section) => (
           <div
             key={section}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 flex flex-col gap-1"
@@ -176,7 +196,7 @@ function Dashboard({ userRole }) {
                 </tr>
               </thead>
               <tbody>
-                {SECTIONS.map((section) => {
+                {stats.enabledSections.map((section) => {
                   const { expected, paid } = stats.feesBySection[section];
                   return (
                     <tr key={section} className="border-b border-slate-50 dark:border-gray-700 last:border-0">

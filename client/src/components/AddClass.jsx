@@ -1,6 +1,5 @@
-import { useState } from 'react';
-
-const SECTIONS = ['Creche', 'Kindergarten', 'Nursery', 'Primary', 'Secondary'];
+import { useState, useEffect } from 'react';
+import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 
 function AddClass({ onClassAdded }) {
   const [name, setName] = useState('');
@@ -9,6 +8,27 @@ function AddClass({ onClassAdded }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [enabledLevels, setEnabledLevels] = useState(SCHOOL_LEVELS);
+
+  useEffect(() => {
+    const fetchSchool = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.schoolLevels) && data.schoolLevels.length > 0) {
+            setEnabledLevels(data.schoolLevels);
+          }
+        }
+      } catch {
+        // Non-critical — falls back to showing all levels
+      }
+    };
+    fetchSchool();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,7 +94,7 @@ function AddClass({ onClassAdded }) {
         className={inputClass}
       >
         <option value="">Select a section</option>
-        {SECTIONS.map((s) => (
+        {enabledLevels.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>

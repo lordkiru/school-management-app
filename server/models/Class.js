@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
 const classSchema = new mongoose.Schema({
   tenantId: { type: String, required: true }, // Multi-tenant support
@@ -6,7 +7,7 @@ const classSchema = new mongoose.Schema({
   level: { type: String, required: true }, // e.g. "JSS1"
   section: {
     type: String,
-    enum: ['Creche', 'Kindergarten', 'Nursery', 'Primary', 'Secondary'],
+    enum: SCHOOL_LEVELS,
     required: true,
   },
 }, { timestamps: true });

@@ -1,4 +1,5 @@
 const { body, param, validationResult } = require('express-validator');
+const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
 // Middleware to handle validation errors
 const handleValidationErrors = (req, res, next) => {
@@ -324,8 +325,8 @@ const validateClass = [
   body('section')
     .notEmpty()
     .withMessage('Section is required')
-    .isIn(['Creche', 'Kindergarten', 'Nursery', 'Primary', 'Secondary'])
-    .withMessage('Section must be one of: Creche, Kindergarten, Nursery, Primary, Secondary'),
+    .isIn(SCHOOL_LEVELS)
+    .withMessage(`Section must be one of: ${SCHOOL_LEVELS.join(', ')}`),
   handleValidationErrors,
 ];
 

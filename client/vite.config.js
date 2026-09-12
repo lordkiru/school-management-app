@@ -36,16 +36,20 @@ export default defineConfig({
       workbox: {
         // Cache strategies
         runtimeCaching: [
-          // Cache-first for static API data: classes, students, subjects, timetable
+          // Semi-static API data: classes, subjects, timetable, sessions.
+          // Network-first (not cache-first) — these change via user action
+          // (creating a class/session, etc.), so a stale cache-first hit would
+          // silently keep showing old data instead of what was just saved.
           {
             urlPattern: ({ url }) =>
               url.pathname.startsWith('/classes') ||
               url.pathname.startsWith('/subjects') ||
               url.pathname.startsWith('/timetable') ||
               url.pathname.startsWith('/sessions'),
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'api-static-cache',
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24, // 24 hours

@@ -16,11 +16,16 @@ function Login({ onLoginSuccess }) {
       // e.g. "greenfield.yourdomain.com" → subdomain = "greenfield"
       // Hosting platform domains (vercel.app, onrender.com, etc.) are ignored —
       // those are not real school subdomains, so we fall back to global lookup.
+      // "www" and "app" are reserved — they're the app's own domain prefixes
+      // (e.g. app.lemidaitsolutions.com is the main app, not a school), never a
+      // real tenant subdomain. Without this, every login there 404s on a
+      // nonexistent "app" tenant before the password is ever checked.
       const hostname = window.location.hostname;
       const parts = hostname.split('.');
       const HOSTING_DOMAINS = ['vercel.app', 'onrender.com', 'netlify.app', 'railway.app', 'localhost'];
+      const RESERVED_SUBDOMAINS = ['www', 'app'];
       const isHostingDomain = HOSTING_DOMAINS.some((d) => hostname === d || hostname.endsWith('.' + d));
-      const subdomain = (!isHostingDomain && parts.length >= 3 && parts[0] !== 'www') ? parts[0] : '';
+      const subdomain = (!isHostingDomain && parts.length >= 3 && !RESERVED_SUBDOMAINS.includes(parts[0])) ? parts[0] : '';
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: 'POST',

@@ -7,11 +7,13 @@ const subscriptionSchema = new mongoose.Schema({
     required: true 
   },
   
-  // Plan details
+  // Plan details — no value while a tenant is on trial (see Tenant.isTrialing);
+  // set once they actually pick/pay for a tier via POST /subscriptions/upgrade.
+  // 'trial' is kept in the enum only so pre-existing documents written before
+  // this change still pass full-document validation on save.
   plan: {
     type: String,
-    enum: ['trial', 'basic', 'professional', 'enterprise'],
-    required: true
+    enum: ['trial', 'founding', 'nano', 'micro', 'starter', 'standard', 'growth', 'enterprise'],
   },
   
   interval: {

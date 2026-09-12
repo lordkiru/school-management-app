@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount } from '../services/superAdminApi';
+import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount, extendTenantTrial } from '../services/superAdminApi';
+import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 import './TenantManagement.css';
 
 const TenantManagement = () => {
@@ -66,6 +67,25 @@ const TenantManagement = () => {
 
   const handlePermanentDelete = async (tenantId) => {
     setShowDeleteModal(tenantId);
+  };
+
+  const handleExtendTrial = async (tenantId) => {
+    const input = prompt('Extend trial by how many days?', '14');
+    if (input == null) return; // cancelled
+
+    const days = Number(input);
+    if (!Number.isFinite(days) || days <= 0) {
+      alert('Please enter a positive number of days');
+      return;
+    }
+
+    try {
+      const result = await extendTenantTrial(tenantId, days);
+      alert(`Trial extended. New end date: ${new Date(result.trialEndsAt).toLocaleDateString()}`);
+      fetchTenants();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to extend trial');
+    }
   };
 
   const confirmPermanentDelete = async () => {
@@ -182,6 +202,13 @@ const TenantManagement = () => {
                           {tenant.paystackSubaccountCode ? '💳' : '⚠️💳'}
                         </button>
                         <button
+                          onClick={() => handleExtendTrial(tenant.tenantId)}
+                          className="btn-cancel"
+                          title="Extend Trial"
+                        >
+                          ⏳
+                        </button>
+                        <button
                           onClick={() => handleSoftDelete(tenant.tenantId)}
                           className="btn-delete"
                           title="Cancel School"
@@ -282,10 +309,20 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
     ownerEmail: '',
     ownerPassword: '',
     subdomain: '',
-    plan: 'trial'
+    plan: '', // '' = start on trial (14 days, no plan chosen yet)
+    schoolLevels: SCHOOL_LEVELS,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const toggleLevel = (level) => {
+    setFormData((prev) => ({
+      ...prev,
+      schoolLevels: prev.schoolLevels.includes(level)
+        ? prev.schoolLevels.filter((l) => l !== level)
+        : [...prev.schoolLevels, level],
+    }));
+  };
 
   // Bank details for the Paystack subaccount (optional — can be set up later if skipped here)
   const [banks, setBanks] = useState([]);
@@ -335,6 +372,11 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
     const settingUpBank = bankCode || accountNumber;
     if (settingUpBank && !resolvedAccountName) {
       setError('Verify the account number before creating the school, or clear the bank fields to set this up later.');
+      return;
+    }
+
+    if (formData.schoolLevels.length === 0) {
+      setError('At least one school level must be selected');
       return;
     }
 
@@ -436,11 +478,32 @@ const CreateTenantModal = ({ onClose, onSuccess }) => {
               value={formData.plan}
               onChange={(e) => setFormData({...formData, plan: e.target.value})}
             >
-              <option value="trial">Trial (14 days)</option>
-              <option value="basic">Basic</option>
-              <option value="professional">Professional</option>
+              <option value="">Trial (14 days)</option>
+              <option value="founding">Founding</option>
+              <option value="nano">Nano</option>
+              <option value="micro">Micro</option>
+              <option value="starter">Starter</option>
+              <option value="standard">Standard</option>
+              <option value="growth">Growth</option>
               <option value="enterprise">Enterprise</option>
             </select>
+          </div>
+
+          <div className="form-group">
+            <label>School Levels *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+              {SCHOOL_LEVELS.map((level) => (
+                <label key={level} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'normal' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.schoolLevels.includes(level)}
+                    onChange={() => toggleLevel(level)}
+                  />
+                  {level}
+                </label>
+              ))}
+            </div>
+            <small>Which levels this school operates. Editable later in the school's own Settings page.</small>
           </div>
 
           <div className="form-group">

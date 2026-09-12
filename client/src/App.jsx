@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LogOut, WifiOff, RefreshCw, Menu } from 'lucide-react';
 import { syncOfflineQueue, getPendingCount } from './utils/offlineQueue';
 import ThemeToggle from './components/ThemeToggle';
+import TrialBanner from './components/TrialBanner';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import Sidebar from './components/Sidebar';
@@ -201,6 +202,7 @@ function DashboardShell({
         />
 
         <main className="flex-1 min-w-0 overflow-x-hidden">
+          <TrialBanner />
           <Routes>
             <Route index element={<Dashboard userRole={user.role} />} />
 

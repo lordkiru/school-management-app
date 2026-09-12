@@ -64,6 +64,12 @@ export const updateTenantStatus = async (tenantId, status) => {
   return response.data;
 };
 
+export const extendTenantTrial = async (tenantId, days) => {
+  const api = createAuthAxios();
+  const response = await api.patch(`/superadmin/tenants/${tenantId}/extend-trial`, { days });
+  return response.data;
+};
+
 export const deleteTenant = async (tenantId) => {
   const api = createAuthAxios();
   const response = await api.delete(`/superadmin/tenants/${tenantId}`);

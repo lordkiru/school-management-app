@@ -3,12 +3,26 @@ const router = express.Router();
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const requireActiveSubscription = require('../middleware/checkSubscription');
+const checkSubscriptionAccess = require('../middleware/checkSubscriptionAccess');
 const CbtTest = require('../models/CbtTest');
 const CbtAttempt = require('../models/CbtAttempt');
 const Subject = require('../models/Subject');
 const Score = require('../models/Score');
 const School = require('../models/School');
 const { validateCbtTest, validateCbtSubmit, validateMongoId } = require('../middleware/validators');
+
+// CBT is a plan feature, not just an active/inactive gate — blocks tenants whose
+// plan doesn't include it (trialing tenants always pass, per checkSubscriptionAccess).
+function assertCbtAvailable(req, res) {
+  if (!req.planAccess.unlimited && !req.planAccess.limits.features.cbt) {
+    res.status(403).json({
+      error: `Computer-based testing is not available on your current plan (${req.planAccess.plan}). Upgrade to access CBT.`,
+      code: 'CBT_NOT_AVAILABLE',
+    });
+    return false;
+  }
+  return true;
+}
 
 // Restrict a teacher to subjects they're actually assigned to. Admins/proprietors bypass this.
 async function assertCanManageSubject(req, subjectId) {
@@ -47,8 +61,10 @@ function stripAnswerKey(test, questionOrder) {
 }
 
 // ── Teacher/admin: create a test ─────────────────────────────────────────────
-router.post('/tests', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin', 'teacher'), validateCbtTest, async (req, res) => {
+router.post('/tests', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), validateCbtTest, async (req, res) => {
   try {
+    if (!assertCbtAvailable(req, res)) return;
+
     const canManage = await assertCanManageSubject(req, req.body.subjectId);
     if (!canManage) {
       return res.status(403).json({ error: 'You are not assigned to teach this subject' });
@@ -116,10 +132,15 @@ router.patch('/tests/:id', requireAuth, requireRole('proprietor', 'admin', 'teac
 });
 
 // ── Teacher/admin: publish / unpublish ───────────────────────────────────────
-router.patch('/tests/:id/publish', requireAuth, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
+router.patch('/tests/:id/publish', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
   try {
     const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!test) return res.status(404).json({ error: 'Test not found' });
+
+    // Only gate the draft->published transition — always allow unpublishing,
+    // even if the tenant's plan no longer includes CBT (e.g. after a downgrade).
+    if (test.status !== 'published' && !assertCbtAvailable(req, res)) return;
+
     if (req.user.role === 'teacher' && String(test.createdBy) !== String(req.user.id)) {
       return res.status(403).json({ error: 'You did not create this test' });
     }

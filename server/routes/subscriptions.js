@@ -4,6 +4,7 @@ const Subscription = require('../models/Subscription');
 const Tenant = require('../models/Tenant');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const { PLAN_NAMES } = require('../config/plans');
 
 // Get current tenant's subscription
 router.get('/me', requireAuth, async (req, res) => {
@@ -40,7 +41,7 @@ router.post('/upgrade', requireAuth, requireRole('proprietor'), async (req, res)
   try {
     const { plan, billingCycle } = req.body;
 
-    if (!['trial', 'basic', 'professional', 'enterprise'].includes(plan)) {
+    if (!PLAN_NAMES.includes(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
@@ -84,10 +85,16 @@ router.post('/upgrade', requireAuth, requireRole('proprietor'), async (req, res)
 
     await newSubscription.save();
 
-    // Update tenant status
+    // Sync the tenant off trial and onto this paid plan — isTrialing must flip
+    // to false here or the tenant would keep getting unlimited trial-style access.
     await Tenant.findOneAndUpdate(
       { tenantId: req.user.tenantId },
-      { status: 'active' }
+      {
+        status: 'active',
+        subscriptionPlan: plan,
+        subscriptionStatus: 'active',
+        isTrialing: false,
+      }
     );
 
     res.status(201).json({

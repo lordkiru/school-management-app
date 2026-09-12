@@ -97,8 +97,8 @@ async function ensureTenant() {
       tenantId,
       schoolName,
       subdomain: subdomain.toLowerCase(),
-      subscriptionPlan: 'trial',
       subscriptionStatus: 'trialing',
+      isTrialing: true,
       trialEndsAt,
       limits: {
         maxStudents: 1200,
@@ -153,7 +153,6 @@ async function ensureTenant() {
     {
       $setOnInsert: {
         tenantId,
-        plan: 'trial',
         interval: 'trial',
         amount: 0,
         currency: 'NGN',

@@ -4,6 +4,8 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
+const requireActiveSubscription = require('../middleware/checkSubscription');
+const checkSubscriptionAccess = require('../middleware/checkSubscriptionAccess');
 const Student = require('../models/Student');
 const Parent = require('../models/Parent');
 const Score = require('../models/Score');
@@ -220,9 +222,23 @@ router.post('/preview/staff', requireAuth, requireRole('proprietor', 'admin'), u
 // ════════════════════════════════════════════════════════════════════════════
 
 // POST /import/confirm/students
-router.post('/confirm/students', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+router.post('/confirm/students', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
     const { rows } = req.body; // pre-validated rows from preview
+
+    if (!req.planAccess.unlimited && req.planAccess.limits.studentLimit != null) {
+      const currentCount = await Student.countDocuments({ tenantId: req.user.tenantId, status: 'Active' });
+      const wouldBeTotal = currentCount + rows.length;
+      if (wouldBeTotal > req.planAccess.limits.studentLimit) {
+        return res.status(403).json({
+          error: `This import would bring your student count to ${wouldBeTotal}, exceeding your plan's limit of ${req.planAccess.limits.studentLimit} (${req.planAccess.plan}). You have room for ${Math.max(req.planAccess.limits.studentLimit - currentCount, 0)} more.`,
+          code: 'STUDENT_LIMIT_REACHED',
+          limit: req.planAccess.limits.studentLimit,
+          current: currentCount,
+        });
+      }
+    }
+
     let imported = 0, skipped = 0;
     const errors = [];
 

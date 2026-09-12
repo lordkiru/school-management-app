@@ -39,22 +39,38 @@ const tenantSchema = new mongoose.Schema({
     trim: true
   },
   
-  // Subscription & Billing
+  // Subscription & Billing — no default plan; a tenant has no plan while trialing
+  // (see isTrialing below), and gets one once they upgrade to a paid tier.
+  // 'trial' is kept in the enum only so pre-existing documents written before
+  // this change still pass full-document validation on save — nothing new
+  // ever sets it; isTrialing/trialEndsAt are the real trial signal now.
   subscriptionPlan: {
     type: String,
-    enum: ['trial', 'basic', 'professional', 'enterprise'],
-    default: 'trial'
+    enum: ['trial', 'founding', 'nano', 'micro', 'starter', 'standard', 'growth', 'enterprise'],
   },
-  
+
   subscriptionStatus: {
     type: String,
     enum: ['active', 'past_due', 'canceled', 'trialing', 'suspended'],
     default: 'trialing'
   },
-  
+
   subscriptionStartDate: { type: Date },
   subscriptionEndDate: { type: Date },
   trialEndsAt: { type: Date },
+
+  // The authoritative trial flag — while true (and trialEndsAt is in the future),
+  // the tenant gets full/unlimited access regardless of subscriptionPlan/limits.
+  // Flipped to false on upgrade (POST /subscriptions/upgrade); re-armed by the
+  // super-admin trial-extension route even after the trial has expired.
+  isTrialing: { type: Boolean, default: true },
+
+  // Audit trail for super-admin trial extensions
+  trialExtensionLog: [{
+    days: { type: Number, required: true },
+    extendedBy: { type: String, required: true },
+    extendedAt: { type: Date, default: Date.now },
+  }],
   
   // Plan limits
   limits: {
@@ -148,7 +164,7 @@ tenantSchema.methods.isActive = function() {
 
 // Method to check if trial has expired
 tenantSchema.methods.isTrialExpired = function() {
-  if (this.subscriptionStatus !== 'trialing') return false;
+  if (!this.isTrialing) return false;
   if (!this.trialEndsAt) return false;
   return new Date() > this.trialEndsAt;
 };

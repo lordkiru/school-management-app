@@ -48,8 +48,8 @@ async function createTenant() {
       tenantId,
       schoolName,
       subdomain: subdomain.toLowerCase(),
-      subscriptionPlan: 'trial',
       subscriptionStatus: 'trialing',
+      isTrialing: true,
       trialEndsAt,
       primaryContact: {
         name: adminName,
@@ -80,7 +80,6 @@ async function createTenant() {
     // Create subscription record
     const subscription = await Subscription.create({
       tenantId,
-      plan: 'trial',
       interval: 'trial',
       amount: 0,
       currency: 'NGN',

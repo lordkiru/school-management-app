@@ -3,6 +3,7 @@ const router = express.Router();
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const requireActiveSubscription = require('../middleware/checkSubscription');
+const checkSubscriptionAccess = require('../middleware/checkSubscriptionAccess');
 const User = require('../models/User');
 const { validateStaff, validateMongoId } = require('../middleware/validators');
 
@@ -20,7 +21,7 @@ router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res
 });
 
 // Create a new staff account
-router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin'), validateStaff, async (req, res) => {
+router.post('/', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin'), validateStaff, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -30,6 +31,21 @@ router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor
 
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({ error: `You are not allowed to create a ${role} account` });
+    }
+
+    if (!req.planAccess.unlimited && req.planAccess.limits.staffLimit != null) {
+      const currentCount = await User.countDocuments({
+        tenantId: req.user.tenantId,
+        role: { $in: ['teacher', 'bursar', 'admin'] },
+      });
+      if (currentCount >= req.planAccess.limits.staffLimit) {
+        return res.status(403).json({
+          error: `Staff limit reached for your current plan (${req.planAccess.plan}: max ${req.planAccess.limits.staffLimit}). Upgrade to add more staff.`,
+          code: 'STAFF_LIMIT_REACHED',
+          limit: req.planAccess.limits.staffLimit,
+          current: currentCount,
+        });
+      }
     }
 
     const user = new User({ 

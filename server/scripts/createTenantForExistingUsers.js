@@ -43,8 +43,8 @@ async function run() {
         tenantId,
         schoolName: SCHOOL_NAME,
         subdomain: SUBDOMAIN,
-        subscriptionPlan: 'trial',
         subscriptionStatus: 'trialing',
+        isTrialing: true,
         trialEndsAt,
         primaryContact: {
           name: proprietor.name,
@@ -57,7 +57,6 @@ async function run() {
 
       const subscription = new Subscription({
         tenantId,
-        plan: 'trial',
         interval: 'trial',
         amount: 0,
         currency: 'NGN',

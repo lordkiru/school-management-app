@@ -3,9 +3,12 @@ import { getSubscriptions, updateSubscriptionStatus } from '../services/superAdm
 import './TenantManagement.css';
 
 const PLAN_LABELS = {
-  trial: 'Trial',
-  basic: 'Basic',
-  professional: 'Professional',
+  founding: 'Founding',
+  nano: 'Nano',
+  micro: 'Micro',
+  starter: 'Starter',
+  standard: 'Standard',
+  growth: 'Growth',
   enterprise: 'Enterprise',
 };
 
@@ -84,9 +87,12 @@ const SubscriptionManagement = () => {
           className="status-filter"
         >
           <option value="">All Plans</option>
-          <option value="trial">Trial</option>
-          <option value="basic">Basic</option>
-          <option value="professional">Professional</option>
+          <option value="founding">Founding</option>
+          <option value="nano">Nano</option>
+          <option value="micro">Micro</option>
+          <option value="starter">Starter</option>
+          <option value="standard">Standard</option>
+          <option value="growth">Growth</option>
           <option value="enterprise">Enterprise</option>
         </select>
       </div>
@@ -117,7 +123,7 @@ const SubscriptionManagement = () => {
                       <br />
                       <small>{sub.tenantId}</small>
                     </td>
-                    <td>{PLAN_LABELS[sub.plan] || sub.plan}</td>
+                    <td>{PLAN_LABELS[sub.plan] || sub.plan || 'Trial (no plan yet)'}</td>
                     <td>
                       <span className={`status-badge ${sub.status}`}>
                         {sub.status}

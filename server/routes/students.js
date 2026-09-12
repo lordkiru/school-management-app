@@ -1,6 +1,7 @@
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const requireActiveSubscription = require('../middleware/checkSubscription');
+const checkSubscriptionAccess = require('../middleware/checkSubscriptionAccess');
 const express = require('express');
 const router = express.Router();
 const Student = require('../models/Student');
@@ -179,8 +180,20 @@ router.get('/:id', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'te
 });
 
 // Add a new student
-router.post('/', requireAuth, requireActiveSubscription, requireRole('proprietor', 'admin'), validateStudent, async (req, res) => {
+router.post('/', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin'), validateStudent, async (req, res) => {
   try {
+    if (!req.planAccess.unlimited && req.planAccess.limits.studentLimit != null) {
+      const currentCount = await Student.countDocuments({ tenantId: req.user.tenantId, status: 'Active' });
+      if (currentCount >= req.planAccess.limits.studentLimit) {
+        return res.status(403).json({
+          error: `Student limit reached for your current plan (${req.planAccess.plan}: max ${req.planAccess.limits.studentLimit}). Upgrade to add more students.`,
+          code: 'STUDENT_LIMIT_REACHED',
+          limit: req.planAccess.limits.studentLimit,
+          current: currentCount,
+        });
+      }
+    }
+
     const nextNumber = await getNextSequence('admissionNumber', req.user.tenantId);
     const admissionNumber = `ADM${String(nextNumber).padStart(5, '0')}`;
 

@@ -3,11 +3,13 @@ const router = express.Router();
 const axios = require('axios');
 const Tenant = require('../models/Tenant');
 const Subscription = require('../models/Subscription');
+const School = require('../models/School');
 const User = require('../models/User');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const bcrypt = require('bcryptjs');
 const { createSubaccount, updateSubaccount } = require('../services/paystackSubaccount');
+const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
 // Get all tenants (Super Admin only - for platform management)
 router.get('/', requireAuth, async (req, res) => {
@@ -47,13 +49,20 @@ router.get('/me', requireAuth, async (req, res) => {
 const { authLimiter } = require('../middleware/rateLimiter');
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain } = req.body;
+    const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain, schoolLevels } = req.body;
 
     // Validate required fields
     if (!schoolName || !ownerName || !ownerEmail || !ownerPassword) {
-      return res.status(400).json({ 
-        error: 'School name, owner name, email, and password are required' 
+      return res.status(400).json({
+        error: 'School name, owner name, email, and password are required'
       });
+    }
+
+    // Levels the school operates — defaults to all 5 if omitted; must be a
+    // non-empty subset of the real values if provided.
+    const levels = Array.isArray(schoolLevels) && schoolLevels.length > 0 ? schoolLevels : SCHOOL_LEVELS;
+    if (!levels.every((l) => SCHOOL_LEVELS.includes(l))) {
+      return res.status(400).json({ error: `schoolLevels must be a subset of: ${SCHOOL_LEVELS.join(', ')}` });
     }
 
     // Check if email already exists
@@ -72,8 +81,8 @@ router.post('/register', authLimiter, async (req, res) => {
       tenantId,
       schoolName,
       subdomain: subdomain || tenantId,
-      subscriptionPlan: 'trial',
       subscriptionStatus: 'trialing',
+      isTrialing: true,
       trialEndsAt,
       primaryContact: {
         name: ownerName,
@@ -99,10 +108,9 @@ router.post('/register', authLimiter, async (req, res) => {
     tenant.ownerId = owner._id;
     await tenant.save();
 
-    // Create default subscription (trial)
+    // Create default subscription (trial — no plan chosen yet, see Tenant.isTrialing)
     const subscription = new Subscription({
       tenantId,
-      plan: 'trial',
       interval: 'trial',
       amount: 0,
       currency: 'NGN',
@@ -114,6 +122,11 @@ router.post('/register', authLimiter, async (req, res) => {
     });
 
     await subscription.save();
+
+    // Create the school's operational record with the chosen levels up front —
+    // otherwise it would only get lazily auto-created on first GET /school visit,
+    // silently defaulting to all 5 regardless of what was picked here.
+    await School.create({ tenantId, schoolLevels: levels });
 
     res.status(201).json({
       message: 'Tenant created successfully',

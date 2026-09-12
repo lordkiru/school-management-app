@@ -2,10 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Tenant = require('../models/Tenant');
 const Subscription = require('../models/Subscription');
+const School = require('../models/School');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Fee = require('../models/Fee');
+const AuditLog = require('../models/AuditLog');
 const requireAuth = require('../middleware/auth');
+const { PLAN_NAMES } = require('../config/plans');
+const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
 // The super admin's own internal tenant — not a real customer school,
 // so it's excluded from school lists/counts shown in the dashboard.
@@ -100,9 +104,12 @@ router.get('/dashboard', requireAuth, requireSuperAdmin, async (req, res) => {
 router.get('/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, search } = req.query;
-    
+
     const query = { ...EXCLUDE_PLATFORM_TENANT };
-    if (status) query.status = status;
+    // 'trial' isn't a value of the status field (active/suspended/deleted) —
+    // it's tracked separately via isTrialing, so route it there instead.
+    if (status === 'trial') query.isTrialing = true;
+    else if (status) query.status = status;
     if (search) {
       query.$or = [
         { schoolName: { $regex: search, $options: 'i' } },
@@ -207,16 +214,74 @@ router.patch('/tenants/:tenantId/status', requireAuth, requireSuperAdmin, async 
   }
 });
 
+// Extend (or re-arm) a tenant's trial by N days — works even if the trial already
+// expired, and even if the tenant had since upgraded to a paid plan.
+router.patch('/tenants/:tenantId/extend-trial', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { days } = req.body;
+
+    if (typeof days !== 'number' || !Number.isFinite(days) || days <= 0) {
+      return res.status(400).json({ error: 'days must be a positive number' });
+    }
+
+    const tenant = await Tenant.findOne({ tenantId: req.params.tenantId });
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const previousTrialEndsAt = tenant.trialEndsAt;
+    const base = tenant.trialEndsAt ? tenant.trialEndsAt.getTime() : Date.now();
+    const newTrialEndsAt = new Date(base + days * 24 * 60 * 60 * 1000);
+    const extendedBy = req.user?.email || req.user?.id;
+
+    tenant.trialEndsAt = newTrialEndsAt;
+    tenant.isTrialing = true;
+    tenant.trialExtensionLog.push({ days, extendedBy, extendedAt: new Date() });
+    await tenant.save();
+
+    await AuditLog.create({
+      tenantId: tenant.tenantId,
+      action: 'trial_extended',
+      entityType: 'Tenant',
+      entityId: tenant._id,
+      snapshot: { days, previousTrialEndsAt, newTrialEndsAt },
+      performedBy: extendedBy,
+    });
+
+    res.json({
+      message: `Trial extended by ${days} day(s)`,
+      trialEndsAt: tenant.trialEndsAt,
+      isTrialing: tenant.isTrialing,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // Create new tenant/school (Super Admin)
 router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain, plan = 'trial' } = req.body;
+    // plan blank/omitted means "start on trial, no plan chosen yet" — otherwise
+    // it must be one of the real tiers (creates the tenant directly on that paid plan).
+    const { schoolName, ownerName, ownerEmail, ownerPassword, subdomain, plan = '', schoolLevels } = req.body;
+    const isTrial = !plan;
 
     // Validate required fields
     if (!schoolName || !ownerName || !ownerEmail || !ownerPassword) {
-      return res.status(400).json({ 
-        error: 'School name, owner name, email, and password are required' 
+      return res.status(400).json({
+        error: 'School name, owner name, email, and password are required'
       });
+    }
+
+    if (!isTrial && !PLAN_NAMES.includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
+
+    // Levels the school operates — defaults to all 5 if omitted; must be a
+    // non-empty subset of the real values if provided.
+    const levels = Array.isArray(schoolLevels) && schoolLevels.length > 0 ? schoolLevels : SCHOOL_LEVELS;
+    if (!levels.every((l) => SCHOOL_LEVELS.includes(l))) {
+      return res.status(400).json({ error: `schoolLevels must be a subset of: ${SCHOOL_LEVELS.join(', ')}` });
     }
 
     // Check if email already exists
@@ -229,12 +294,17 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
     const tenantId = `tenant_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Create tenant
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
     const tenant = new Tenant({
       tenantId,
       schoolName,
       subdomain: subdomain || tenantId,
-      subscriptionPlan: plan,
-      subscriptionStatus: plan === 'trial' ? 'trialing' : 'active',
+      subscriptionPlan: isTrial ? undefined : plan,
+      subscriptionStatus: isTrial ? 'trialing' : 'active',
+      isTrialing: isTrial,
+      trialEndsAt: isTrial ? trialEndsAt : undefined,
       primaryContact: {
         name: ownerName,
         email: ownerEmail,
@@ -263,11 +333,9 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
     const interval = 'monthly';
     const currentPeriodStart = new Date();
     const currentPeriodEnd = new Date();
-    let trialEnd;
 
-    if (plan === 'trial') {
+    if (isTrial) {
       currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 14); // 14 days trial
-      trialEnd = new Date(currentPeriodEnd);
     } else if (interval === 'monthly') {
       currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
     } else {
@@ -276,18 +344,23 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
 
     const subscription = new Subscription({
       tenantId,
-      plan,
-      interval: plan === 'trial' ? 'trial' : interval,
+      plan: isTrial ? undefined : plan,
+      interval: isTrial ? 'trial' : interval,
       amount: 0,
       currency: 'NGN',
-      status: plan === 'trial' ? 'trialing' : 'active',
+      status: isTrial ? 'trialing' : 'active',
       currentPeriodStart,
       currentPeriodEnd,
-      trialStart: plan === 'trial' ? currentPeriodStart : undefined,
-      trialEnd,
+      trialStart: isTrial ? currentPeriodStart : undefined,
+      trialEnd: isTrial ? currentPeriodEnd : undefined,
     });
 
     await subscription.save();
+
+    // Create the school's operational record with the chosen levels up front —
+    // otherwise it would only get lazily auto-created on first GET /school visit,
+    // silently defaulting to all 5 regardless of what was picked here.
+    await School.create({ tenantId, schoolLevels: levels });
 
     res.status(201).json({
       message: 'School created successfully by super admin',

@@ -36,7 +36,7 @@ function requireActiveSubscription(req, res, next) {
       }
 
       // Check if trial has expired
-      if (tenant.subscriptionStatus === 'trialing' && tenant.isTrialExpired()) {
+      if (tenant.isTrialExpired()) {
         return res.status(403).json({
           error: 'Your free trial has expired. Please upgrade to a paid plan to continue.',
           code: 'TRIAL_EXPIRED',

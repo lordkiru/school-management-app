@@ -129,10 +129,10 @@ const smsTemplateBodies = {
     `${new Date(date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}. ` +
     `Contact school if incorrect.`,
 
-  feeReminder: (studentName, amount, dueDate) =>
+  feeReminder: (studentName, amount, dueDate, portalUrl) =>
     `Fees for ${studentName} of N${Number(amount).toLocaleString()} ` +
     `${dueDate ? `are due ${new Date(dueDate).toLocaleDateString('en-NG')}` : 'are outstanding'}. ` +
-    `Contact school to pay.`,
+    (portalUrl ? `Pay via the parent portal: ${portalUrl}` : `Please pay via the parent portal.`),
 
   resultPublished: (studentName, term) =>
     `${studentName}'s ${term} results are now available. Visit the parent portal to view.`,
@@ -140,10 +140,11 @@ const smsTemplateBodies = {
   // For a parent with multiple children — entries: [{ name, amount }], only
   // ever built from children who actually have an outstanding balance
   // (fully-paid siblings are filtered out by the caller before this runs).
-  feeReminderMultiple: (entries) => {
-    if (entries.length === 1) return smsTemplateBodies.feeReminder(entries[0].name, entries[0].amount, null);
+  feeReminderMultiple: (entries, portalUrl) => {
+    if (entries.length === 1) return smsTemplateBodies.feeReminder(entries[0].name, entries[0].amount, null, portalUrl);
     const parts = entries.map((e) => `${e.name} (N${Number(e.amount).toLocaleString()})`);
-    return `Fees for ${joinWithAnd(parts)} are outstanding. Contact school to pay.`;
+    return `Fees for ${joinWithAnd(parts)} are outstanding. ` +
+      (portalUrl ? `Pay via the parent portal: ${portalUrl}` : `Please pay via the parent portal.`);
   },
 
   resultPublishedMultiple: (names, term) => {

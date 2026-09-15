@@ -97,7 +97,8 @@ router.get('/template-preview', requireAuth, requireRole('proprietor', 'admin'),
       if (entries.length === 0) {
         return res.status(404).json({ error: 'None of the selected children have outstanding fees' });
       }
-      return res.json({ message: smsTemplateBodies.feeReminderMultiple(entries) });
+      const portalUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/portal?tenantId=${req.user.tenantId}` : null;
+      return res.json({ message: smsTemplateBodies.feeReminderMultiple(entries, portalUrl) });
     }
 
     // resultPublished

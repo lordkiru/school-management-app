@@ -29,7 +29,7 @@ const TERMS = ['First Term', 'Second Term', 'Third Term'];
 // Broadcast has no single child to look up real data for, so a template
 // selection there just inserts generic placeholder text to edit by hand.
 const GENERIC_TEMPLATE_BODY = {
-  feeReminder: 'Fees for [Student Name] of ₦[Amount] are outstanding. Contact school to pay.',
+  feeReminder: 'Fees for [Student Name] of ₦[Amount] are outstanding. Please pay via the parent portal.',
   resultPublished: "[Student Name]'s [Term] results are now available. Visit the parent portal to view.",
 };
 

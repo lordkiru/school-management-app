@@ -11,6 +11,12 @@ const axios = require('axios');
 const TERMII_SEND_URL = 'https://api.ng.termii.com/api/sms/send';
 const TERMII_BULK_URL = 'https://api.ng.termii.com/api/sms/send/bulk';
 
+// DND-bypass access is activated on this Termii account under Termii's own shared
+// default sender ID, not a per-school one — every DND-channel send must use this
+// exact sender ID regardless of what senderId a school has configured. The
+// non-DND (whatsapp) channel is unaffected and keeps using each school's own.
+const TERMII_DND_SENDER_ID = 'OE Alert';
+
 /**
  * Normalize a Nigerian phone number to international format (234XXXXXXXXXX)
  * Handles: 08012345678, +2348012345678, 2348012345678
@@ -39,7 +45,8 @@ async function _termiiSend(config, toPhone, message, channel) {
     return { success: false, error: 'Invalid phone number: ' + toPhone };
   }
 
-  const payload = { to: normalized, from: senderId, sms: message, type: 'plain', channel, api_key: apiKey };
+  const fromSenderId = channel === 'dnd' ? TERMII_DND_SENDER_ID : senderId;
+  const payload = { to: normalized, from: fromSenderId, sms: message, type: 'plain', channel, api_key: apiKey };
   console.log('Termii request payload:', JSON.stringify({ ...payload, api_key: '***HIDDEN***' }, null, 2));
 
   try {
@@ -65,13 +72,14 @@ async function _termiiSendBulk(config, phones, message, channel) {
   for (let i = 0; i < phones.length; i += 100) {
     chunks.push(phones.slice(i, i + 100));
   }
+  const fromSenderId = channel === 'dnd' ? TERMII_DND_SENDER_ID : config.senderId;
   for (const chunk of chunks) {
     const normalized = chunk.map(normalizePhone).filter(Boolean);
     if (!normalized.length) continue;
     try {
       const response = await axios.post(
         TERMII_BULK_URL,
-        { to: normalized, from: config.senderId, sms: message, type: 'plain', channel, api_key: config.apiKey },
+        { to: normalized, from: fromSenderId, sms: message, type: 'plain', channel, api_key: config.apiKey },
         { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
       );
       sent += normalized.length;

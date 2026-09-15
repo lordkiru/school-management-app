@@ -112,20 +112,55 @@ async function sendBulkWhatsAppViaTermii(config, phones, message) {
   return _termiiSendBulk(config, phones, message, 'whatsapp');
 }
 
+// Joins a list of strings the natural way: "A", "A and B", "A, B, and C"
+function joinWithAnd(items) {
+  if (items.length <= 1) return items[0] || '';
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
 // ── Message templates (plain text — no markdown) ──────────────────────────────
-const smsTemplates = {
-  absenceAlert: (studentName, date, schoolName) =>
-    `${schoolName}: Your child ${studentName} was absent today, ` +
+// Bodies are the message text alone, with no school name prefix — exposed
+// separately so callers that build their own message (e.g. a template preview
+// for editing before send) don't get the school name baked in twice.
+const smsTemplateBodies = {
+  absenceAlert: (studentName, date) =>
+    `Your child ${studentName} was absent today, ` +
     `${new Date(date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}. ` +
     `Contact school if incorrect.`,
 
-  feeReminder: (studentName, amount, dueDate, schoolName) =>
-    `${schoolName}: Fees for ${studentName} of N${Number(amount).toLocaleString()} ` +
+  feeReminder: (studentName, amount, dueDate) =>
+    `Fees for ${studentName} of N${Number(amount).toLocaleString()} ` +
     `${dueDate ? `are due ${new Date(dueDate).toLocaleDateString('en-NG')}` : 'are outstanding'}. ` +
     `Contact school to pay.`,
 
+  resultPublished: (studentName, term) =>
+    `${studentName}'s ${term} results are now available. Visit the parent portal to view.`,
+
+  // For a parent with multiple children — entries: [{ name, amount }], only
+  // ever built from children who actually have an outstanding balance
+  // (fully-paid siblings are filtered out by the caller before this runs).
+  feeReminderMultiple: (entries) => {
+    if (entries.length === 1) return smsTemplateBodies.feeReminder(entries[0].name, entries[0].amount, null);
+    const parts = entries.map((e) => `${e.name} (N${Number(e.amount).toLocaleString()})`);
+    return `Fees for ${joinWithAnd(parts)} are outstanding. Contact school to pay.`;
+  },
+
+  resultPublishedMultiple: (names, term) => {
+    if (names.length === 1) return smsTemplateBodies.resultPublished(names[0], term);
+    return `${joinWithAnd(names)}'s ${term} results are now available. Visit the parent portal to view.`;
+  },
+};
+
+const smsTemplates = {
+  absenceAlert: (studentName, date, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.absenceAlert(studentName, date)}`,
+
+  feeReminder: (studentName, amount, dueDate, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.feeReminder(studentName, amount, dueDate)}`,
+
   resultPublished: (studentName, term, schoolName) =>
-    `${schoolName}: ${studentName}'s ${term} results are now available. Visit the parent portal to view.`,
+    `${schoolName}: ${smsTemplateBodies.resultPublished(studentName, term)}`,
 
   custom: (message, schoolName) => `${schoolName}: ${message}`,
 };
@@ -136,5 +171,6 @@ module.exports = {
   sendWhatsAppViaTermii,
   sendBulkWhatsAppViaTermii,
   smsTemplates,
+  smsTemplateBodies,
   normalizePhone,
 };

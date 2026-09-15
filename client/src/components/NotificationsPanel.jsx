@@ -16,6 +16,23 @@ const CHANNEL_OPTIONS = [
   { value: 'all', label: '📡 All Channels' },
 ];
 
+// Absence Alert is deliberately excluded — it's sent automatically when a
+// teacher marks a student absent, not something to compose by hand here.
+const TEMPLATE_OPTIONS = [
+  { value: 'custom', label: '✏️ Custom' },
+  { value: 'feeReminder', label: '💰 Fee Reminder' },
+  { value: 'resultPublished', label: '📊 Result Published' },
+];
+
+const TERMS = ['First Term', 'Second Term', 'Third Term'];
+
+// Broadcast has no single child to look up real data for, so a template
+// selection there just inserts generic placeholder text to edit by hand.
+const GENERIC_TEMPLATE_BODY = {
+  feeReminder: 'Fees for [Student Name] of ₦[Amount] are outstanding. Contact school to pay.',
+  resultPublished: "[Student Name]'s [Term] results are now available. Visit the parent portal to view.",
+};
+
 function ChannelBadge({ channel }) {
   if (channel === 'sms') {
     return (
@@ -54,6 +71,10 @@ function NotificationsPanel() {
   const [sendChannel, setSendChannel] = useState('whatsapp');
   const [sendStatus, setSendStatus] = useState('');
   const [sendError, setSendError] = useState('');
+  const [sendTemplate, setSendTemplate] = useState('custom');
+  const [sendChildIds, setSendChildIds] = useState([]);
+  const [sendTerm, setSendTerm] = useState('');
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   // Broadcast form
   const [broadcastClassId, setBroadcastClassId] = useState('');
@@ -61,6 +82,7 @@ function NotificationsPanel() {
   const [broadcastChannel, setBroadcastChannel] = useState('whatsapp');
   const [broadcastStatus, setBroadcastStatus] = useState('');
   const [broadcastError, setBroadcastError] = useState('');
+  const [broadcastTemplate, setBroadcastTemplate] = useState('custom');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -89,6 +111,57 @@ function NotificationsPanel() {
   useEffect(() => {
     if (activeTab === 'history') fetchHistory();
   }, [activeTab, historyChannel]);
+
+  const selectedParent = parents.find((p) => p._id === selectedParentId);
+  const selectedParentChildren = selectedParent?.children || [];
+
+  // Picking a different parent invalidates whichever children were selected
+  // for the previous one — auto-pick if there's only one child, otherwise
+  // make them choose again via the checkboxes below.
+  useEffect(() => {
+    setSendChildIds(selectedParentChildren.length === 1 ? [selectedParentChildren[0]._id] : []);
+  }, [selectedParentId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleSendChild = (studentId) => {
+    setSendChildIds((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  // Populate the message box with real data for the chosen child/children once
+  // template + at least one child (+ term, for Result Published) are resolved.
+  // A parent with several kids can be combined into one message — a Fee
+  // Reminder silently drops any child who turns out to have no outstanding
+  // balance rather than erroring the whole thing.
+  const sendChildIdsKey = sendChildIds.join(',');
+  useEffect(() => {
+    if (sendTemplate === 'custom') return;
+    if (sendChildIds.length === 0) return;
+    if (sendTemplate === 'resultPublished' && !sendTerm) return;
+
+    const fetchPreview = async () => {
+      setTemplateLoading(true);
+      setSendError('');
+      try {
+        const params = new URLSearchParams({ template: sendTemplate, studentIds: sendChildIdsKey });
+        if (sendTemplate === 'resultPublished') params.set('term', sendTerm);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/notifications/template-preview?${params}`, { headers });
+        const data = await res.json();
+        if (!res.ok) { setSendError(data.error); return; }
+        setIndividualMessage(data.message);
+      } catch (err) {
+        setSendError(err.message);
+      } finally {
+        setTemplateLoading(false);
+      }
+    };
+    fetchPreview();
+  }, [sendTemplate, sendChildIdsKey, sendTerm]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleBroadcastTemplateChange = (value) => {
+    setBroadcastTemplate(value);
+    setBroadcastMessage(value === 'custom' ? '' : GENERIC_TEMPLATE_BODY[value]);
+  };
 
   const fetchHistory = async () => {
     setHistoryLoading(true);
@@ -129,6 +202,9 @@ function NotificationsPanel() {
       setSendStatus(`✅ Message sent via ${sendChannel === 'both' ? 'WhatsApp & SMS' : sendChannel}!`);
       setIndividualMessage('');
       setSelectedParentId('');
+      setSendTemplate('custom');
+      setSendChildIds([]);
+      setSendTerm('');
     } catch (err) {
       setSendError(err.message);
     }
@@ -155,6 +231,7 @@ function NotificationsPanel() {
       if (!res.ok) { setBroadcastError(data.error); return; }
       setBroadcastStatus(`✅ ${data.message}`);
       setBroadcastMessage('');
+      setBroadcastTemplate('custom');
     } catch (err) {
       setBroadcastError(err.message);
     }
@@ -250,6 +327,63 @@ function NotificationsPanel() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Template</label>
+              <select
+                value={sendTemplate}
+                onChange={(e) => setSendTemplate(e.target.value)}
+                className={inputClass}
+              >
+                {TEMPLATE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-400 mt-1">
+                {sendTemplate === 'custom'
+                  ? 'Free text — type your own message below.'
+                  : 'Fills the message below with this child\'s real details — edit as needed before sending.'}
+              </p>
+            </div>
+
+            {sendTemplate !== 'custom' && selectedParentChildren.length > 1 && (
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Children</label>
+                <div className="flex flex-col gap-1.5 p-2.5 rounded-lg border border-slate-200 dark:border-gray-600">
+                  {selectedParentChildren.map((c) => (
+                    <label key={c._id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sendChildIds.includes(c._id)}
+                        onChange={() => toggleSendChild(c._id)}
+                        className="rounded border-slate-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-400"
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Pick one or more — {sendTemplate === 'feeReminder' ? 'anyone with no outstanding fees is left out automatically' : 'they\'ll be combined into one message'}.
+                </p>
+              </div>
+            )}
+
+            {sendTemplate === 'resultPublished' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Term</label>
+                <select
+                  value={sendTerm}
+                  onChange={(e) => setSendTerm(e.target.value)}
+                  required
+                  className={inputClass}
+                >
+                  <option value="">-- Choose a term --</option>
+                  {TERMS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Message</label>
               <textarea
                 value={individualMessage}
@@ -257,7 +391,8 @@ function NotificationsPanel() {
                 required
                 rows={4}
                 maxLength={1000}
-                placeholder="Type your message here..."
+                placeholder={templateLoading ? 'Loading template...' : 'Type your message here...'}
+                disabled={templateLoading}
                 className={inputClass}
               />
               <p className="text-xs text-slate-400 mt-1">{individualMessage.length}/1000 characters</p>
@@ -326,6 +461,24 @@ function NotificationsPanel() {
                   <option key={cls._id} value={cls._id}>{cls.name} {cls.section ? `(${cls.section})` : ''}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Template</label>
+              <select
+                value={broadcastTemplate}
+                onChange={(e) => handleBroadcastTemplateChange(e.target.value)}
+                className={inputClass}
+              >
+                {TEMPLATE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {broadcastTemplate !== 'custom' && (
+                <p className="text-xs text-slate-400 mt-1">
+                  Generic wording — there's no single child to fill in real details for a broadcast. Replace the bracketed parts by hand.
+                </p>
+              )}
             </div>
 
             <div>

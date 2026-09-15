@@ -5,9 +5,10 @@ const requireRole = require('../middleware/requireRole');
 const School = require('../models/School');
 const Parent = require('../models/Parent');
 const Student = require('../models/Student');
+const Fee = require('../models/Fee');
 const Notification = require('../models/Notification');
 const { sendTextMessage, templates } = require('../services/whatsapp');
-const { sendSMS, sendBulkSMS, sendWhatsAppViaTermii, sendBulkWhatsAppViaTermii, smsTemplates } = require('../services/sms');
+const { sendSMS, sendBulkSMS, sendWhatsAppViaTermii, sendBulkWhatsAppViaTermii, smsTemplates, smsTemplateBodies } = require('../services/sms');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -60,6 +61,54 @@ async function logNotification(tenantId, data) {
     console.error('[Notification log error]', err.message);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /notifications/template-preview?template=feeReminder|resultPublished&studentIds=id1,id2&term=
+// Builds the message body (no school name prefix — the send routes add that)
+// for one or more real children (a parent may have several), combining them
+// into one message. Fully-paid children are silently left out of a Fee
+// Reminder rather than erroring. Does not send anything itself.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/template-preview', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+  try {
+    const { template, studentIds, term } = req.query;
+
+    if (!['feeReminder', 'resultPublished'].includes(template)) {
+      return res.status(400).json({ error: 'Unknown template' });
+    }
+
+    const ids = String(studentIds || '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) return res.status(400).json({ error: 'At least one child is required' });
+
+    const students = await Student.find({ _id: { $in: ids }, tenantId: req.user.tenantId });
+    if (students.length === 0) return res.status(404).json({ error: 'Student(s) not found' });
+    const studentById = new Map(students.map((s) => [String(s._id), s]));
+
+    if (template === 'feeReminder') {
+      const entries = [];
+      for (const id of ids) {
+        const student = studentById.get(id);
+        if (!student) continue;
+        const fees = await Fee.find({ tenantId: req.user.tenantId, studentId: id });
+        const outstanding = fees.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
+        // Fully-paid children are silently skipped — no point reminding about a debt that doesn't exist
+        if (outstanding.length > 0) entries.push({ name: student.name, amount: outstanding[0].balance });
+      }
+      if (entries.length === 0) {
+        return res.status(404).json({ error: 'None of the selected children have outstanding fees' });
+      }
+      return res.json({ message: smsTemplateBodies.feeReminderMultiple(entries) });
+    }
+
+    // resultPublished
+    if (!term) return res.status(400).json({ error: 'term is required for this template' });
+    const names = ids.map((id) => studentById.get(id)?.name).filter(Boolean);
+    const message = smsTemplateBodies.resultPublishedMultiple(names, term);
+    res.json({ message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /notifications/send

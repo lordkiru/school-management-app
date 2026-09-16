@@ -7,6 +7,7 @@ const router = express.Router();
 const Student = require('../models/Student');
 const Score = require('../models/Score');
 const Fee = require('../models/Fee');
+const Subject = require('../models/Subject');
 const AuditLog = require('../models/AuditLog');
 const computeGrade = require('../utils/grading');
 const getNextSequence = require('../utils/getNextSequence');
@@ -15,7 +16,7 @@ const { apiLimiter } = require('../middleware/rateLimiter');
 const { validateStudent, validateMongoId } = require('../middleware/validators');
 
 // Get all students — supports ?page=1&limit=50&search=
-router.get('/', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
+router.get('/', requireAuth, requireRole('proprietor', 'admin', 'bursar'), async (req, res) => {
   try {
     const { search, page, limit } = req.query;
 
@@ -143,8 +144,43 @@ router.patch('/me/change-pin', requireAuth, requireRole('student'), async (req, 
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /students/roster?classId=
+// Minimal, read-only class roster (name/admissionNumber only) — just enough
+// for taking attendance, entering scores, or writing remarks. Unlike GET /,
+// a teacher may call this, but only for a class they're actually tied to:
+// their form class (assignedClassId) or a class they teach a subject in.
+// Registered before GET /:id so "roster" isn't swallowed as a student id.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/roster', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
+  try {
+    const { classId } = req.query;
+    if (!classId) return res.status(400).json({ error: 'classId is required' });
+
+    if (req.user.role === 'teacher') {
+      const isFormClass = req.user.assignedClassId === classId;
+      const teachesHere = isFormClass ? true : await Subject.exists({
+        tenantId: req.user.tenantId,
+        teacherId: req.user.id,
+        classId,
+      });
+      if (!teachesHere) {
+        return res.status(403).json({ error: 'You are not assigned to this class' });
+      }
+    }
+
+    const students = await Student.find({ tenantId: req.user.tenantId, classId, status: 'Active' })
+      .select('name admissionNumber classId status')
+      .sort({ name: 1 });
+
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get one student with their scores and fees
-router.get('/:id', requireAuth, requireRole('proprietor', 'admin', 'bursar', 'teacher'), async (req, res) => {
+router.get('/:id', requireAuth, requireRole('proprietor', 'admin', 'bursar'), async (req, res) => {
   try {
     const student = await Student.findOne({ _id: req.params.id, tenantId: req.user.tenantId })
       .select('-publicAccessToken')

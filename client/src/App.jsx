@@ -52,10 +52,12 @@ import AttendanceDashboard from './components/AttendanceDashboard';
 import NotificationsPanel from './components/NotificationsPanel';
 import TeacherRemarks from './components/TeacherRemarks';
 import DataImport from './components/DataImport';
+import TeacherDashboard from './components/TeacherDashboard';
 
 const getDefaultRoute = (role) => {
   if (role === 'super_admin') return '/dashboard/superadmin';
-  if (role === 'teacher' || role === 'bursar') return '/dashboard/students';
+  if (role === 'teacher') return '/dashboard';
+  if (role === 'bursar') return '/dashboard/students';
   return '/dashboard';
 };
 
@@ -204,44 +206,53 @@ function DashboardShell({
         <main className="flex-1 min-w-0 overflow-x-hidden">
           <TrialBanner />
           <Routes>
-            <Route index element={<Dashboard userRole={user.role} />} />
+            <Route index element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard userRole={user.role} />} />
 
             <Route path="students">
               <Route
                 index
                 element={
-                  <div className="grid md:grid-cols-2 gap-6 p-6">
-                    <AddStudent onStudentAdded={() => bumpRefresh('student')} />
-                    <StudentList refreshKey={refreshKeys.student} />
-                  </div>
+                  <RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}>
+                    <div className="grid md:grid-cols-2 gap-6 p-6">
+                      <AddStudent onStudentAdded={() => bumpRefresh('student')} />
+                      <StudentList refreshKey={refreshKeys.student} />
+                    </div>
+                  </RequireRole>
                 }
               />
-              <Route path=":studentId" element={<StudentDetail />} />
+              <Route
+                path=":studentId"
+                element={<RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}><StudentDetail /></RequireRole>}
+              />
             </Route>
 
             <Route
               path="classes"
               element={
-                <div className="grid md:grid-cols-2 gap-6 p-6">
-                  <AddClass onClassAdded={() => bumpRefresh('class')} />
-                  <ClassList refreshKey={refreshKeys.class} />
-                </div>
+                <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
+                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                    <AddClass onClassAdded={() => bumpRefresh('class')} />
+                    <ClassList refreshKey={refreshKeys.class} />
+                  </div>
+                </RequireRole>
               }
             />
             <Route
               path="subjects"
               element={
-                <div className="grid md:grid-cols-2 gap-6 p-6">
-                  <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
-                  <SubjectList refreshKey={refreshKeys.subject} />
-                </div>
+                <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
+                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                    <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
+                    <SubjectList refreshKey={refreshKeys.subject} />
+                  </div>
+                </RequireRole>
               }
             />
             <Route
               path="scores"
               element={
                 <div className="grid md:grid-cols-2 gap-6 p-6">
-                  <AddScore onScoreAdded={() => bumpRefresh('score')} />
+                  <AddScore onScoreAdded={() => bumpRefresh('score')} userRole={user.role} />
                   <ScoreList refreshKey={refreshKeys.score} />
                 </div>
               }

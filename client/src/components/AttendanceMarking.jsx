@@ -27,21 +27,39 @@ function AttendanceMarking({ userRole }) {
   const today = new Date().toISOString().split('T')[0];
   const todayDisplay = new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Load classes — teachers get all classes but we'll auto-select their assigned class
+  // Load classes — teachers only see their own form class + classes they teach a subject in
   useEffect(() => {
     const fetchClasses = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/classes`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setClasses(data);
-          // Auto-select if teacher has assigned class
-          if (user.assignedClassId) {
-            setSelectedClassId(user.assignedClassId);
-          }
+        const headers = { Authorization: `Bearer ${token}` };
+        const isTeacher = userRole === 'teacher';
+
+        const [classesRes, subjectsRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/classes`, { headers }),
+          isTeacher
+            ? fetch(`${import.meta.env.VITE_API_URL}/subjects`, { headers })
+            : Promise.resolve(null),
+        ]);
+        const data = await classesRes.json();
+        if (!classesRes.ok) return;
+
+        let visibleClasses = data;
+        if (isTeacher) {
+          const subjectsData = subjectsRes ? await subjectsRes.json() : [];
+          const taughtClassIds = new Set(
+            (Array.isArray(subjectsData) ? subjectsData : [])
+              .filter((s) => (s.teacherId?._id || s.teacherId) === user.id)
+              .map((s) => s.classId?._id || s.classId)
+          );
+          if (user.assignedClassId) taughtClassIds.add(user.assignedClassId);
+          visibleClasses = data.filter((c) => taughtClassIds.has(c._id));
+        }
+
+        setClasses(visibleClasses);
+        // Auto-select if teacher has assigned class
+        if (user.assignedClassId && visibleClasses.some((c) => c._id === user.assignedClassId)) {
+          setSelectedClassId(user.assignedClassId);
         }
       } catch (err) {
         setError('Failed to load classes');
@@ -69,7 +87,7 @@ function AttendanceMarking({ userRole }) {
       try {
         // Fetch students in this class
         const studentsRes = await fetch(
-          `${import.meta.env.VITE_API_URL}/students?classId=${selectedClassId}`,
+          `${import.meta.env.VITE_API_URL}/students/roster?classId=${selectedClassId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const studentsDataRaw = await studentsRes.json();

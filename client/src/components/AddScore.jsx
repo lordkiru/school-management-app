@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 
-function AddScore({ onScoreAdded }) {
+function AddScore({ onScoreAdded, userRole }) {
   const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -22,33 +22,64 @@ function AddScore({ onScoreAdded }) {
   const [loading, setLoading] = useState(false);
   const wrapperRef = useRef(null);
 
+  const isTeacher = userRole === 'teacher';
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Teachers only ever see subjects they're assigned to teach, and only the
+  // classes those subjects belong to — not the whole school's roster.
+  const mySubjects = isTeacher
+    ? subjects.filter((s) => (s.teacherId?._id || s.teacherId) === user.id)
+    : subjects;
+  const myClassIds = isTeacher
+    ? new Set(mySubjects.map((s) => s.classId?._id || s.classId).filter(Boolean))
+    : null;
+  const visibleClasses = isTeacher ? classes.filter((c) => myClassIds.has(c._id)) : classes;
+
   useEffect(() => {
     const fetchOptions = async () => {
       try {
         const token = localStorage.getItem('token');
-        const [studentsRes, subjectsRes, classesRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/students`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${import.meta.env.VITE_API_URL}/classes`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+        const headers = { Authorization: `Bearer ${token}` };
+        // Teachers can't list all students — their roster comes in per-class,
+        // scoped to a class they actually teach (see the classId-driven effect below).
+        const [subjectsRes, classesRes] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/subjects`, { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/classes`, { headers }),
         ]);
-        const studentsData = await studentsRes.json();
         const subjectsData = await subjectsRes.json();
         const classesData = await classesRes.json();
-        setStudents(Array.isArray(studentsData) ? studentsData : []);
         setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
         setClasses(Array.isArray(classesData) ? classesData : []);
+
+        if (!isTeacher) {
+          const studentsRes = await fetch(`${import.meta.env.VITE_API_URL}/students`, { headers });
+          const studentsData = await studentsRes.json();
+          setStudents(Array.isArray(studentsData) ? studentsData : []);
+        }
       } catch (err) {
         console.error('Failed to load data', err);
       }
     };
     fetchOptions();
   }, []);
+
+  // Teachers must pick one of their own classes before a roster loads
+  useEffect(() => {
+    if (!isTeacher || !selectedClassId) return;
+    const fetchRoster = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/students/roster?classId=${selectedClassId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setStudents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load class roster', err);
+      }
+    };
+    fetchRoster();
+  }, [isTeacher, selectedClassId]);
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -90,6 +121,11 @@ function AddScore({ onScoreAdded }) {
 
   const selectedStudent = students.find((s) => s._id === studentId);
   const studentClassId = selectedStudent?.classId?._id || selectedStudent?.classId;
+  // Roster entries (used for teachers) carry an unpopulated classId, so resolve
+  // the display name from the classes list rather than assuming it's an object.
+  const classNameById = Object.fromEntries(
+    classes.map((c) => [c._id, c.section ? `${c.name} (${c.section})` : c.name])
+  );
 
   // Filter students by selected class (if a class is chosen)
   const studentsInClass = selectedClassId
@@ -104,7 +140,7 @@ function AddScore({ onScoreAdded }) {
     : studentsInClass.slice(0, 30);
 
   // Filter subjects by student's class
-  const filteredSubjects = subjects.filter(
+  const filteredSubjects = mySubjects.filter(
     (subj) => subj.classId?._id === studentClassId
   );
 
@@ -183,20 +219,29 @@ function AddScore({ onScoreAdded }) {
 
       {/* Class filter */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
-        Filter by Class <span className="text-slate-400">(optional)</span>
+        {isTeacher ? 'Class' : (
+          <>Filter by Class <span className="text-slate-400">(optional)</span></>
+        )}
       </label>
       <select
         value={selectedClassId}
         onChange={(e) => handleClassChange(e.target.value)}
+        required={isTeacher}
         className={inputClass}
       >
-        <option value="">All classes</option>
-        {classes.map((cls) => (
+        {!isTeacher && <option value="">All classes</option>}
+        {isTeacher && <option value="">Select a class</option>}
+        {visibleClasses.map((cls) => (
           <option key={cls._id} value={cls._id}>
             {cls.name} {cls.section ? `(${cls.section})` : ''}
           </option>
         ))}
       </select>
+      {isTeacher && visibleClasses.length === 0 && (
+        <p className="text-xs text-rose-500 -mt-2 mb-3">
+          You haven't been assigned any subjects yet — contact your admin.
+        </p>
+      )}
 
       {/* Student search */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Student</label>
@@ -211,9 +256,16 @@ function AddScore({ onScoreAdded }) {
             setShowDropdown(true);
           }}
           onFocus={() => setShowDropdown(true)}
-          placeholder={selectedClassId ? 'Type a student name in this class...' : "Type a student's name..."}
+          placeholder={
+            isTeacher && !selectedClassId
+              ? 'Select a class first...'
+              : selectedClassId
+              ? 'Type a student name in this class...'
+              : "Type a student's name..."
+          }
+          disabled={isTeacher && !selectedClassId}
           required
-          className={inputClass}
+          className={`${inputClass} disabled:opacity-50`}
         />
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-lg shadow-lg max-h-56 overflow-y-auto">
@@ -231,7 +283,7 @@ function AddScore({ onScoreAdded }) {
                 >
                   {s.name}{' '}
                   <span className="text-slate-400 dark:text-gray-400">
-                    ({s.classId?.name || s.className || 'No class'})
+                    ({s.classId?.name || classNameById[s.classId?._id || s.classId] || 'No class'})
                   </span>
                 </button>
               ))
@@ -241,7 +293,7 @@ function AddScore({ onScoreAdded }) {
       </div>
       {selectedStudent && (
         <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
-          Class: {selectedStudent.classId?.name || selectedStudent.className || 'Unknown'}
+          Class: {selectedStudent.classId?.name || classNameById[studentClassId] || 'Unknown'}
         </p>
       )}
 

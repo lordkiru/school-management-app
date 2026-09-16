@@ -70,19 +70,16 @@ function TeacherRemarks({ userRole }) {
     setStudents([]);
     setSearchQuery('');
     try {
-      // Load all students and filter by classId client-side
+      // Roster for just this class — scoped server-side, works for both admin and teacher
       const studentsRes = await fetch(
-        `${import.meta.env.VITE_API_URL}/students`,
+        `${import.meta.env.VITE_API_URL}/students/roster?classId=${classId}`,
         { headers }
       );
       const studentsData = await studentsRes.json();
-      const allStudentsRaw = studentsData.students || studentsData;
-      const allStudents = Array.isArray(allStudentsRaw) ? allStudentsRaw : [];
-      const activeStudents = allStudents.filter(
-        (s) => s.status !== 'Inactive' &&
-          (s.classId?._id === classId || s.classId === classId)
-      );
-      setStudents(activeStudents);
+      if (!studentsRes.ok) {
+        throw new Error(studentsData.error || 'Failed to load class roster');
+      }
+      setStudents(Array.isArray(studentsData) ? studentsData : []);
 
       // Load existing remarks
       const remarksRes = await fetch(

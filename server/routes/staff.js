@@ -5,7 +5,40 @@ const requireRole = require('../middleware/requireRole');
 const requireActiveSubscription = require('../middleware/checkSubscription');
 const checkSubscriptionAccess = require('../middleware/checkSubscriptionAccess');
 const User = require('../models/User');
+const Class = require('../models/Class');
+const Subject = require('../models/Subject');
+const Student = require('../models/Student');
 const { validateStaff, validateMongoId } = require('../middleware/validators');
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /staff/me/summary
+// A teacher's own form class + subjects taught — powers the Teacher Dashboard.
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/me/summary', requireAuth, requireRole('teacher'), async (req, res) => {
+  try {
+    let formClass = null;
+    if (req.user.assignedClassId) {
+      const cls = await Class.findOne({ _id: req.user.assignedClassId, tenantId: req.user.tenantId });
+      if (cls) {
+        const studentCount = await Student.countDocuments({ tenantId: req.user.tenantId, classId: cls._id, status: 'Active' });
+        formClass = { _id: cls._id, name: cls.name, section: cls.section, studentCount };
+      }
+    }
+
+    const subjects = await Subject.find({ tenantId: req.user.tenantId, teacherId: req.user.id }).populate('classId', 'name section');
+    const subjectsTaught = subjects.map((s) => ({
+      _id: s._id,
+      name: s.name,
+      classId: s.classId?._id || null,
+      className: s.classId?.name || 'Unknown class',
+      classSection: s.classId?.section || null,
+    }));
+
+    res.json({ formClass, subjectsTaught });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // List all staff (teachers, bursars, admins) — proprietor and admin
 router.get('/', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {

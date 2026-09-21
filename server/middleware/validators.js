@@ -350,6 +350,44 @@ const validateSubject = [
   handleValidationErrors,
 ];
 
+// Bulk subject creation: one subject name across multiple classes at once
+const validateSubjectBulk = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Subject name is required')
+    .isLength({ max: 60 })
+    .withMessage('Subject name is too long'),
+  body('classIds')
+    .isArray({ min: 1 })
+    .withMessage('At least one class is required'),
+  body('classIds.*')
+    .isMongoId()
+    .withMessage('Invalid class ID'),
+  handleValidationErrors,
+];
+
+// Bulk teacher assignment: one teacher (or null to unassign) for a subject
+// name across multiple classes at once — a different teacher can still be
+// assigned separately to the same subject name in a different class.
+const validateAssignTeacherBulk = [
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Subject name is required'),
+  body('classIds')
+    .isArray({ min: 1 })
+    .withMessage('At least one class is required'),
+  body('classIds.*')
+    .isMongoId()
+    .withMessage('Invalid class ID'),
+  body('teacherId')
+    .optional({ nullable: true })
+    .isMongoId()
+    .withMessage('Invalid teacher ID'),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateLogin,
   validateStudentLogin,
@@ -367,5 +405,7 @@ module.exports = {
   validateStudentId,
   validateClass,
   validateSubject,
+  validateSubjectBulk,
+  validateAssignTeacherBulk,
   handleValidationErrors,
 };

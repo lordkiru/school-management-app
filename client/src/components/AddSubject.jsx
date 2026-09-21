@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 function AddSubject({ onSubjectAdded }) {
   const [name, setName] = useState('');
-  const [classId, setClassId] = useState('');
+  const [selectedClassIds, setSelectedClassIds] = useState([]);
   const [classes, setClasses] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -24,6 +24,12 @@ function AddSubject({ onSubjectAdded }) {
     fetchClasses();
   }, []);
 
+  const toggleClass = (classId) => {
+    setSelectedClassIds((prev) =>
+      prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -32,13 +38,13 @@ function AddSubject({ onSubjectAdded }) {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/subjects`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subjects/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, classId }),
+        body: JSON.stringify({ name, classIds: selectedClassIds }),
       });
 
       const data = await res.json();
@@ -47,9 +53,9 @@ function AddSubject({ onSubjectAdded }) {
         throw new Error(data.error || 'Failed to add subject');
       }
 
-      setSuccess(`${data.name} added successfully`);
+      setSuccess(data.message);
       setName('');
-      setClassId('');
+      setSelectedClassIds([]);
       onSubjectAdded();
     } catch (err) {
       setError(err.message);
@@ -89,27 +95,33 @@ function AddSubject({ onSubjectAdded }) {
         className={inputClass}
       />
 
-      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Class</label>
-      <select
-        value={classId}
-        onChange={(e) => setClassId(e.target.value)}
-        required
-        className={`${inputClass} mb-4`}
-      >
-        <option value="">Select a class</option>
-        {classes.map((cls) => (
-          <option key={cls._id} value={cls._id}>
-            {cls.name}
-          </option>
-        ))}
-      </select>
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
+        Classes <span className="text-slate-400">(select one or more)</span>
+      </label>
+      <div className="mb-4 max-h-44 overflow-y-auto border border-slate-200 dark:border-gray-600 rounded-lg p-2 grid grid-cols-2 gap-1">
+        {classes.length === 0 ? (
+          <p className="text-sm text-slate-400 col-span-2 p-1">No classes yet — add a class first.</p>
+        ) : (
+          classes.map((cls) => (
+            <label key={cls._id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-200 p-1 rounded hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedClassIds.includes(cls._id)}
+                onChange={() => toggleClass(cls._id)}
+                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-400"
+              />
+              {cls.name}
+            </label>
+          ))
+        )}
+      </div>
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || selectedClassIds.length === 0}
         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition"
       >
-        {loading ? 'Adding...' : 'Add Subject'}
+        {loading ? 'Adding...' : `Add Subject${selectedClassIds.length > 1 ? ` to ${selectedClassIds.length} classes` : ''}`}
       </button>
     </form>
   );

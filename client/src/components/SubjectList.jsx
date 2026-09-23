@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Trash2, ChevronLeft, ChevronRight, UserCog } from 'lucide-react';
+import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 
 const GROUPS_PER_PAGE = 8;
 
@@ -12,6 +13,7 @@ function SubjectList({ refreshKey }) {
   const [deletingId, setDeletingId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [staff, setStaff] = useState([]);
+  const [enabledLevels, setEnabledLevels] = useState(SCHOOL_LEVELS);
 
   // Single-row (one class) quick assign/unassign
   const [assigningId, setAssigningId] = useState(null);
@@ -86,6 +88,27 @@ function SubjectList({ refreshKey }) {
     fetchStaff();
   }, [fetchStaff]);
 
+  // Which levels this school actually has enabled — same source used by AddClass.jsx
+  useEffect(() => {
+    const fetchSchool = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/school`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.schoolLevels) && data.schoolLevels.length > 0) {
+            setEnabledLevels(data.schoolLevels);
+          }
+        }
+      } catch {
+        // Non-critical — falls back to showing all levels
+      }
+    };
+    fetchSchool();
+  }, []);
+
   // Reset to page 1 whenever the class filter changes, so you don't land on an empty page
   useEffect(() => {
     setCurrentPage(1);
@@ -151,6 +174,17 @@ function SubjectList({ refreshKey }) {
     setBulkClassIds((prev) =>
       prev.includes(classId) ? prev.filter((id) => id !== classId) : [...prev, classId]
     );
+  };
+
+  // "All Primary Classes" etc. — selects every class in that level that this
+  // subject is currently offered in, right now. It's a one-off selection
+  // action, not a saved rule: a class added to the level later was never in
+  // `rows` at click time, so it's simply never added to bulkClassIds here.
+  const selectAllInLevel = (rows, level) => {
+    const idsInLevel = rows
+      .filter((r) => r.classId?.section === level)
+      .map((r) => r.classId?._id || r.classId);
+    setBulkClassIds((prev) => [...new Set([...prev, ...idsInLevel])]);
   };
 
   const handleBulkAssign = async (name) => {
@@ -282,6 +316,28 @@ function SubjectList({ refreshKey }) {
                         </button>
                       </div>
                       {bulkError && <p className="text-xs text-rose-500 mb-2">{bulkError}</p>}
+                      {(() => {
+                        const levelsInGroup = new Set(
+                          group.rows.map((r) => r.classId?.section).filter(Boolean)
+                        );
+                        const shortcutLevels = enabledLevels.filter((lvl) => levelsInGroup.has(lvl));
+                        if (shortcutLevels.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            <span className="text-xs text-slate-400 dark:text-gray-500">Quick select:</span>
+                            {shortcutLevels.map((level) => (
+                              <button
+                                key={level}
+                                type="button"
+                                onClick={() => selectAllInLevel(group.rows, level)}
+                                className="text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-full px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
+                              >
+                                All {level} Classes
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       <div className="flex flex-wrap gap-2">
                         {group.rows.map((row) => (
                           <label key={row._id} className="flex items-center gap-1.5 text-xs bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-full px-2.5 py-1 cursor-pointer">

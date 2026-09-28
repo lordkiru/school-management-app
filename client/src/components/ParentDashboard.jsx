@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, User, DollarSign, FileText, ClipboardCheck } from 'lucide-react';
+import { LogOut, User, FileText, ClipboardCheck } from 'lucide-react';
 
 function AttendancePanel({ child }) {
   const [data, setData] = useState(null);
@@ -174,7 +174,7 @@ function ParentDashboard({ parent, onLogout }) {
                     href={`/pay?admissionNumber=${encodeURIComponent(child.admissionNumber)}&accessToken=${encodeURIComponent(child.publicAccessToken)}&studentName=${encodeURIComponent(child.name)}`}
                     className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 px-3 rounded-lg transition"
                   >
-                    <DollarSign size={16} />
+                    <span className="inline-flex items-center justify-center w-4 h-4 text-[15px] font-bold leading-none" aria-hidden="true">₦</span>
                     Fees
                   </a>
                 </div>

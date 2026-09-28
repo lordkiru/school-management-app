@@ -100,6 +100,7 @@ function AuditReport({ logs, onClose }) {
             <p className="text-xs text-slate-400">Generated {new Date().toLocaleString()}</p>
           </div>
 
+          <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-slate-200">
@@ -130,6 +131,7 @@ function AuditReport({ logs, onClose }) {
               )}
             </tbody>
           </table>
+          </div>
 
           <p className="text-xs text-slate-400 mt-6">
             Total records: {filteredLogs.length}

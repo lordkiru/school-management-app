@@ -381,7 +381,7 @@ function CbtBuilder({ onTestCreated }) {
                   </button>
                 </div>
               </div>
-              <div className="max-h-48 overflow-y-auto rounded border border-slate-200 dark:border-gray-600">
+              <div className="max-h-48 overflow-y-auto overflow-x-auto rounded border border-slate-200 dark:border-gray-600">
                 <table className="w-full text-left text-sm">
                   <tbody>
                     {pinResults.map((r) => (

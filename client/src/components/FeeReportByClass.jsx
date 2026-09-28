@@ -158,6 +158,7 @@ function FeeReportByClass() {
           {results.length === 0 ? (
             <p className="text-sm text-slate-400 text-center">No fee records found.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse mb-4">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-gray-700">
@@ -197,6 +198,7 @@ function FeeReportByClass() {
                 </tr>
               </tfoot>
             </table>
+            </div>
           )}
 
           <p className="text-xs text-slate-400 mt-6">Generated {new Date().toLocaleString()}</p>

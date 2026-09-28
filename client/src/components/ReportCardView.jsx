@@ -245,6 +245,7 @@ function ReportCardView() {
                 </span>
               </div>
 
+              <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse mb-6">
                 <thead>
                   <tr className="border-b border-slate-200">
@@ -269,6 +270,7 @@ function ReportCardView() {
                   ))}
                 </tbody>
               </table>
+              </div>
 
               <p className="text-sm font-medium mb-6">Overall Total: {printing.totalScore}</p>
 

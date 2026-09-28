@@ -190,6 +190,7 @@ function ParentResults() {
             {filteredScores.length === 0 ? (
               <p className="text-sm text-slate-400 text-center">No results found for this selection.</p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200">
@@ -216,6 +217,7 @@ function ParentResults() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}

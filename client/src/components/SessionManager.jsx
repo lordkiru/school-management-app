@@ -150,6 +150,7 @@ function SessionManager() {
         ) : sessions.length === 0 ? (
           <p className="p-5 text-slate-500 dark:text-gray-400">No sessions yet.</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-gray-700">
@@ -196,6 +197,7 @@ function SessionManager() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

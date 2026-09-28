@@ -83,6 +83,7 @@ function FeeReceipt({ fee, onClose }) {
             </span>
           </div>
 
+          <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse mb-6">
             <tbody>
               <tr className="border-b border-slate-100">
@@ -117,10 +118,12 @@ function FeeReceipt({ fee, onClose }) {
               )}
             </tbody>
           </table>
+          </div>
 
           {fee.payments?.length > 0 && (
             <div className="mt-6">
               <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Payment History</p>
+              <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <tbody>
                   {fee.payments.map((p, i) => (
@@ -134,6 +137,7 @@ function FeeReceipt({ fee, onClose }) {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

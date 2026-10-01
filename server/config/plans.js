@@ -12,4 +12,18 @@ const PLANS = {
 
 const PLAN_NAMES = Object.keys(PLANS);
 
-module.exports = { PLANS, PLAN_NAMES };
+// Per-term price in Naira (this business bills per academic term, not monthly/yearly).
+// Only the tiers a proprietor can self-service purchase appear here — Founding is a
+// manually-granted status only a super admin assigns, and Enterprise is "Contact Us"
+// with no listed price, so neither belongs in a self-service purchase flow.
+const PLAN_PRICES = {
+  nano: 42500,
+  micro: 75000,
+  starter: 105000,
+  standard: 162500,
+  growth: 240000,
+};
+
+const SELF_SERVICE_PLAN_NAMES = Object.keys(PLAN_PRICES);
+
+module.exports = { PLANS, PLAN_NAMES, PLAN_PRICES, SELF_SERVICE_PLAN_NAMES };

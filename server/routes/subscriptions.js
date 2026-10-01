@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const Subscription = require('../models/Subscription');
 const Tenant = require('../models/Tenant');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
-const { PLAN_NAMES } = require('../config/plans');
+const { PLAN_PRICES, SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
 
 // Get current tenant's subscription
 router.get('/me', requireAuth, async (req, res) => {
@@ -36,73 +37,45 @@ router.get('/history', requireAuth, requireRole('proprietor'), async (req, res) 
   }
 });
 
-// Upgrade/Change subscription plan (Proprietor only)
+// Initiate a plan purchase/upgrade (Proprietor only) — this does NOT activate
+// anything. It only asks Paystack for a payment link. The subscription is
+// created/activated by paystackWebhook.js once the charge.success event
+// confirms the money actually arrived — never here, and never for free.
 router.post('/upgrade', requireAuth, requireRole('proprietor'), async (req, res) => {
   try {
-    const { plan, billingCycle } = req.body;
+    const { plan } = req.body;
 
-    if (!PLAN_NAMES.includes(plan)) {
-      return res.status(400).json({ error: 'Invalid plan' });
+    if (!SELF_SERVICE_PLAN_NAMES.includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan. Founding is assigned by the platform; Enterprise is by custom quote — contact us for either.' });
     }
 
-    if (!['monthly', 'yearly'].includes(billingCycle)) {
-      return res.status(400).json({ error: 'Invalid billing cycle' });
-    }
+    const amount = PLAN_PRICES[plan];
 
-    // Get current subscription
-    const currentSubscription = await Subscription.findOne({ 
-      tenantId: req.user.tenantId,
-      status: 'active'
-    });
-
-    if (currentSubscription) {
-      // End current subscription — use 'canceled' to match the Subscription model enum
-      currentSubscription.status = 'canceled';
-      currentSubscription.canceledAt = new Date();
-      await currentSubscription.save();
-    }
-
-    // Calculate end date based on billing cycle
-    const startDate = new Date();
-    const endDate = new Date();
-    if (billingCycle === 'monthly') {
-      endDate.setMonth(endDate.getMonth() + 1);
-    } else {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    }
-
-    // Create new subscription
-    const newSubscription = new Subscription({
-      tenantId: req.user.tenantId,
-      plan,
-      interval: billingCycle, // model uses 'interval', not 'billingCycle'
-      amount: 0, // updated by payment webhook
-      currency: 'NGN',
-      status: 'active',
-      currentPeriodStart: startDate,
-      currentPeriodEnd: endDate,
-    });
-
-    await newSubscription.save();
-
-    // Sync the tenant off trial and onto this paid plan — isTrialing must flip
-    // to false here or the tenant would keep getting unlimited trial-style access.
-    await Tenant.findOneAndUpdate(
-      { tenantId: req.user.tenantId },
+    const response = await axios.post(
+      'https://api.paystack.co/transaction/initialize',
       {
-        status: 'active',
-        subscriptionPlan: plan,
-        subscriptionStatus: 'active',
-        isTrialing: false,
+        email: req.user.email,
+        amount: amount * 100, // kobo
+        // Deliberately no `subaccount` / `bearer_type` — this is money owed to
+        // the platform itself, not a school, so it must settle to the main
+        // Paystack account in full, never split to a tenant's subaccount.
+        metadata: {
+          type: 'subscription',
+          plan,
+          tenantId: req.user.tenantId,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
       }
     );
 
-    res.status(201).json({
-      message: 'Subscription upgraded successfully',
-      subscription: newSubscription,
-    });
+    res.json({ authorizationUrl: response.data.data.authorization_url });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to initiate payment' });
   }
 });
 

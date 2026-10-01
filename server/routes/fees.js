@@ -301,6 +301,7 @@ router.post('/:id/initiate-payment', requireAuth, requireRole('proprietor', 'bur
         subaccount: tenant.paystackSubaccountCode,
         bearer_type: 'subaccount',
         metadata: {
+          type: 'fee',
           feeId: fee._id.toString(),
           studentName: fee.studentId.name,
         },
@@ -390,6 +391,7 @@ router.post('/public/:id/initiate-payment', paymentLimiter, async (req, res) => 
         subaccount: tenant.paystackSubaccountCode,
         bearer_type: 'subaccount',
         metadata: {
+          type: 'fee',
           feeId: fee._id.toString(),
           studentName: fee.studentId.name,
         },

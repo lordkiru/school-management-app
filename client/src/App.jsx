@@ -53,6 +53,7 @@ import NotificationsPanel from './components/NotificationsPanel';
 import TeacherRemarks from './components/TeacherRemarks';
 import DataImport from './components/DataImport';
 import TeacherDashboard from './components/TeacherDashboard';
+import MySubscription from './components/MySubscription';
 
 const getDefaultRoute = (role) => {
   if (role === 'super_admin') return '/dashboard/superadmin';
@@ -311,6 +312,10 @@ function DashboardShell({
             <Route
               path="auditlog"
               element={<RequireRole roles={['proprietor']} userRole={user.role}><AuditLogList /></RequireRole>}
+            />
+            <Route
+              path="subscription"
+              element={<RequireRole roles={['proprietor']} userRole={user.role}><MySubscription /></RequireRole>}
             />
             <Route
               path="settings"

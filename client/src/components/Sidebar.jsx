@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { X, ChevronDown, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor } from 'lucide-react';
+import { X, ChevronDown, LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor, CreditCard } from 'lucide-react';
 
 const navItems = [
   { key: 'dashboard', to: '/dashboard', end: true, label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['proprietor', 'admin', 'bursar', 'teacher'] },
@@ -31,6 +31,7 @@ const navItems = [
   { key: 'notifications', to: '/dashboard/notifications', label: 'Messaging', icon: MessageSquare, allowedRoles: ['proprietor', 'admin'] },
   { key: 'dataimport', to: '/dashboard/dataimport', label: 'Data Import', icon: Upload, allowedRoles: ['proprietor', 'admin'] },
   { key: 'auditlog', to: '/dashboard/auditlog', label: 'Audit Trail', icon: History, allowedRoles: ['proprietor'] },
+  { key: 'subscription', to: '/dashboard/subscription', label: 'My Subscription', icon: CreditCard, allowedRoles: ['proprietor'] },
   { key: 'settings', to: '/dashboard/settings', label: 'Settings', icon: Settings, allowedRoles: ['proprietor'] },
   // Super Admin Menu Items
   { key: 'superadmin', to: '/dashboard/superadmin', end: true, label: '🎯 Super Admin', icon: Shield, allowedRoles: ['super_admin'] },

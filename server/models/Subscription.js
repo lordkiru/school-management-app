@@ -16,9 +16,13 @@ const subscriptionSchema = new mongoose.Schema({
     enum: ['trial', 'founding', 'nano', 'micro', 'starter', 'standard', 'growth', 'enterprise'],
   },
   
+  // 'termly' is the only interval real paid subscriptions use now — this business
+  // bills per academic term, matching Nigeria's 3-terms-a-year school calendar.
+  // 'monthly'/'yearly' are kept only so any pre-existing documents written before
+  // this change still pass full-document validation on save.
   interval: {
     type: String,
-    enum: ['monthly', 'yearly', 'trial'],
+    enum: ['termly', 'monthly', 'yearly', 'trial'],
     required: true
   },
   
@@ -46,6 +50,7 @@ const subscriptionSchema = new mongoose.Schema({
   paystackSubscriptionCode: { type: String },
   paystackAuthorizationCode: { type: String },
   paystackPlanCode: { type: String },
+  paystackReference: { type: String }, // the exact charge.success reference that activated this period — webhook idempotency key
   
   // Payment history
   lastPaymentDate: { type: Date },

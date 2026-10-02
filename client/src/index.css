@@ -7,3 +7,101 @@
 .dark table tbody tr:hover td {
   color: #1e293b;
 }
+
+/* ═══ Glassmorphism ════════════════════════════════════════════════════════
+   Opt-in only: nothing changes unless an element uses these classes. Brand
+   color below is Tailwind indigo-600 (#4f39f6 = rgb 79 57 246).
+
+   .glass-page-bg   soft brand-tinted gradient behind a page's content. It
+                    fades into the shell's own background at the top edge
+                    (amber-50 / gray-900) so there is no seam under the banner.
+                    Frosted glass only *reads* as glass if there is color
+                    variation behind it to blur, which is what the glows are for.
+   .glass-card      translucent surface + backdrop blur + light border + soft
+                    shadow. Add .glass-card-quiet for the lower-emphasis variant.
+
+   These live in @layer components on purpose: Tailwind utilities (e.g. an
+   accent border-l-4 / border-l-indigo-500 on a card) must still be able to
+   override them, and unlayered rules would beat every utility. */
+@layer components {
+  .glass-page-bg {
+    background:
+      linear-gradient(to bottom, oklch(0.987 0.022 95.277), oklch(0.987 0.022 95.277 / 0) 7rem),
+      radial-gradient(48rem 32rem at 12% 8%, rgb(79 57 246 / 0.15), transparent 70%),
+      radial-gradient(44rem 30rem at 92% 28%, rgb(139 92 246 / 0.13), transparent 70%),
+      radial-gradient(52rem 34rem at 55% 100%, rgb(79 57 246 / 0.10), transparent 70%),
+      oklch(0.987 0.022 95.277);
+  }
+  .dark .glass-page-bg {
+    background:
+      linear-gradient(to bottom, oklch(0.21 0.034 264.665), oklch(0.21 0.034 264.665 / 0) 7rem),
+      radial-gradient(48rem 32rem at 12% 8%, rgb(79 57 246 / 0.24), transparent 70%),
+      radial-gradient(44rem 30rem at 92% 28%, rgb(139 92 246 / 0.18), transparent 70%),
+      radial-gradient(52rem 34rem at 55% 100%, rgb(79 57 246 / 0.14), transparent 70%),
+      oklch(0.21 0.034 264.665);
+  }
+
+  .glass-card {
+    --glass-bg: rgb(255 255 255 / 0.55);
+    --glass-border: rgb(255 255 255 / 0.65);
+    --glass-shadow: 0 8px 32px -8px rgb(79 57 246 / 0.18), 0 2px 8px -2px rgb(15 23 42 / 0.06);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+  }
+  /* Light mode: white-on-cream is nearly invisible, so the quiet variant needs
+     a slightly stronger fill plus a hairline lift (still a fraction of the
+     hero card's shadow) to stay readable as a card rather than floating text. */
+  .glass-card-quiet {
+    --glass-bg: rgb(255 255 255 / 0.45);
+    --glass-border: rgb(255 255 255 / 0.7);
+    --glass-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+  }
+  .dark .glass-card {
+    --glass-bg: rgb(255 255 255 / 0.06);
+    --glass-border: rgb(255 255 255 / 0.12);
+    --glass-shadow: 0 8px 32px -8px rgb(0 0 0 / 0.55);
+  }
+  .dark .glass-card-quiet {
+    --glass-bg: rgb(255 255 255 / 0.035);
+    --glass-border: rgb(255 255 255 / 0.08);
+    --glass-shadow: none;
+  }
+
+  /* No backdrop-filter support: a see-through card with nothing blurred behind
+     it would hurt legibility, so fall back to near-opaque surfaces. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass-card, .glass-card-quiet { --glass-bg: rgb(255 255 255 / 0.92); }
+    .dark .glass-card, .dark .glass-card-quiet { --glass-bg: oklch(0.278 0.033 256.848); }
+  }
+
+  /* Honor the OS "reduce transparency" setting the same way. */
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-card, .glass-card-quiet {
+      --glass-bg: rgb(255 255 255 / 0.94);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    .dark .glass-card, .dark .glass-card-quiet { --glass-bg: oklch(0.278 0.033 256.848); }
+  }
+}
+
+/* Tables inside a glass card.
+   Deliberately NOT in a layer: pages/TenantManagement.css defines unscoped
+   table/thead/th/td/tr:hover rules (a light #f8f9fa header, #2c3e50 header
+   text, light #f0f0f0 row dividers, a light hover background). Being unlayered
+   they beat every Tailwind utility, so the only way to restyle a table that
+   lives on a glass surface is a more specific unlayered rule scoped to it. */
+.glass-card thead { background: rgb(255 255 255 / 0.4); }
+.glass-card th { color: rgb(71 85 105); border-bottom: 1px solid rgb(100 116 139 / 0.2); }
+.glass-card td { border-bottom: 1px solid rgb(100 116 139 / 0.12); }
+.glass-card tbody tr:hover { background: rgb(255 255 255 / 0.4); }
+.dark .glass-card thead { background: rgb(255 255 255 / 0.05); }
+.dark .glass-card th { color: rgb(203 213 225); border-bottom-color: rgb(255 255 255 / 0.1); }
+.dark .glass-card td { border-bottom-color: rgb(255 255 255 / 0.08); }
+.dark .glass-card tbody tr:hover { background: rgb(255 255 255 / 0.07); }
+/* Undo the global dark-mode hover rule above (it assumes a light hover
+   background): revert-layer hands the cell back to its own Tailwind text color. */
+.dark .glass-card table tbody tr:hover td { color: revert-layer; }

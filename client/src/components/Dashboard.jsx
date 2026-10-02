@@ -111,8 +111,8 @@ function Dashboard({ userRole }) {
     fetchStats();
   }, [userRole]);
 
-  if (loading) return <p className="p-6">Loading dashboard...</p>;
-  if (error) return <p className="p-6 text-red-600 dark:text-red-400">{error}</p>;
+  if (loading) return <div className="glass-page-bg min-h-screen p-6"><p>Loading dashboard...</p></div>;
+  if (error) return <div className="glass-page-bg min-h-screen p-6"><p className="text-red-600 dark:text-red-400">{error}</p></div>;
 
   const summaryCards = [
     {
@@ -120,16 +120,16 @@ function Dashboard({ userRole }) {
       value: stats.totalStudents,
       icon: Users,
       iconColor: 'text-indigo-600 dark:text-indigo-400',
-      iconBg: 'bg-indigo-50 dark:bg-indigo-900/30',
-      border: 'border-indigo-500',
+      iconBg: 'bg-indigo-500/10 dark:bg-indigo-400/15',
+      border: 'border-l-indigo-500',
     },
     {
       label: 'Total Classes',
       value: stats.totalClasses,
       icon: GraduationCap,
       iconColor: 'text-purple-600 dark:text-purple-400',
-      iconBg: 'bg-purple-50 dark:bg-purple-900/30',
-      border: 'border-purple-500',
+      iconBg: 'bg-purple-500/10 dark:bg-purple-400/15',
+      border: 'border-l-purple-500',
     },
   ];
 
@@ -140,36 +140,36 @@ function Dashboard({ userRole }) {
         value: `₦${stats.totalPaid.toLocaleString()}`,
         icon: Wallet,
         iconColor: 'text-emerald-600 dark:text-emerald-400',
-        iconBg: 'bg-emerald-50 dark:bg-emerald-900/30',
-        border: 'border-emerald-500',
+        iconBg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
+        border: 'border-l-emerald-500',
       },
       {
         label: 'Fees Outstanding',
         value: `₦${stats.totalOutstanding.toLocaleString()}`,
         icon: ClipboardList,
         iconColor: 'text-rose-600 dark:text-rose-400',
-        iconBg: 'bg-rose-50 dark:bg-rose-900/30',
-        border: 'border-rose-500',
+        iconBg: 'bg-rose-500/10 dark:bg-rose-400/15',
+        border: 'border-l-rose-500',
       }
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="glass-page-bg min-h-screen p-6">
       <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Overview</h2>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {summaryCards.map(({ label, value, icon: Icon, iconColor, iconBg, border }) => (
           <div
             key={label}
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border-l-4 ${border} p-6 flex flex-col gap-3`}
+            className={`glass-card rounded-xl border-l-4 ${border} p-6 flex flex-col gap-3`}
           >
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
               <Icon className={iconColor} size={20} />
             </div>
             <div>
               <span className="block text-2xl font-bold text-slate-800 dark:text-white">{value}</span>
-              <span className="text-sm text-slate-500 dark:text-gray-400">{label}</span>
+              <span className="text-sm text-slate-600 dark:text-gray-300">{label}</span>
             </div>
           </div>
         ))}
@@ -180,12 +180,12 @@ function Dashboard({ userRole }) {
         {stats.enabledSections.map((section) => (
           <div
             key={section}
-            className="bg-slate-50 dark:bg-gray-800/60 rounded-xl p-5 flex flex-col gap-1"
+            className="glass-card glass-card-quiet rounded-xl p-5 flex flex-col gap-1"
           >
             <span className="text-2xl font-bold text-slate-700 dark:text-gray-200">
               {stats.studentsBySection[section]}
             </span>
-            <span className="text-sm text-slate-500 dark:text-gray-400">{section}</span>
+            <span className="text-sm text-slate-600 dark:text-gray-300">{section}</span>
           </div>
         ))}
       </div>
@@ -193,14 +193,14 @@ function Dashboard({ userRole }) {
       {stats.canSeeFees && (
         <>
           <h3 className="text-lg font-semibold mb-5 text-slate-800 dark:text-white">Fees by Section</h3>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-x-auto">
+          <div className="glass-card rounded-xl overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 dark:bg-gray-900/40">
+              <thead>
                 <tr>
-                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Section</th>
-                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Expected</th>
-                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Collected</th>
-                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Outstanding</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Section</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Expected</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Collected</th>
+                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Outstanding</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,10 +210,10 @@ function Dashboard({ userRole }) {
                     <tr key={section} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
                       <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-white">{section}</td>
                       <td className="py-3.5 px-4 text-slate-600 dark:text-gray-300">₦{expected.toLocaleString()}</td>
-                      <td className="py-3.5 px-4 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <td className="py-3.5 px-4 text-emerald-700 dark:text-emerald-400 font-medium">
                         ₦{paid.toLocaleString()}
                       </td>
-                      <td className="py-3.5 px-4 text-rose-600 dark:text-rose-400 font-medium">
+                      <td className="py-3.5 px-4 text-rose-700 dark:text-rose-300 font-medium">
                         ₦{(expected - paid).toLocaleString()}
                       </td>
                     </tr>
@@ -226,7 +226,7 @@ function Dashboard({ userRole }) {
       )}
 
       {stats.unassignedStudents > 0 && (
-        <p className="text-xs text-slate-400 dark:text-gray-500 mt-4">
+        <p className="text-xs text-slate-600 dark:text-gray-400 mt-4">
           {stats.unassignedStudents} student(s) not yet linked to a section.
         </p>
       )}

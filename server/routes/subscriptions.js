@@ -5,7 +5,7 @@ const Subscription = require('../models/Subscription');
 const Tenant = require('../models/Tenant');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
-const { PLAN_PRICES, SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
+const { PLANS, PLAN_PRICES, SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
 
 // Get current tenant's subscription
 router.get('/me', requireAuth, async (req, res) => {
@@ -22,6 +22,26 @@ router.get('/me', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Plan catalog for the "My Subscription" page — the client has no way to read
+// config/plans.js directly (separate bundle), so this is the single source
+// self-service pricing/limits/features get fetched from, instead of being
+// retyped in the client and silently drifting if this config ever changes.
+router.get('/plans', requireAuth, (req, res) => {
+  const selfService = SELF_SERVICE_PLAN_NAMES.map((key) => ({
+    key,
+    price: PLAN_PRICES[key],
+    studentLimit: PLANS[key].studentLimit,
+    staffLimit: PLANS[key].staffLimit,
+    cbt: PLANS[key].features.cbt,
+  }));
+  const enterprise = {
+    studentLimit: PLANS.enterprise.studentLimit,
+    staffLimit: PLANS.enterprise.staffLimit,
+    cbt: PLANS.enterprise.features.cbt,
+  };
+  res.json({ selfService, enterprise });
 });
 
 // Get subscription history for current tenant

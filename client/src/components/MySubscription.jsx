@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Monitor } from 'lucide-react';
 
-// Only the 6 self-service tiers appear here. Founding is assigned manually by
-// a super admin and is never selectable on this page; Enterprise has no listed
-// price and is handled as a "Contact Us" card instead of a purchase button.
-const SELF_SERVICE_PLANS = [
-  { key: 'nano', label: 'Nano', price: 42500 },
-  { key: 'micro', label: 'Micro', price: 75000 },
-  { key: 'starter', label: 'Starter', price: 105000 },
-  { key: 'standard', label: 'Standard', price: 162500 },
-  { key: 'growth', label: 'Growth', price: 240000 },
-];
+// Builds the "Up to N students · N staff accounts" bullet lines from real
+// config values (fetched from GET /subscriptions/plans, sourced from
+// server/config/plans.js) rather than retyping limits here — if a limit
+// changes in config, these update on next load instead of going stale.
+// `studentLimitText` lets the Enterprise card phrase its (also unlimited)
+// student cap relative to Growth's real cap instead of a second hardcoded number.
+function formatLimits({ studentLimit, staffLimit }, studentLimitText) {
+  const students = studentLimitText || (studentLimit == null ? 'Unlimited students' : `Up to ${studentLimit} students`);
+  const staff = staffLimit == null ? 'Unlimited staff accounts' : `${staffLimit} staff account${staffLimit === 1 ? '' : 's'}`;
+  return [students, staff];
+}
 
 const PLAN_LABELS = {
   founding: 'Founding School',
@@ -26,6 +27,8 @@ function MySubscription() {
   const [tenant, setTenant] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [history, setHistory] = useState([]);
+  const [selfServicePlans, setSelfServicePlans] = useState([]);
+  const [enterprisePlan, setEnterprisePlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [upgradingPlan, setUpgradingPlan] = useState(null);
@@ -37,10 +40,11 @@ function MySubscription() {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        const [tenantRes, subRes, historyRes] = await Promise.all([
+        const [tenantRes, subRes, historyRes, plansRes] = await Promise.all([
           fetch(`${import.meta.env.VITE_API_URL}/tenants/me`, { headers }),
           fetch(`${import.meta.env.VITE_API_URL}/subscriptions/me`, { headers }),
           fetch(`${import.meta.env.VITE_API_URL}/subscriptions/history`, { headers }),
+          fetch(`${import.meta.env.VITE_API_URL}/subscriptions/plans`, { headers }),
         ]);
 
         if (tenantRes.ok) setTenant(await tenantRes.json());
@@ -49,6 +53,11 @@ function MySubscription() {
         if (historyRes.ok) {
           const data = await historyRes.json();
           setHistory(Array.isArray(data) ? data : []);
+        }
+        if (plansRes.ok) {
+          const data = await plansRes.json();
+          setSelfServicePlans(Array.isArray(data.selfService) ? data.selfService : []);
+          setEnterprisePlan(data.enterprise || null);
         }
       } catch (err) {
         setError('Failed to load subscription details');
@@ -133,8 +142,9 @@ function MySubscription() {
       {/* Available plans */}
       <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">Available Plans</h3>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        {SELF_SERVICE_PLANS.map(({ key, label, price }) => {
+        {selfServicePlans.map(({ key, price, studentLimit, staffLimit, cbt }) => {
           const isCurrent = !isTrialing && subscription?.plan === key && subscription?.status === 'active';
+          const [studentsText, staffText] = formatLimits({ studentLimit, staffLimit });
           return (
             <div
               key={key}
@@ -145,12 +155,21 @@ function MySubscription() {
               }`}
             >
               <div>
-                <h4 className="font-bold text-slate-800 dark:text-white">{label}</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white">{PLAN_LABELS[key] || key}</h4>
                 <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">
                   ₦{price.toLocaleString()}
                   <span className="text-sm font-normal text-slate-400 dark:text-gray-500"> /term</span>
                 </p>
               </div>
+              <ul className="text-sm text-slate-500 dark:text-gray-400 space-y-1">
+                <li>{studentsText}</li>
+                <li>{staffText}</li>
+              </ul>
+              {cbt && (
+                <span className="inline-flex items-center gap-1.5 w-fit bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                  <Monitor size={13} /> Computer-Based Testing included
+                </span>
+              )}
               <button
                 onClick={() => handleSelectPlan(key)}
                 disabled={isCurrent || upgradingPlan === key}
@@ -162,19 +181,36 @@ function MySubscription() {
           );
         })}
 
-        {/* Enterprise — no self-service price/purchase */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 flex flex-col gap-3">
-          <div>
-            <h4 className="font-bold text-slate-800 dark:text-white">Enterprise</h4>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Custom pricing for large schools and school groups.</p>
-          </div>
-          <a
-            href="mailto:sales@lemidaitsolutions.com?subject=Enterprise%20Plan%20Enquiry"
-            className="mt-auto text-center bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 text-sm font-semibold py-2 rounded-lg transition"
-          >
-            Contact Us
-          </a>
-        </div>
+        {/* Enterprise — no self-service price/purchase, but limits still come from real config */}
+        {enterprisePlan && (() => {
+          const growthLimit = selfServicePlans.find((p) => p.key === 'growth')?.studentLimit;
+          const studentsOverride = growthLimit != null ? `${growthLimit}+ students` : undefined;
+          const [studentsText, staffText] = formatLimits(enterprisePlan, studentsOverride);
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 flex flex-col gap-3">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-white">Enterprise</h4>
+                <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Custom pricing for large schools and school groups.</p>
+              </div>
+              <ul className="text-sm text-slate-500 dark:text-gray-400 space-y-1">
+                <li>{studentsText}</li>
+                <li>{staffText}</li>
+                <li>Custom terms</li>
+              </ul>
+              {enterprisePlan.cbt && (
+                <span className="inline-flex items-center gap-1.5 w-fit bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-semibold px-2.5 py-1 rounded-full">
+                  <Monitor size={13} /> Computer-Based Testing included
+                </span>
+              )}
+              <a
+                href="mailto:sales@lemidaitsolutions.com?subject=Enterprise%20Plan%20Enquiry"
+                className="mt-auto text-center bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-slate-700 dark:text-gray-200 text-sm font-semibold py-2 rounded-lg transition"
+              >
+                Contact Us
+              </a>
+            </div>
+          );
+        })()}
       </div>
 
       {/* History */}

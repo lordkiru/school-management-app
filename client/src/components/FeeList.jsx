@@ -194,9 +194,9 @@ function FeeList({ refreshKey }) {
   return (
     <div className="p-6">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-gray-700 gap-3">
+        <div className="flex flex-wrap items-center justify-between p-5 border-b border-slate-100 dark:border-gray-700 gap-3">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Fees</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <select
               value={classFilter}
               onChange={(e) => {
@@ -217,7 +217,7 @@ function FeeList({ refreshKey }) {
               placeholder="Search by student name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm w-64 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
+              className="p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm w-full sm:w-64 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition"
             />
           </div>
         </div>
@@ -390,7 +390,7 @@ function FeeList({ refreshKey }) {
             </div>
 
             {filteredFees.length > 0 && (
-              <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
                 <span className="text-slate-500 dark:text-gray-400">
                   Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredFees.length)} of{' '}
                   {filteredFees.length}

@@ -227,14 +227,14 @@ function FeeStructureSetup() {
             )}
 
             <div className="space-y-2 mb-4">
-              <div className="grid grid-cols-[1fr_140px_36px] gap-2 text-xs text-slate-500 dark:text-gray-400 px-1">
+              <div className="grid grid-cols-[minmax(0,1fr)_96px_36px] sm:grid-cols-[minmax(0,1fr)_140px_36px] gap-2 text-xs text-slate-500 dark:text-gray-400 px-1">
                 <span>Fee Item Name</span>
                 <span>Amount (₦)</span>
                 <span></span>
               </div>
 
               {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-[1fr_140px_36px] gap-2 items-center">
+                <div key={index} className="grid grid-cols-[minmax(0,1fr)_96px_36px] sm:grid-cols-[minmax(0,1fr)_140px_36px] gap-2 items-center">
                   <input
                     type="text"
                     value={item.name}

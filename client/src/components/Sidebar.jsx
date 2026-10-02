@@ -55,13 +55,13 @@ const GROUP_DEFS = [
 const navLinkClass = ({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
   isActive
     ? 'bg-indigo-600 text-white shadow-sm'
-    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+    : 'text-slate-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/10'
 }`;
 
 const childNavLinkClass = ({ isActive }) => `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
   isActive
     ? 'bg-indigo-600 text-white shadow-sm'
-    : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+    : 'text-slate-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/10'
 }`;
 
 function Sidebar({ userRole, mobileOpen, onClose }) {
@@ -145,15 +145,15 @@ function Sidebar({ userRole, mobileOpen, onClose }) {
                     onClick={() => toggleGroup(group.key)}
                     className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                       active
-                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
-                        : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-700'
+                        ? 'bg-indigo-500/10 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300'
+                        : 'text-slate-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/10'
                     }`}
                   >
                     <span className="flex items-center gap-3"><GroupIcon size={18} />{group.label}</span>
                     <ChevronDown size={16} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {isOpen && (
-                    <div className="ml-4 border-l border-slate-200 dark:border-gray-700 pl-2">
+                    <div className="ml-4 border-l border-slate-300/60 dark:border-white/10 pl-2">
                       {group.children.map(({ key, to, label, icon: Icon }) => (
                         <NavLink key={key} to={to} onClick={onClose} className={childNavLinkClass}>
                           <Icon size={16} />
@@ -173,7 +173,7 @@ function Sidebar({ userRole, mobileOpen, onClose }) {
   return (
     <>
       {/* ── Desktop sidebar (always visible on md+) ── */}
-      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 pt-16 px-3 shadow-sm print:hidden flex-shrink-0">
+      <aside className="glass-card glass-card-quiet hidden md:flex flex-col w-56 min-h-screen rounded-none border-0 border-r border-slate-200/70 dark:border-white/10 pt-16 px-3 print:hidden flex-shrink-0">
         {navContent}
       </aside>
 
@@ -186,13 +186,13 @@ function Sidebar({ userRole, mobileOpen, onClose }) {
             onClick={onClose}
           />
           {/* Drawer panel */}
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-800 shadow-2xl flex flex-col">
+          <aside className="glass-card glass-card-strong absolute left-0 top-0 bottom-0 w-64 rounded-none border-0 border-r border-slate-200/70 dark:border-white/10 shadow-2xl flex flex-col">
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-gray-700">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200/70 dark:border-white/10">
               <span className="font-bold text-slate-800 dark:text-white text-base">Menu</span>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
+                className="p-1.5 rounded-lg text-slate-500 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/10 transition"
               >
                 <X size={20} />
               </button>

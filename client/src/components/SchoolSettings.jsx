@@ -251,7 +251,7 @@ function SchoolSettings() {
       {/* ── School General Settings ── */}
       <form
         onSubmit={handleSubmit}
-        className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md"
+        className="glass-card p-6 rounded-xl max-w-md"
       >
         <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">School Settings</h2>
 
@@ -337,7 +337,7 @@ function SchoolSettings() {
       </form>
 
       {/* ── Parent Portal Access ── */}
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md mt-6">
+      <div className="glass-card p-6 rounded-xl max-w-md mt-6">
         <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
           <Link2 size={18} /> Parent Portal Access
         </h2>
@@ -364,7 +364,7 @@ function SchoolSettings() {
       </div>
 
       {/* ── WhatsApp Integration ── */}
-      <form onSubmit={handleSaveWhatsApp} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md mt-6">
+      <form onSubmit={handleSaveWhatsApp} className="glass-card p-6 rounded-xl max-w-md mt-6">
         <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
           <MessageSquare size={18} className="text-green-500" /> WhatsApp Integration
         </h2>
@@ -425,7 +425,7 @@ function SchoolSettings() {
       </form>
 
       {/* ── SMS Integration (Termii) ── */}
-      <form onSubmit={handleSaveSMS} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md mt-6">
+      <form onSubmit={handleSaveSMS} className="glass-card p-6 rounded-xl max-w-md mt-6">
         <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
           <Smartphone size={18} className="text-indigo-500" /> SMS &amp; WhatsApp via Termii
         </h2>

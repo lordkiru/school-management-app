@@ -109,7 +109,7 @@ function CbtResults({ refreshKey }) {
   // ── Results detail view ─────────────────────────────────────────────────
   if (selectedTestId) {
     return (
-      <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700">
+      <div className="glass-card p-6 rounded-xl">
         <button
           onClick={() => {
             setSelectedTestId(null);
@@ -187,7 +187,7 @@ function CbtResults({ refreshKey }) {
 
   // ── Test list view ──────────────────────────────────────────────────────
   return (
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700">
+    <div className="glass-card p-6 rounded-xl">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-slate-800 dark:text-white">Your CBT Tests</h2>
         {canArchive && (

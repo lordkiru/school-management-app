@@ -163,7 +163,7 @@ function DataImport({ userRole }) {
       </div>
 
       {/* Main card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6">
+      <div className="glass-card rounded-xl p-6">
         <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
           <div>
             <h3 className="font-semibold text-slate-800 dark:text-white text-lg">

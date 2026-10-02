@@ -103,14 +103,14 @@ function StudentDetail() {
         <ArrowLeft size={16} /> Back to students
       </button>
 
-      <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">
+      <div className="glass-card p-6 rounded-xl mb-6">
         <h2 className="text-2xl font-bold mb-1">{student.name}</h2>
         <p className="text-gray-600 dark:text-gray-300">
           {student.classId?.name || student.className || '—'} · {student.admissionNumber}
         </p>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">
+      <div className="glass-card p-6 rounded-xl mb-6">
         <h3 className="text-lg font-semibold mb-4">Student details</h3>
         <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {detailItems.map(([label, value]) => (
@@ -122,7 +122,7 @@ function StudentDetail() {
         </dl>
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">
+      <div className="glass-card p-6 rounded-xl mb-6">
         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
           <KeyRound size={18} /> CBT Login
         </h3>
@@ -167,7 +167,7 @@ function StudentDetail() {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="glass-card rounded-xl p-6 mb-6">
         <h3 className="text-lg font-semibold mb-3">Scores</h3>
         {scores.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-sm">No scores recorded yet.</p>
@@ -203,7 +203,7 @@ function StudentDetail() {
         )}
       </div>
 
-      <div>
+      <div className="glass-card rounded-xl p-6">
         <h3 className="text-lg font-semibold mb-3">Fees</h3>
         {fees.length === 0 ? (
           <p className="text-gray-500 dark:text-gray-400 text-sm">No fee records yet.</p>

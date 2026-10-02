@@ -140,7 +140,10 @@ function DashboardShell({
   bumpRefresh,
 }) {
   return (
-    <div className="min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div className="relative isolate min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+      {/* App-wide glass backdrop: one fixed layer (so the glows stay in view on long pages) behind every screen */}
+      <div aria-hidden="true" className="glass-page-bg fixed inset-0 -z-10 print:hidden" />
+
       {/* Offline / Sync banner */}
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
@@ -166,7 +169,7 @@ function DashboardShell({
       )}
 
       {/* ── Fixed top header bar ── */}
-      <header className={`fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700 shadow-sm print:hidden ${!isOnline ? 'mt-8' : ''}`}>
+      <header className={`glass-card glass-card-quiet fixed top-0 left-0 right-0 z-40 rounded-none border-0 border-b border-slate-200/70 dark:border-white/10 print:hidden ${!isOnline ? 'mt-8' : ''}`}>
         <div className="flex items-center justify-between px-4 h-14">
           {/* Hamburger (mobile only) */}
           <button

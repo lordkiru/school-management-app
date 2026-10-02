@@ -75,21 +75,21 @@ function TeacherDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <Link
           to="/dashboard/attendance"
-          className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl shadow-sm p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
+          className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
           <ClipboardCheck size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Mark Attendance</span>
         </Link>
         <Link
           to="/dashboard/scores"
-          className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl shadow-sm p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
+          className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
           <ClipboardList size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Enter Scores</span>
         </Link>
         <Link
           to="/dashboard/remarks"
-          className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-slate-100 dark:border-gray-700 rounded-xl shadow-sm p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
+          className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
           <PenLine size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Add Remarks</span>
@@ -98,7 +98,7 @@ function TeacherDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form class */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5">
+        <div className="glass-card rounded-xl p-5">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
             <GraduationCap size={18} className="text-indigo-600 dark:text-indigo-400" /> Your Form Class
           </h3>
@@ -119,7 +119,7 @@ function TeacherDashboard() {
         </div>
 
         {/* Subjects taught */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5">
+        <div className="glass-card rounded-xl p-5">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
             <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" /> Subjects You Teach
           </h3>
@@ -143,7 +143,7 @@ function TeacherDashboard() {
       </div>
 
       {/* Today's schedule */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mt-6">
+      <div className="glass-card rounded-xl p-5 mt-6">
         <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
           <Calendar size={18} className="text-indigo-600 dark:text-indigo-400" /> Today's Schedule ({today})
         </h3>

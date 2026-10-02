@@ -94,7 +94,7 @@ function ReportCardView() {
   return (
     <div className="p-6">
       {/* Filter form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Report Cards</h2>
 
         {error && (
@@ -156,7 +156,7 @@ function ReportCardView() {
 
       {/* Class results table */}
       {results.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

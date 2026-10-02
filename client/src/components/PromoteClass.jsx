@@ -128,7 +128,7 @@ function PromoteClass() {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Promote Class</h2>
         <p className="text-xs text-slate-400 mb-4">
           Select a class, choose the destination, then uncheck any student who is repeating —
@@ -182,7 +182,7 @@ function PromoteClass() {
       </div>
 
       {fromClassId && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-gray-700">
             <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300">
               {students.length} student(s) in this class

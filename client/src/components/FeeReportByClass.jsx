@@ -86,7 +86,7 @@ function FeeReportByClass() {
   return (
     <div className="p-6">
       {/* Filter form — never printed */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Report by Class</h2>
         <p className="text-xs text-slate-400 mb-4">
           Leave term/session as "All" to include every fee record.
@@ -142,7 +142,7 @@ function FeeReportByClass() {
 
       {/* Printable area — only this div is sent to the printer */}
       {loaded && (
-        <div ref={printRef} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-8">
+        <div ref={printRef} className="glass-card rounded-xl p-8">
           <div className="text-center mb-6 border-b border-slate-200 dark:border-gray-700 pb-4">
             {school?.logoUrl && (
               <img src={school.logoUrl} alt={`${school.name} logo`} className="h-14 mx-auto mb-2 object-contain" />

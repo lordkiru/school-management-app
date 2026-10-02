@@ -120,7 +120,7 @@ function AddFee({ onFeeAdded }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 max-w-md"
+      className="p-6 glass-card glass-card-strong rounded-xl max-w-md"
     >
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Fee Record</h2>
 

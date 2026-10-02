@@ -167,119 +167,121 @@ function ScoreList({ refreshKey }) {
           {editError}
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-gray-300 dark:border-gray-600">
-              <th className="py-2 pr-4">Student</th>
-              <th className="py-2 pr-4">Class</th>
-              <th className="py-2 pr-4">Subject</th>
-              <th className="py-2 pr-4">Term</th>
-              <th className="py-2 pr-4">CA1</th>
-              <th className="py-2 pr-4">CA2</th>
-              <th className="py-2 pr-4">Exam</th>
-              <th className="py-2 pr-4">Total</th>
-              <th className="py-2 pr-4">Grade</th>
-              <th className="py-2 pr-4"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageScores.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="py-4 text-gray-500 dark:text-gray-400">
-                  {scores.length === 0 ? 'No scores found.' : 'No scores match your search.'}
-                </td>
+      <div className="glass-card rounded-xl p-3 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-gray-300 dark:border-gray-600">
+                <th className="py-2 pr-4">Student</th>
+                <th className="py-2 pr-4">Class</th>
+                <th className="py-2 pr-4">Subject</th>
+                <th className="py-2 pr-4">Term</th>
+                <th className="py-2 pr-4">CA1</th>
+                <th className="py-2 pr-4">CA2</th>
+                <th className="py-2 pr-4">Exam</th>
+                <th className="py-2 pr-4">Total</th>
+                <th className="py-2 pr-4">Grade</th>
+                <th className="py-2 pr-4"></th>
               </tr>
-            ) : (
-              pageScores.map((score) => {
-                const isEditing = editingId === score._id;
-                const studentClassId = score.studentId?.classId?._id || score.studentId?.classId;
-                return (
-                  <tr key={score._id} className="border-b border-gray-200 dark:border-gray-700">
-                    <td className="py-2 pr-4">{score.studentId?.name || '—'}</td>
-                    <td className="py-2 pr-4">{classNameById[studentClassId] || '—'}</td>
-                    <td className="py-2 pr-4">{score.subjectId?.name || '—'}</td>
-                    <td className="py-2 pr-4">{score.term}</td>
-                    <td className="py-2 pr-4">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={editValues.ca1}
-                          onChange={(e) => setEditValues((v) => ({ ...v, ca1: e.target.value }))}
-                          className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                        />
-                      ) : (
-                        score.ca1
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={editValues.ca2}
-                          onChange={(e) => setEditValues((v) => ({ ...v, ca2: e.target.value }))}
-                          className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                        />
-                      ) : (
-                        score.ca2
-                      )}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={editValues.exam}
-                          onChange={(e) => setEditValues((v) => ({ ...v, exam: e.target.value }))}
-                          className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-                        />
-                      ) : (
-                        score.exam
-                      )}
-                    </td>
-                    <td className="py-2 pr-4 font-semibold">{score.total}</td>
-                    <td className="py-2 pr-4">{score.grade}</td>
-                    <td className="py-2 pr-4">
-                      {isEditing ? (
-                        <div className="flex items-center gap-2">
+            </thead>
+            <tbody>
+              {pageScores.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-4 text-gray-500 dark:text-gray-400">
+                    {scores.length === 0 ? 'No scores found.' : 'No scores match your search.'}
+                  </td>
+                </tr>
+              ) : (
+                pageScores.map((score) => {
+                  const isEditing = editingId === score._id;
+                  const studentClassId = score.studentId?.classId?._id || score.studentId?.classId;
+                  return (
+                    <tr key={score._id} className="border-b border-gray-200 dark:border-gray-700">
+                      <td className="py-2 pr-4">{score.studentId?.name || '—'}</td>
+                      <td className="py-2 pr-4">{classNameById[studentClassId] || '—'}</td>
+                      <td className="py-2 pr-4">{score.subjectId?.name || '—'}</td>
+                      <td className="py-2 pr-4">{score.term}</td>
+                      <td className="py-2 pr-4">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={editValues.ca1}
+                            onChange={(e) => setEditValues((v) => ({ ...v, ca1: e.target.value }))}
+                            className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                          />
+                        ) : (
+                          score.ca1
+                        )}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={editValues.ca2}
+                            onChange={(e) => setEditValues((v) => ({ ...v, ca2: e.target.value }))}
+                            className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                          />
+                        ) : (
+                          score.ca2
+                        )}
+                      </td>
+                      <td className="py-2 pr-4">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={editValues.exam}
+                            onChange={(e) => setEditValues((v) => ({ ...v, exam: e.target.value }))}
+                            className="w-16 p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+                          />
+                        ) : (
+                          score.exam
+                        )}
+                      </td>
+                      <td className="py-2 pr-4 font-semibold">{score.total}</td>
+                      <td className="py-2 pr-4">{score.grade}</td>
+                      <td className="py-2 pr-4">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => saveEdit(score._id)}
+                              disabled={saving}
+                              className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                              title="Save"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={saving}
+                              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                              title="Cancel"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ) : (
                           <button
-                            onClick={() => saveEdit(score._id)}
-                            disabled={saving}
-                            className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
-                            title="Save"
+                            onClick={() => startEdit(score)}
+                            className="text-indigo-500 hover:text-indigo-700"
+                            title="Edit this score"
                           >
-                            <Check size={16} />
+                            <Pencil size={16} />
                           </button>
-                          <button
-                            onClick={cancelEdit}
-                            disabled={saving}
-                            className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                            title="Cancel"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => startEdit(score)}
-                          className="text-indigo-500 hover:text-indigo-700"
-                          title="Edit this score"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {filteredScores.length > 0 && (

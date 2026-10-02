@@ -84,7 +84,7 @@ function FeeBreakdownView() {
   return (
     <div className="p-6">
       {/* Filter bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Breakdown</h2>
         <p className="text-xs text-slate-400 mb-4">
           View the fee structure breakdown for all classes for a given term and session.
@@ -148,7 +148,7 @@ function FeeBreakdownView() {
           </div>
 
           {structures.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-8 text-center text-slate-400">
+            <div className="glass-card rounded-xl p-8 text-center text-slate-400">
               No fee structures found for {term}{session ? `, ${session}` : ''}. 
               <br />
               <span className="text-xs mt-1 block">Set up fee structures using the "Fee Setup" page.</span>
@@ -160,10 +160,10 @@ function FeeBreakdownView() {
                 return (
                   <div
                     key={structure._id}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden"
+                    className="glass-card rounded-xl overflow-hidden"
                   >
                     {/* Class header */}
-                    <div className="px-5 py-3 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800 flex items-center justify-between">
+                    <div className="px-5 py-3 bg-indigo-500/10 dark:bg-indigo-400/10 border-b border-indigo-500/15 dark:border-indigo-300/15 flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-indigo-800 dark:text-indigo-200 text-sm">
                           {structure.classId?.name || 'Unknown Class'}
@@ -207,7 +207,7 @@ function FeeBreakdownView() {
                           )}
                         </tbody>
                         <tfoot>
-                          <tr className="border-t-2 border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700/30">
+                          <tr className="border-t-2 border-slate-300/60 dark:border-white/15 bg-slate-500/5 dark:bg-white/5">
                             <td className="py-2 px-5 font-semibold text-slate-700 dark:text-gray-200">Subtotal</td>
                             <td className="py-2 px-5 text-right font-bold text-slate-800 dark:text-white">
                               ₦{classTotal.toLocaleString()}

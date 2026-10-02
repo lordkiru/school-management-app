@@ -242,7 +242,7 @@ function SubjectList({ refreshKey }) {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+      <div className="glass-card rounded-xl overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Subjects</h2>
           <select

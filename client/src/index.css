@@ -70,21 +70,55 @@
     --glass-shadow: none;
   }
 
+  /* Higher-opacity variant for surfaces that sit over other content or hold
+     dense reading/editing: modal panels, the mobile nav drawer, forms. Same
+     blur, border and shadow as .glass-card, just a fill that is mostly solid. */
+  .glass-card-strong {
+    --glass-bg: rgb(255 255 255 / 0.94);
+    --glass-border: rgb(255 255 255 / 0.8);
+  }
+  .dark .glass-card-strong {
+    --glass-bg: rgb(31 41 55 / 0.82);
+    --glass-border: rgb(255 255 255 / 0.14);
+  }
+
+  /* Blur never stacks: a glass card nested inside another glass surface keeps
+     its translucent fill and border but skips its own backdrop-filter. Nested
+     blur is the main GPU cost on low-end phones and adds no visible effect. */
+  .glass-card .glass-card,
+  .glass-card-strong .glass-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   /* No backdrop-filter support: a see-through card with nothing blurred behind
      it would hurt legibility, so fall back to near-opaque surfaces. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass-card, .glass-card-quiet { --glass-bg: rgb(255 255 255 / 0.92); }
-    .dark .glass-card, .dark .glass-card-quiet { --glass-bg: oklch(0.278 0.033 256.848); }
+    .glass-card, .glass-card-quiet, .glass-card-strong { --glass-bg: rgb(255 255 255 / 0.92); }
+    .dark .glass-card, .dark .glass-card-quiet, .dark .glass-card-strong { --glass-bg: oklch(0.278 0.033 256.848); }
   }
 
   /* Honor the OS "reduce transparency" setting the same way. */
   @media (prefers-reduced-transparency: reduce) {
-    .glass-card, .glass-card-quiet {
+    .glass-card, .glass-card-quiet, .glass-card-strong {
       --glass-bg: rgb(255 255 255 / 0.94);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }
-    .dark .glass-card, .dark .glass-card-quiet { --glass-bg: oklch(0.278 0.033 256.848); }
+    .dark .glass-card, .dark .glass-card-quiet, .dark .glass-card-strong { --glass-bg: oklch(0.278 0.033 256.848); }
+  }
+}
+
+/* Printed documents (receipts, report cards, fee breakdown) are always plain
+   paper: no gradient layer, no translucency, no blur, no shadow. Unlayered on
+   purpose so it beats the @layer components rules above. */
+@media print {
+  .glass-page-bg { display: none !important; }
+  .glass-card, .glass-card-quiet, .glass-card-strong {
+    background: #fff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
   }
 }
 

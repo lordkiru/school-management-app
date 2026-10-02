@@ -107,7 +107,7 @@ function SessionManager() {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Academic Sessions</h2>
         <p className="text-xs text-slate-400 mb-4">
           Manage sessions here instead of typing them freely — this prevents typos like "2026" vs
@@ -144,7 +144,7 @@ function SessionManager() {
         </form>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+      <div className="glass-card rounded-xl overflow-hidden">
         {loading ? (
           <p className="p-5 text-slate-500 dark:text-gray-400">Loading sessions...</p>
         ) : sessions.length === 0 ? (

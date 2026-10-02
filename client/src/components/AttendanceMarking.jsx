@@ -268,7 +268,7 @@ function AttendanceMarking({ userRole }) {
               { label: 'Late', count: lateCount, color: 'text-amber-600 dark:text-amber-400' },
               { label: 'Excused', count: excusedCount, color: 'text-blue-600 dark:text-blue-400' },
             ].map(({ label, count, color }) => (
-              <div key={label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-3 text-center">
+              <div key={label} className="glass-card rounded-xl p-3 text-center">
                 <div className={`text-2xl font-bold ${color}`}>{count}</div>
                 <div className="text-xs text-slate-500 dark:text-gray-400">{label}</div>
               </div>
@@ -292,7 +292,7 @@ function AttendanceMarking({ userRole }) {
           )}
 
           {/* Student list */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden mb-5">
+          <div className="glass-card rounded-xl overflow-hidden mb-5">
             <div className="p-4 border-b border-slate-100 dark:border-gray-700">
               <h3 className="font-semibold text-slate-800 dark:text-white">
                 {classes.find((c) => c._id === selectedClassId)?.name} — {students.length} students
@@ -343,7 +343,7 @@ function AttendanceMarking({ userRole }) {
       )}
 
       {selectedClassId && !studentsLoading && students.length === 0 && (
-        <div className="text-slate-500 dark:text-gray-400 text-sm bg-white dark:bg-gray-800 rounded-xl p-6 border border-slate-100 dark:border-gray-700">
+        <div className="glass-card text-slate-500 dark:text-gray-400 text-sm rounded-xl p-6">
           No active students found in this class.
         </div>
       )}

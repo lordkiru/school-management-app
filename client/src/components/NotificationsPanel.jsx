@@ -273,7 +273,7 @@ function NotificationsPanel() {
       {/* ── Send to Individual Parent ── */}
       {activeTab === 'send' && (
         <div className="max-w-lg">
-          <form onSubmit={handleSendIndividual} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6 space-y-4">
+          <form onSubmit={handleSendIndividual} className="glass-card rounded-xl p-6 space-y-4">
             <h3 className="font-semibold text-slate-800 dark:text-white">Send to a Parent</h3>
 
             {sendError && (
@@ -411,7 +411,7 @@ function NotificationsPanel() {
       {/* ── Broadcast ── */}
       {activeTab === 'broadcast' && (
         <div className="max-w-lg">
-          <form onSubmit={handleBroadcast} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6 space-y-4">
+          <form onSubmit={handleBroadcast} className="glass-card rounded-xl p-6 space-y-4">
             <h3 className="font-semibold text-slate-800 dark:text-white">Broadcast Message</h3>
             <p className="text-xs text-slate-500 dark:text-gray-400">
               Leave class empty to send to all parents. Only parents with phone numbers will receive the message.
@@ -510,23 +510,23 @@ function NotificationsPanel() {
         <div>
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+            <div className="glass-card rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{historyStats.totalSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">Total Sent</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+            <div className="glass-card rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{historyStats.totalFailed}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">Failed</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+            <div className="glass-card rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">{historyStats.waSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">💬 WA (Meta)</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+            <div className="glass-card rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-teal-600 dark:text-teal-400">{historyStats.twSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">📲 WA (Termii)</div>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-4 text-center">
+            <div className="glass-card rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{historyStats.smsSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">📱 SMS</div>
             </div>
@@ -557,11 +557,11 @@ function NotificationsPanel() {
           {historyLoading ? (
             <p className="text-slate-500 dark:text-gray-400 text-sm">Loading history...</p>
           ) : history.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-100 dark:border-gray-700 p-6 text-slate-500 dark:text-gray-400 text-sm">
+            <div className="glass-card rounded-xl p-6 text-slate-500 dark:text-gray-400 text-sm">
               No messages sent yet. Use the tabs above to send your first message.
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+            <div className="glass-card rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>

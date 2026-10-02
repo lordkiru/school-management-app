@@ -106,15 +106,15 @@ function AttendanceDashboard() {
       {/* Summary cards */}
       {overview && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 border-l-4 border-l-indigo-500">
+          <div className="glass-card rounded-xl p-5 border-l-4 border-l-indigo-500">
             <div className="text-3xl font-bold text-slate-800 dark:text-white">{overview.totalClasses}</div>
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Total Classes</div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 border-l-4 border-l-emerald-500">
+          <div className="glass-card rounded-xl p-5 border-l-4 border-l-emerald-500">
             <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{overview.markedCount}</div>
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Marked Today</div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 border-l-4 border-l-rose-500">
+          <div className="glass-card rounded-xl p-5 border-l-4 border-l-rose-500">
             <div className="text-3xl font-bold text-rose-600 dark:text-rose-400">{overview.unmarkedCount}</div>
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Not Yet Marked</div>
           </div>
@@ -136,7 +136,7 @@ function AttendanceDashboard() {
 
       {/* Today's Register */}
       {activeTab === 'today' && overview && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="p-4 border-b border-slate-100 dark:border-gray-700">
             <h3 className="font-semibold text-slate-800 dark:text-white">Class Register Status</h3>
           </div>
@@ -185,7 +185,7 @@ function AttendanceDashboard() {
 
       {/* Flagged Absences */}
       {activeTab === 'flagged' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="p-4 border-b border-slate-100 dark:border-gray-700">
             <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
               <AlertTriangle size={16} className="text-rose-500" />
@@ -251,7 +251,7 @@ function AttendanceDashboard() {
           {summaryLoading && <p className="text-slate-500 dark:text-gray-400 text-sm">Loading summary...</p>}
 
           {summary && !summaryLoading && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+            <div className="glass-card rounded-xl overflow-hidden">
               <div className="p-4 border-b border-slate-100 dark:border-gray-700">
                 <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
                   <BarChart2 size={16} className="text-indigo-500" />

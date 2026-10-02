@@ -111,8 +111,8 @@ function Dashboard({ userRole }) {
     fetchStats();
   }, [userRole]);
 
-  if (loading) return <div className="glass-page-bg min-h-screen p-6"><p>Loading dashboard...</p></div>;
-  if (error) return <div className="glass-page-bg min-h-screen p-6"><p className="text-red-600 dark:text-red-400">{error}</p></div>;
+  if (loading) return <div className="min-h-screen p-6"><p>Loading dashboard...</p></div>;
+  if (error) return <div className="min-h-screen p-6"><p className="text-red-600 dark:text-red-400">{error}</p></div>;
 
   const summaryCards = [
     {
@@ -155,7 +155,7 @@ function Dashboard({ userRole }) {
   }
 
   return (
-    <div className="glass-page-bg min-h-screen p-6">
+    <div className="min-h-screen p-6">
       <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Overview</h2>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

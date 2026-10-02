@@ -106,7 +106,7 @@ function AddParent({ onParentAdded }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6">
+    <div className="glass-card glass-card-strong rounded-xl p-6">
       <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Add Parent</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">

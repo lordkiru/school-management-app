@@ -114,7 +114,7 @@ function MySubscription() {
       )}
 
       {/* Current plan */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6 mb-8">
+      <div className="glass-card rounded-xl p-6 mb-8">
         <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500 mb-1">Current Plan</p>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -148,10 +148,8 @@ function MySubscription() {
           return (
             <div
               key={key}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border p-5 flex flex-col gap-3 ${
-                isCurrent
-                  ? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900'
-                  : 'border-slate-100 dark:border-gray-700'
+              className={`glass-card rounded-xl p-5 flex flex-col gap-3 ${
+                isCurrent ? 'border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-100 dark:ring-indigo-900' : ''
               }`}
             >
               <div>
@@ -187,7 +185,7 @@ function MySubscription() {
           const studentsOverride = growthLimit != null ? `${growthLimit}+ students` : undefined;
           const [studentsText, staffText] = formatLimits(enterprisePlan, studentsOverride);
           return (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 flex flex-col gap-3">
+            <div className="glass-card rounded-xl p-5 flex flex-col gap-3">
               <div>
                 <h4 className="font-bold text-slate-800 dark:text-white">Enterprise</h4>
                 <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">Custom pricing for large schools and school groups.</p>
@@ -218,7 +216,7 @@ function MySubscription() {
       {history.length === 0 ? (
         <p className="text-sm text-slate-400 dark:text-gray-500">No past subscriptions yet.</p>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-x-auto">
+        <div className="glass-card rounded-xl overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-gray-700">

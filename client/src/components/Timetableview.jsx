@@ -189,7 +189,7 @@ function TimetableView() {
   return (
     <div className="p-6">
       {/* Class selector */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Timetable</h2>
 
         <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Select Class</label>
@@ -212,7 +212,7 @@ function TimetableView() {
           {/* Add entry form */}
           <form
             onSubmit={handleAddEntry}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6"
+            className="glass-card rounded-xl p-5 mb-6"
           >
             <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3">Add Timetable Entry</h3>
 
@@ -309,7 +309,7 @@ function TimetableView() {
           </form>
 
           {/* Timetable grid */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             {/* Table toolbar */}
             {entries.length > 0 && (
               <div className="flex items-center justify-between px-5 pt-4 pb-2 flex-wrap gap-2">

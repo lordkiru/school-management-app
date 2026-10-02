@@ -172,7 +172,7 @@ function TeacherRemarks({ userRole }) {
       )}
 
       {/* Filter form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 mb-6">
+      <div className="glass-card rounded-xl p-5 mb-6">
         <form onSubmit={handleLoad} className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">Class</label>
@@ -239,7 +239,7 @@ function TeacherRemarks({ userRole }) {
           {filteredStudents.map((student) => (
             <div
               key={student._id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5"
+              className="glass-card rounded-xl p-5"
             >
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>

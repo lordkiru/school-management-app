@@ -157,7 +157,7 @@ function StaffList({ refreshKey }) {
 
   return (
     <div className="p-6">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-hidden">
+      <div className="glass-card rounded-xl overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-gray-700">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white">Staff</h2>
         </div>
@@ -318,7 +318,7 @@ function StaffList({ refreshKey }) {
       {/* Reset token modal */}
       {resetInfo && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6">
+          <div className="glass-card glass-card-strong rounded-xl w-full max-w-md p-6">
             <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Password Reset Token</h3>
             <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
               Share this token with the staff member directly (WhatsApp, in person, etc). It expires in 1 hour.

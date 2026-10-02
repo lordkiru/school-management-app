@@ -174,7 +174,7 @@ function FeeStructureSetup() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-6">
+      <div className="glass-card glass-card-strong rounded-xl p-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Structure Setup</h2>
         <p className="text-xs text-slate-400 mb-5">
           Define the fee breakdown for each class per term. This is for reference and printing — it does not automatically create student fee records.

@@ -62,7 +62,7 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Staff</h2>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900/40 text-rose-600 dark:text-red-200 text-sm p-3 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900/40 text-rose-700 dark:text-red-200 text-sm p-3 rounded-lg mb-3">
           <p className="font-semibold mb-1">{error}</p>
           {errorDetails.length > 0 && (
             <ul className="list-disc list-inside space-y-0.5">
@@ -74,7 +74,7 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
@@ -94,7 +94,7 @@ function AddStaff({ onStaffAdded, currentUserRole }) {
         placeholder="e.g. Welcome@123"
         className={inputClass}
       />
-      <p className="text-xs text-slate-400 dark:text-gray-500 -mt-2 mb-3">
+      <p className="text-xs text-slate-500 dark:text-gray-400 -mt-2 mb-3">
         Min 8 chars · uppercase · lowercase · number · special character (@$!%*?&)
       </p>
 

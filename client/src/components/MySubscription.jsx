@@ -115,12 +115,12 @@ function MySubscription() {
 
       {/* Current plan */}
       <div className="glass-card rounded-xl p-6 mb-8">
-        <p className="text-xs uppercase tracking-wide text-slate-400 dark:text-gray-500 mb-1">Current Plan</p>
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-gray-400 mb-1">Current Plan</p>
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{currentPlanLabel}</h3>
             <span className={`inline-flex items-center gap-1 text-sm font-medium mt-1 capitalize ${
-              statusIsBad ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+              statusIsBad ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'
             }`}>
               {statusIsBad ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
               {currentStatus}
@@ -156,7 +156,7 @@ function MySubscription() {
                 <h4 className="font-bold text-slate-800 dark:text-white">{PLAN_LABELS[key] || key}</h4>
                 <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">
                   ₦{price.toLocaleString()}
-                  <span className="text-sm font-normal text-slate-400 dark:text-gray-500"> /term</span>
+                  <span className="text-sm font-normal text-slate-500 dark:text-gray-400"> /term</span>
                 </p>
               </div>
               <ul className="text-sm text-slate-500 dark:text-gray-400 space-y-1">
@@ -214,7 +214,7 @@ function MySubscription() {
       {/* History */}
       <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">Subscription History</h3>
       {history.length === 0 ? (
-        <p className="text-sm text-slate-400 dark:text-gray-500">No past subscriptions yet.</p>
+        <p className="text-sm text-slate-500 dark:text-gray-400">No past subscriptions yet.</p>
       ) : (
         <div className="glass-card rounded-xl overflow-x-auto">
           <table className="w-full text-left border-collapse">

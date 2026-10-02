@@ -223,7 +223,7 @@ function TeacherRemarks({ userRole }) {
 
       {!loading && students.length > 0 && (
         <div className="relative mb-4 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400" />
           <input
             type="text"
             value={searchQuery}
@@ -244,7 +244,7 @@ function TeacherRemarks({ userRole }) {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <p className="font-semibold text-slate-800 dark:text-white">{student.name}</p>
-                  <p className="text-xs text-slate-400 dark:text-gray-500">{student.admissionNumber}</p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400">{student.admissionNumber}</p>
                 </div>
                 <button
                   onClick={() => handleSave(student._id)}
@@ -291,7 +291,7 @@ function TeacherRemarks({ userRole }) {
                   placeholder="Type a remark or click a suggestion above..."
                   className="w-full p-2.5 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition resize-none"
                 />
-                <p className="text-xs text-slate-400 mt-0.5 text-right">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 text-right">
                   {(remarks[student._id]?.remark || '').length}/500
                 </p>
               </div>

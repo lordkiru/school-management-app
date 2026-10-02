@@ -88,12 +88,12 @@ function FeeReportByClass() {
       {/* Filter form — never printed */}
       <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Report by Class</h2>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           Leave term/session as "All" to include every fee record.
         </p>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
@@ -132,7 +132,7 @@ function FeeReportByClass() {
             <button
               type="button"
               onClick={() => printArea(printRef)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               <Printer size={16} /> Print / Save as PDF
             </button>
@@ -148,15 +148,15 @@ function FeeReportByClass() {
               <img src={school.logoUrl} alt={`${school.name} logo`} className="h-14 mx-auto mb-2 object-contain" />
             )}
             <h1 className="text-xl font-bold text-slate-800 dark:text-white">{school?.name || 'School'}</h1>
-            {school?.address && <p className="text-xs text-slate-500">{school.address}</p>}
+            {school?.address && <p className="text-xs text-slate-500 dark:text-gray-400">{school.address}</p>}
             <p className="text-sm font-medium text-slate-600 dark:text-gray-300 mt-2">Fee Report by Class</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-gray-400">
               {term || session ? `${term || 'All terms'} — ${session || 'All sessions'}` : 'All records'}
             </p>
           </div>
 
           {results.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center">No fee records found.</p>
+            <p className="text-sm text-slate-500 dark:text-gray-400 text-center">No fee records found.</p>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse mb-4">
@@ -175,10 +175,10 @@ function FeeReportByClass() {
                     <td className="py-2 font-medium text-slate-800 dark:text-white">{r.className}</td>
                     <td className="py-2 text-slate-600 dark:text-gray-300">{r.studentCount}</td>
                     <td className="py-2 text-slate-600 dark:text-gray-300">₦{r.totalExpected.toLocaleString()}</td>
-                    <td className="py-2 text-emerald-600 dark:text-emerald-400 font-medium">
+                    <td className="py-2 text-emerald-700 dark:text-emerald-400 font-medium">
                       ₦{r.totalPaid.toLocaleString()}
                     </td>
-                    <td className="py-2 text-rose-600 dark:text-rose-400 font-medium">
+                    <td className="py-2 text-rose-700 dark:text-rose-400 font-medium">
                       ₦{r.totalOutstanding.toLocaleString()}
                     </td>
                   </tr>
@@ -201,7 +201,7 @@ function FeeReportByClass() {
             </div>
           )}
 
-          <p className="text-xs text-slate-400 mt-6">Generated {new Date().toLocaleString()}</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mt-6">Generated {new Date().toLocaleString()}</p>
         </div>
       )}
     </div>

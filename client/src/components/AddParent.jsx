@@ -183,7 +183,7 @@ function AddParent({ onParentAdded }) {
             Link Children (Optional)
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400" size={18} />
             <input
               type="text"
               placeholder="Search by name or admission number..."
@@ -222,7 +222,7 @@ function AddParent({ onParentAdded }) {
           )}
 
           {selectedChildren.length > 0 && (
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2">
+            <p className="text-xs text-indigo-600 dark:text-indigo-300 mt-2">
               {selectedChildren.length} child(ren) selected
             </p>
           )}

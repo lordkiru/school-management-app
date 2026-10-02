@@ -138,17 +138,17 @@ function AddClassFee({ onFeesAdded }) {
       className="p-6 glass-card glass-card-strong rounded-xl max-w-md"
     >
       <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white">Add Fee for a Whole Class</h2>
-      <p className="text-xs text-slate-400 mb-4">
+      <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
         Creates a fee record for every student currently in the selected class.
       </p>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
@@ -190,7 +190,7 @@ function AddClassFee({ onFeesAdded }) {
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
         Amount Expected (₦)
         {structureLoading && (
-          <span className="ml-2 text-xs text-slate-400">Loading structure...</span>
+          <span className="ml-2 text-xs text-slate-500 dark:text-gray-400">Loading structure...</span>
         )}
       </label>
       <input
@@ -207,7 +207,7 @@ function AddClassFee({ onFeesAdded }) {
 
       {/* Fee structure breakdown hint */}
       {structureHint && (
-        <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-4 leading-relaxed">
+        <p className="text-xs text-indigo-600 dark:text-indigo-300 mb-4 leading-relaxed">
           📋 Auto-filled from fee structure: {structureHint}
         </p>
       )}

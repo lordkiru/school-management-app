@@ -75,12 +75,12 @@ function AddSubject({ onSubjectAdded }) {
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Subject</h2>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
@@ -96,11 +96,11 @@ function AddSubject({ onSubjectAdded }) {
       />
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
-        Classes <span className="text-slate-400">(select one or more)</span>
+        Classes <span className="text-slate-500 dark:text-gray-400">(select one or more)</span>
       </label>
       <div className="mb-4 max-h-44 overflow-y-auto border border-slate-200 dark:border-gray-600 rounded-lg p-2 grid grid-cols-2 gap-1">
         {classes.length === 0 ? (
-          <p className="text-sm text-slate-400 col-span-2 p-1">No classes yet — add a class first.</p>
+          <p className="text-sm text-slate-500 dark:text-gray-400 col-span-2 p-1">No classes yet — add a class first.</p>
         ) : (
           classes.map((cls) => (
             <label key={cls._id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-gray-200 p-1 rounded hover:bg-slate-50 dark:hover:bg-gray-700 cursor-pointer">

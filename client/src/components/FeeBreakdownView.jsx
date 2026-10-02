@@ -86,12 +86,12 @@ function FeeBreakdownView() {
       {/* Filter bar */}
       <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Breakdown</h2>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           View the fee structure breakdown for all classes for a given term and session.
         </p>
 
         {error && (
-          <div className="mb-3 p-2 bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm rounded-lg">{error}</div>
+          <div className="mb-3 p-2 bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm rounded-lg">{error}</div>
         )}
 
         <form onSubmit={handleLoad} className="flex flex-wrap gap-3 items-end">
@@ -121,7 +121,7 @@ function FeeBreakdownView() {
             <button
               type="button"
               onClick={() => printArea(printRef)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
             >
               <Printer size={16} /> Print Breakdown
             </button>
@@ -148,7 +148,7 @@ function FeeBreakdownView() {
           </div>
 
           {structures.length === 0 ? (
-            <div className="glass-card rounded-xl p-8 text-center text-slate-400">
+            <div className="glass-card rounded-xl p-8 text-center text-slate-500 dark:text-gray-400">
               No fee structures found for {term}{session ? `, ${session}` : ''}. 
               <br />
               <span className="text-xs mt-1 block">Set up fee structures using the "Fee Setup" page.</span>
@@ -169,7 +169,7 @@ function FeeBreakdownView() {
                           {structure.classId?.name || 'Unknown Class'}
                         </span>
                         {structure.classId?.section && (
-                          <span className="ml-2 text-xs text-indigo-500 dark:text-indigo-400">
+                          <span className="ml-2 text-xs text-indigo-600 dark:text-indigo-300">
                             ({structure.classId.section})
                           </span>
                         )}
@@ -191,7 +191,7 @@ function FeeBreakdownView() {
                         <tbody>
                           {(structure.items || []).length === 0 ? (
                             <tr>
-                              <td colSpan={2} className="py-3 px-5 text-slate-400 dark:text-gray-500 text-xs">
+                              <td colSpan={2} className="py-3 px-5 text-slate-500 dark:text-gray-400 text-xs">
                                 No items defined for this class.
                               </td>
                             </tr>
@@ -226,7 +226,7 @@ function FeeBreakdownView() {
                 <span className="text-xl font-bold">₦{grandTotal.toLocaleString()}</span>
               </div>
 
-              <p className="text-xs text-slate-400 text-right">
+              <p className="text-xs text-slate-500 dark:text-gray-400 text-right">
                 Generated {new Date().toLocaleString()} · {structures.length} class{structures.length !== 1 ? 'es' : ''}
               </p>
             </>

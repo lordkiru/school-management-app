@@ -48,7 +48,7 @@ function AuditLogList() {
   };
 
   if (loading) return <p className="p-6 text-slate-500 dark:text-gray-400">Loading audit log...</p>;
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   const totalPages = Math.ceil(logs.length / PAGE_SIZE) || 1;
   const startIndex = (currentPage - 1) * PAGE_SIZE;
@@ -60,7 +60,7 @@ function AuditLogList() {
         <div className="p-5 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">Audit Trail</h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
               A record of deleted items, kept for reference even after removal.
             </p>
           </div>
@@ -106,7 +106,7 @@ function AuditLogList() {
                       <td className="py-3 px-5 text-slate-600 dark:text-gray-300">
                         {new Date(log.performedAt).toLocaleString()}
                       </td>
-                      <td className="py-3 px-5 text-slate-400">
+                      <td className="py-3 px-5 text-slate-500 dark:text-gray-400">
                         {expandedId === log._id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </td>
                     </tr>

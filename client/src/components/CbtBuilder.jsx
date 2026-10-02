@@ -308,12 +308,12 @@ function CbtBuilder({ onTestCreated }) {
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">New CBT Test</h2>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
@@ -355,7 +355,7 @@ function CbtBuilder({ onTestCreated }) {
           </div>
 
           {pinError && (
-            <p className="text-sm text-rose-600 dark:text-rose-400 mt-2">{pinError}</p>
+            <p className="text-sm text-rose-700 dark:text-rose-400 mt-2">{pinError}</p>
           )}
 
           {pinResults && (
@@ -368,14 +368,14 @@ function CbtBuilder({ onTestCreated }) {
                   <button
                     type="button"
                     onClick={printPinSlips}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                    className="text-xs text-indigo-600 dark:text-indigo-300 hover:underline"
                   >
                     Print / Save as PDF
                   </button>
                   <button
                     type="button"
                     onClick={copyAllPins}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                    className="text-xs text-indigo-600 dark:text-indigo-300 hover:underline"
                   >
                     Copy all
                   </button>
@@ -387,7 +387,7 @@ function CbtBuilder({ onTestCreated }) {
                     {pinResults.map((r) => (
                       <tr key={r.studentId} className="border-b border-slate-100 dark:border-gray-700 last:border-0">
                         <td className="py-1.5 px-2 text-slate-700 dark:text-gray-200">{r.name}</td>
-                        <td className="py-1.5 px-2 text-slate-500 dark:text-gray-400">{r.admissionNumber}</td>
+                        <td className="py-1.5 px-2 text-slate-600 dark:text-gray-300">{r.admissionNumber}</td>
                         <td className="py-1.5 px-2 font-mono font-semibold text-emerald-700 dark:text-emerald-300 tracking-wider">
                           {r.pin}
                         </td>
@@ -457,7 +457,7 @@ function CbtBuilder({ onTestCreated }) {
         <button
           type="button"
           onClick={addQuestion}
-          className="flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+          className="flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-300 hover:underline"
         >
           <Plus size={16} /> Add question
         </button>
@@ -481,7 +481,7 @@ function CbtBuilder({ onTestCreated }) {
               <button
                 type="button"
                 onClick={() => removeQuestion(qIndex)}
-                className="mt-2 text-rose-500 hover:text-rose-700"
+                className="mt-2 text-rose-700 dark:text-rose-400 hover:text-rose-800"
               >
                 <Trash2 size={16} />
               </button>
@@ -521,7 +521,7 @@ function CbtBuilder({ onTestCreated }) {
               <button
                 type="button"
                 onClick={() => addOption(qIndex)}
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                className="text-xs text-indigo-600 dark:text-indigo-300 hover:underline"
               >
                 + Add option
               </button>

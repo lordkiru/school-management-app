@@ -42,7 +42,7 @@
   }
 
   .glass-card {
-    --glass-bg: rgb(255 255 255 / 0.55);
+    --glass-bg: rgb(255 255 255 / 0.62);
     --glass-border: rgb(255 255 255 / 0.65);
     --glass-shadow: 0 8px 32px -8px rgb(79 57 246 / 0.18), 0 2px 8px -2px rgb(15 23 42 / 0.06);
     background: var(--glass-bg);

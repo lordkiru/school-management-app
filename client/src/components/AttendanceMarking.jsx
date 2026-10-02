@@ -263,8 +263,8 @@ function AttendanceMarking({ userRole }) {
           {/* Summary bar */}
           <div className="grid grid-cols-4 gap-3 mb-5">
             {[
-              { label: 'Present', count: presentCount, color: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Absent', count: absentCount, color: 'text-rose-600 dark:text-rose-400' },
+              { label: 'Present', count: presentCount, color: 'text-emerald-700 dark:text-emerald-400' },
+              { label: 'Absent', count: absentCount, color: 'text-rose-700 dark:text-rose-400' },
               { label: 'Late', count: lateCount, color: 'text-amber-600 dark:text-amber-400' },
               { label: 'Excused', count: excusedCount, color: 'text-blue-600 dark:text-blue-400' },
             ].map(({ label, count, color }) => (
@@ -303,10 +303,10 @@ function AttendanceMarking({ userRole }) {
                 const currentStatus = attendance[student._id] || 'Present';
                 return (
                   <div key={student._id} className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-sm text-slate-400 dark:text-gray-500 w-6 text-right">{idx + 1}</span>
+                    <span className="text-sm text-slate-500 dark:text-gray-400 w-6 text-right">{idx + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{student.name}</p>
-                      <p className="text-xs text-slate-400 dark:text-gray-500">{student.admissionNumber}</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400">{student.admissionNumber}</p>
                     </div>
                     <div className="flex gap-1.5 flex-wrap justify-end">
                       {STATUS_OPTIONS.map(({ value, label, color, activeColor }) => (

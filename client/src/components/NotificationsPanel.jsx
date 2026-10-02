@@ -250,7 +250,7 @@ function NotificationsPanel() {
     <div className="p-6">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          <Bell size={20} className="text-indigo-500" /> Messaging
+          <Bell size={20} className="text-indigo-600" /> Messaging
         </h2>
         <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
           Send messages to parents via WhatsApp or SMS. Configure credentials in Settings.
@@ -322,7 +322,7 @@ function NotificationsPanel() {
                 ))}
               </select>
               {parents.length === 0 && !loading && (
-                <p className="text-xs text-slate-400 mt-1">No parents found. Add parents with phone numbers first.</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">No parents found. Add parents with phone numbers first.</p>
               )}
             </div>
 
@@ -337,7 +337,7 @@ function NotificationsPanel() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                 {sendTemplate === 'custom'
                   ? 'Free text — type your own message below.'
                   : 'Fills the message below with this child\'s real details — edit as needed before sending.'}
@@ -360,7 +360,7 @@ function NotificationsPanel() {
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                   Pick one or more — {sendTemplate === 'feeReminder' ? 'anyone with no outstanding fees is left out automatically' : 'they\'ll be combined into one message'}.
                 </p>
               </div>
@@ -395,7 +395,7 @@ function NotificationsPanel() {
                 disabled={templateLoading}
                 className={inputClass}
               />
-              <p className="text-xs text-slate-400 mt-1">{individualMessage.length}/1000 characters</p>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{individualMessage.length}/1000 characters</p>
             </div>
 
             <button
@@ -450,7 +450,7 @@ function NotificationsPanel() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Target Class <span className="text-slate-400">(optional)</span></label>
+              <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Target Class <span className="text-slate-500 dark:text-gray-400">(optional)</span></label>
               <select
                 value={broadcastClassId}
                 onChange={(e) => setBroadcastClassId(e.target.value)}
@@ -475,7 +475,7 @@ function NotificationsPanel() {
                 ))}
               </select>
               {broadcastTemplate !== 'custom' && (
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                   Generic wording — there's no single child to fill in real details for a broadcast. Replace the bracketed parts by hand.
                 </p>
               )}
@@ -492,12 +492,12 @@ function NotificationsPanel() {
                 placeholder="Type your broadcast message here..."
                 className={inputClass}
               />
-              <p className="text-xs text-slate-400 mt-1">{broadcastMessage.length}/1000 characters</p>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{broadcastMessage.length}/1000 characters</p>
             </div>
 
             <button
               type="submit"
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-lg transition w-full justify-center"
+              className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition w-full justify-center"
             >
               <Users size={15} /> Send Broadcast
             </button>
@@ -511,11 +511,11 @@ function NotificationsPanel() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
             <div className="glass-card rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{historyStats.totalSent}</div>
+              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{historyStats.totalSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">Total Sent</div>
             </div>
             <div className="glass-card rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{historyStats.totalFailed}</div>
+              <div className="text-2xl font-bold text-rose-700 dark:text-rose-400">{historyStats.totalFailed}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">Failed</div>
             </div>
             <div className="glass-card rounded-xl p-4 text-center">
@@ -527,7 +527,7 @@ function NotificationsPanel() {
               <div className="text-xs text-slate-500 dark:text-gray-400">📲 WA (Termii)</div>
             </div>
             <div className="glass-card rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{historyStats.smsSent}</div>
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-300">{historyStats.smsSent}</div>
               <div className="text-xs text-slate-500 dark:text-gray-400">📱 SMS</div>
             </div>
           </div>
@@ -578,7 +578,7 @@ function NotificationsPanel() {
                       <tr key={n._id} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
                         <td className="py-3 px-4">
                           <div className="font-medium text-sm text-slate-800 dark:text-white">{n.recipientName || n.parentId?.name || '—'}</div>
-                          <div className="text-xs text-slate-400 dark:text-gray-500">{n.recipientPhone}</div>
+                          <div className="text-xs text-slate-500 dark:text-gray-400">{n.recipientPhone}</div>
                         </td>
                         <td className="py-3 px-4">
                           <span className="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
@@ -590,15 +590,15 @@ function NotificationsPanel() {
                         </td>
                         <td className="py-3 px-4">
                           {n.status === 'sent' ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                            <span className="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
                               <CheckCircle size={12} /> Sent
                             </span>
                           ) : n.status === 'failed' ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-medium" title={n.errorMessage}>
+                            <span className="inline-flex items-center gap-1 text-xs text-rose-700 dark:text-rose-400 font-medium" title={n.errorMessage}>
                               <XCircle size={12} /> Failed
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400">Queued</span>
+                            <span className="text-xs text-slate-500 dark:text-gray-400">Queued</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-xs text-slate-500 dark:text-gray-400">

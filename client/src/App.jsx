@@ -93,7 +93,7 @@ function CbtLoginRoute() {
             localStorage.removeItem('student');
             window.location.reload();
           }}
-          className="text-sm text-rose-600 dark:text-rose-400 hover:underline"
+          className="text-sm text-rose-700 dark:text-rose-400 hover:underline"
         >
           Log out
         </button>
@@ -146,11 +146,11 @@ function DashboardShell({
 
       {/* Offline / Sync banner */}
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-500 text-white text-sm font-medium py-2 px-4">
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-700 text-white text-sm font-medium py-2 px-4">
           <WifiOff size={15} />
           You're offline — attendance will sync automatically when reconnected
           {pendingSync > 0 && (
-            <span className="bg-white text-amber-600 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+            <span className="bg-white text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
               {pendingSync} queued
             </span>
           )}
@@ -163,7 +163,7 @@ function DashboardShell({
         </div>
       )}
       {isOnline && syncStatus === 'synced' && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-500 text-white text-sm font-medium py-2 px-4">
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-700 text-white text-sm font-medium py-2 px-4">
           ✅ Offline attendance synced successfully!
         </div>
       )}
@@ -358,7 +358,9 @@ function DashboardShell({
 }
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('theme') === 'dark'; } catch { return false; }
+  });
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -380,6 +382,7 @@ function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    try { localStorage.setItem('theme', darkMode ? 'dark' : 'light'); } catch { /* storage unavailable: theme just won't persist */ }
   }, [darkMode]);
 
   // Online/offline detection + auto-sync queued attendance when back online

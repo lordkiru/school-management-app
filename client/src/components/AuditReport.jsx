@@ -92,12 +92,12 @@ function AuditReport({ logs, onClose }) {
             <h1 className="text-xl font-bold">{school?.name || 'School'}</h1>
             {school?.address && <p className="text-xs text-slate-500">{school.address}</p>}
             <p className="text-sm font-medium text-slate-600 mt-2">Audit Report</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               {fromDate || toDate
                 ? `${fromDate || 'Start'} — ${toDate || 'Today'}`
                 : 'All records'}
             </p>
-            <p className="text-xs text-slate-400">Generated {new Date().toLocaleString()}</p>
+            <p className="text-xs text-slate-500">Generated {new Date().toLocaleString()}</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -113,7 +113,7 @@ function AuditReport({ logs, onClose }) {
             <tbody>
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-4 text-slate-400">
+                  <td colSpan={4} className="py-4 text-slate-500">
                     No audit records in this date range.
                   </td>
                 </tr>
@@ -133,7 +133,7 @@ function AuditReport({ logs, onClose }) {
           </table>
           </div>
 
-          <p className="text-xs text-slate-400 mt-6">
+          <p className="text-xs text-slate-500 mt-6">
             Total records: {filteredLogs.length}
           </p>
         </div>

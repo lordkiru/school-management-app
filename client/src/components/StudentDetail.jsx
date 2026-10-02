@@ -132,7 +132,7 @@ function StudentDetail() {
         </p>
 
         {pinError && (
-          <p className="text-sm text-rose-600 dark:text-rose-400 mb-2">{pinError}</p>
+          <p className="text-sm text-rose-700 dark:text-rose-400 mb-2">{pinError}</p>
         )}
 
         {pinResult && (
@@ -143,7 +143,7 @@ function StudentDetail() {
             <p className="text-2xl font-mono font-bold text-emerald-800 dark:text-emerald-200 tracking-widest mt-1">
               {pinResult.pin}
             </p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1">
               This won't be shown again — write it down now.
             </p>
           </div>
@@ -161,7 +161,7 @@ function StudentDetail() {
             onClick={handleCopyLink}
             className="flex items-center gap-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium py-2 px-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           >
-            {linkCopied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+            {linkCopied ? <Check size={16} className="text-emerald-700" /> : <Copy size={16} />}
             {linkCopied ? 'Copied!' : 'Copy test link'}
           </button>
         </div>

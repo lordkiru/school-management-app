@@ -35,7 +35,7 @@ function ClassList({ refreshKey }) {
     fetchClasses();
   }, [fetchClasses, refreshKey]);
 
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   const totalPages = Math.ceil(classes.length / PAGE_SIZE) || 1;
   const startIndex = (currentPage - 1) * PAGE_SIZE;

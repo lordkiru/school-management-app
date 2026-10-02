@@ -94,13 +94,13 @@ function FeeReceipt({ fee, onClose }) {
               </tr>
               <tr className="border-b border-slate-100">
                 <td className="py-2 text-slate-500">Amount Paid</td>
-                <td className="py-2 text-right font-medium text-emerald-600">
+                <td className="py-2 text-right font-medium text-emerald-700">
                   ₦{fee.amountPaid.toLocaleString()}
                 </td>
               </tr>
               <tr className="border-b border-slate-100">
                 <td className="py-2 text-slate-500">Balance</td>
-                <td className="py-2 text-right font-medium text-rose-600">
+                <td className="py-2 text-right font-medium text-rose-700">
                   ₦{fee.balance.toLocaleString()}
                 </td>
               </tr>
@@ -122,7 +122,7 @@ function FeeReceipt({ fee, onClose }) {
 
           {fee.payments?.length > 0 && (
             <div className="mt-6">
-              <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Payment History</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Payment History</p>
               <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <tbody>
@@ -141,7 +141,7 @@ function FeeReceipt({ fee, onClose }) {
             </div>
           )}
 
-          <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-400">
+          <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-500">
             <div>
               <p>Issued: {new Date().toLocaleDateString()}</p>
             </div>

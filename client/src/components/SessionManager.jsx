@@ -109,18 +109,18 @@ function SessionManager() {
     <div className="p-6">
       <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Academic Sessions</h2>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           Manage sessions here instead of typing them freely — this prevents typos like "2026" vs
           "2025/2026" from silently splitting your data.
         </p>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
             {success}
           </div>
         )}
@@ -166,11 +166,11 @@ function SessionManager() {
                   <td className="py-3 px-5 text-slate-800 dark:text-white">{s.name}</td>
                   <td className="py-3 px-5">
                     {s.isCurrent ? (
-                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+                      <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-sm font-medium">
                         <CheckCircle size={14} /> Current
                       </span>
                     ) : (
-                      <span className="text-slate-400 text-sm">—</span>
+                      <span className="text-slate-500 dark:text-gray-400 text-sm">—</span>
                     )}
                   </td>
                   <td className="py-3 px-5">
@@ -178,7 +178,7 @@ function SessionManager() {
                       <button
                         onClick={() => handleSetCurrent(s._id)}
                         disabled={settingId === s._id}
-                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-sm font-medium transition"
+                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 text-sm font-medium transition"
                       >
                         {settingId === s._id ? '...' : 'Set as current'}
                       </button>
@@ -188,7 +188,7 @@ function SessionManager() {
                     <button
                       onClick={() => handleDelete(s._id, s.name)}
                       disabled={deletingId === s._id}
-                      className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                      className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 transition"
                     >
                       <Trash2 size={16} />
                     </button>

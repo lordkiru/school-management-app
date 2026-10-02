@@ -98,7 +98,7 @@ function ReportCardView() {
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Report Cards</h2>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
@@ -179,7 +179,7 @@ function ReportCardView() {
                       <button
                         onClick={() => setPrintStudentId(r.student.id)}
                         disabled={r.scores.length === 0}
-                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
+                        className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition"
                       >
                         <Printer size={14} /> View
                       </button>
@@ -296,7 +296,7 @@ function ReportCardView() {
                 </div>
               )}
 
-              <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-400">
+              <div className="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs text-slate-500 dark:text-gray-400">
                 <p>Issued: {new Date().toLocaleDateString()}</p>
                 <div className="text-right">
                   <div className="border-t border-slate-400 w-32 mb-1"></div>

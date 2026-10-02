@@ -92,18 +92,18 @@ function AdjustClassFee({ onAdjusted }) {
       className="p-6 glass-card glass-card-strong rounded-xl max-w-md"
     >
       <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white">Adjust Fee for a Class</h2>
-      <p className="text-xs text-slate-400 mb-4">
+      <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
         Overwrites the expected fee for every student in this class who already has a record for
         this term — use this to correct a mistaken amount, not to add extra fees.
       </p>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}

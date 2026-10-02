@@ -115,13 +115,13 @@ function CbtResults({ refreshKey }) {
             setSelectedTestId(null);
             setResults(null);
           }}
-          className="flex items-center gap-2 text-sm mb-4 text-indigo-600 dark:text-indigo-400 hover:underline"
+          className="flex items-center gap-2 text-sm mb-4 text-indigo-600 dark:text-indigo-300 hover:underline"
         >
           <ArrowLeft size={16} /> Back to tests
         </button>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
@@ -163,7 +163,7 @@ function CbtResults({ refreshKey }) {
                           <td className="py-2 pr-4">{pct}%</td>
                           <td className="py-2 pr-4">
                             {attempt.status === 'submitted' ? (
-                              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs">
+                              <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-xs">
                                 <Trophy size={14} /> {attempt.autoSubmitted ? 'Auto-submitted (time up)' : 'Submitted'}
                               </span>
                             ) : (
@@ -203,7 +203,7 @@ function CbtResults({ refreshKey }) {
       </div>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
@@ -230,10 +230,10 @@ function CbtResults({ refreshKey }) {
                       <AlertTriangle size={12} /> Draft
                     </span>
                   ) : (
-                    <span className="text-emerald-600 dark:text-emerald-400">Published</span>
+                    <span className="text-emerald-700 dark:text-emerald-400">Published</span>
                   )}
                   {test.isArchived && (
-                    <span className="inline-flex items-center gap-1 text-slate-400 dark:text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-slate-500 dark:text-gray-400">
                       <Archive size={12} /> Archived
                     </span>
                   )}
@@ -260,7 +260,7 @@ function CbtResults({ refreshKey }) {
                   <button
                     onClick={() => permanentlyDelete(test)}
                     title="Permanently delete this test and its attempts"
-                    className="flex items-center gap-1 text-sm font-medium py-2 px-3 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
+                    className="flex items-center gap-1 text-sm font-medium py-2 px-3 rounded-lg border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition"
                   >
                     <Trash2 size={14} />
                     Delete

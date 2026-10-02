@@ -111,11 +111,11 @@ function AttendanceDashboard() {
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Total Classes</div>
           </div>
           <div className="glass-card rounded-xl p-5 border-l-4 border-l-emerald-500">
-            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{overview.markedCount}</div>
+            <div className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{overview.markedCount}</div>
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Marked Today</div>
           </div>
           <div className="glass-card rounded-xl p-5 border-l-4 border-l-rose-500">
-            <div className="text-3xl font-bold text-rose-600 dark:text-rose-400">{overview.unmarkedCount}</div>
+            <div className="text-3xl font-bold text-rose-700 dark:text-rose-400">{overview.unmarkedCount}</div>
             <div className="text-sm text-slate-500 dark:text-gray-400 mt-1">Not Yet Marked</div>
           </div>
         </div>
@@ -161,7 +161,7 @@ function AttendanceDashboard() {
                       <td className="py-3 px-4 font-medium text-slate-800 dark:text-white">{cls.className}</td>
                       <td className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm">{cls.section}</td>
                       <td className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm">
-                        {cls.teacherName || <span className="italic text-slate-300 dark:text-gray-600">Unassigned</span>}
+                        {cls.teacherName || <span className="italic text-slate-500 dark:text-gray-400">Unassigned</span>}
                       </td>
                       <td className="py-3 px-4">
                         {cls.markedToday ? (
@@ -188,7 +188,7 @@ function AttendanceDashboard() {
         <div className="glass-card rounded-xl overflow-hidden">
           <div className="p-4 border-b border-slate-100 dark:border-gray-700">
             <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-              <AlertTriangle size={16} className="text-rose-500" />
+              <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400" />
               Students with 3+ Consecutive Absences
             </h3>
           </div>
@@ -254,7 +254,7 @@ function AttendanceDashboard() {
             <div className="glass-card rounded-xl overflow-hidden">
               <div className="p-4 border-b border-slate-100 dark:border-gray-700">
                 <h3 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                  <BarChart2 size={16} className="text-indigo-500" />
+                  <BarChart2 size={16} className="text-indigo-600" />
                   Term Attendance — {classes.find((c) => c._id === selectedClassId)?.name}
                 </h3>
               </div>
@@ -277,11 +277,11 @@ function AttendanceDashboard() {
                         <tr key={s.studentId} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
                           <td className="py-3 px-4 font-medium text-slate-800 dark:text-white">
                             <div>{s.name}</div>
-                            <div className="text-xs text-slate-400 dark:text-gray-500">{s.admissionNumber}</div>
+                            <div className="text-xs text-slate-500 dark:text-gray-400">{s.admissionNumber}</div>
                           </td>
                           <td className="py-3 px-4 text-slate-600 dark:text-gray-300">{s.total}</td>
-                          <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-medium">{s.present}</td>
-                          <td className="py-3 px-4 text-rose-600 dark:text-rose-400 font-medium">{s.absent}</td>
+                          <td className="py-3 px-4 text-emerald-700 dark:text-emerald-400 font-medium">{s.present}</td>
+                          <td className="py-3 px-4 text-rose-700 dark:text-rose-400 font-medium">{s.absent}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-2 bg-slate-100 dark:bg-gray-700 rounded-full overflow-hidden max-w-[80px]">
@@ -299,10 +299,10 @@ function AttendanceDashboard() {
                               <span
                                 className={`text-sm font-semibold ${
                                   s.attendancePercent >= 75
-                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    ? 'text-emerald-700 dark:text-emerald-400'
                                     : s.attendancePercent >= 50
                                     ? 'text-amber-600 dark:text-amber-400'
-                                    : 'text-rose-600 dark:text-rose-400'
+                                    : 'text-rose-700 dark:text-rose-400'
                                 }`}
                               >
                                 {s.attendancePercent ?? 'N/A'}%

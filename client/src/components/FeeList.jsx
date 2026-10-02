@@ -178,7 +178,7 @@ function FeeList({ refreshKey }) {
     }
   };
 
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   const filteredFees = classFilter
     ? fees.filter((f) => {
@@ -279,13 +279,13 @@ function FeeList({ refreshKey }) {
                               />
                               <button
                                 onClick={() => handleAdjust(fee._id)}
-                                className="text-emerald-600 hover:text-emerald-700 text-xs font-medium"
+                                className="text-emerald-700 hover:text-emerald-800 text-xs font-medium"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={() => setEditingId(null)}
-                                className="text-slate-400 hover:text-slate-600 text-xs"
+                                className="text-slate-500 dark:text-gray-400 hover:text-slate-600 text-xs"
                               >
                                 Cancel
                               </button>
@@ -324,7 +324,7 @@ function FeeList({ refreshKey }) {
                         </td>
                         <td className="py-3 px-5">
                           {fee.status === 'Fully Paid' ? (
-                            <span className="text-slate-400 text-sm">—</span>
+                            <span className="text-slate-500 dark:text-gray-400 text-sm">—</span>
                           ) : (
                             <div className="flex gap-2">
                               <input
@@ -358,7 +358,7 @@ function FeeList({ refreshKey }) {
                               <button
                                 onClick={() => handlePayOnline(fee._id)}
                                 disabled={initiatingId === fee._id}
-                                className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm px-3 py-1 rounded-lg transition"
+                                className="bg-emerald-700 hover:bg-emerald-800 disabled:bg-emerald-400 text-white text-sm px-3 py-1 rounded-lg transition"
                               >
                                 {initiatingId === fee._id ? '...' : 'Pay Online'}
                               </button>
@@ -368,7 +368,7 @@ function FeeList({ refreshKey }) {
                         <td className="py-3 px-5">
                           <button
                             onClick={() => setReceiptFee(fee)}
-                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-sm font-medium transition"
+                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 text-sm font-medium transition"
                           >
                             Receipt
                           </button>
@@ -377,7 +377,7 @@ function FeeList({ refreshKey }) {
                           <button
                             onClick={() => handleDelete(fee._id, fee.studentId?.name || 'this student')}
                             disabled={deletingId === fee._id}
-                            className="text-rose-500 hover:text-rose-700 disabled:opacity-50 text-sm transition"
+                            className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 text-sm transition"
                           >
                             Delete
                           </button>

@@ -207,12 +207,12 @@ function AddScore({ onScoreAdded, userRole }) {
       <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Score</h2>
 
       {error && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+        <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
           {success}
         </div>
       )}
@@ -220,7 +220,7 @@ function AddScore({ onScoreAdded, userRole }) {
       {/* Class filter */}
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">
         {isTeacher ? 'Class' : (
-          <>Filter by Class <span className="text-slate-400">(optional)</span></>
+          <>Filter by Class <span className="text-slate-500 dark:text-gray-400">(optional)</span></>
         )}
       </label>
       <select
@@ -238,7 +238,7 @@ function AddScore({ onScoreAdded, userRole }) {
         ))}
       </select>
       {isTeacher && visibleClasses.length === 0 && (
-        <p className="text-xs text-rose-500 -mt-2 mb-3">
+        <p className="text-xs text-rose-600 dark:text-rose-400 -mt-2 mb-3">
           You haven't been assigned any subjects yet — contact your admin.
         </p>
       )}
@@ -270,7 +270,7 @@ function AddScore({ onScoreAdded, userRole }) {
         {showDropdown && (
           <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-lg shadow-lg max-h-56 overflow-y-auto">
             {matchingStudents.length === 0 ? (
-              <p className="p-3 text-sm text-slate-400">
+              <p className="p-3 text-sm text-slate-500 dark:text-gray-400">
                 {selectedClassId ? 'No students found in this class' : 'No matching students'}
               </p>
             ) : (
@@ -282,7 +282,7 @@ function AddScore({ onScoreAdded, userRole }) {
                   className="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-gray-600 transition text-slate-800 dark:text-white"
                 >
                   {s.name}{' '}
-                  <span className="text-slate-400 dark:text-gray-400">
+                  <span className="text-slate-500 dark:text-gray-400">
                     ({s.classId?.name || classNameById[s.classId?._id || s.classId] || 'No class'})
                   </span>
                 </button>
@@ -314,7 +314,7 @@ function AddScore({ onScoreAdded, userRole }) {
         ))}
       </select>
       {studentId && filteredSubjects.length === 0 && (
-        <p className="text-xs text-rose-500 -mt-2 mb-3">
+        <p className="text-xs text-rose-600 dark:text-rose-400 -mt-2 mb-3">
           No subjects found for this student's class yet — add one under Subjects first.
         </p>
       )}

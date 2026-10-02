@@ -256,12 +256,12 @@ function SchoolSettings() {
         <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">School Settings</h2>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
             {success}
           </div>
         )}
@@ -283,11 +283,11 @@ function SchoolSettings() {
           disabled={uploading}
           className="w-full mb-1 text-sm text-slate-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:text-sm file:font-medium hover:file:bg-indigo-700 file:cursor-pointer disabled:opacity-50"
         />
-        <p className="text-xs text-slate-400 mb-4">{uploading ? 'Uploading...' : 'Upload a PNG or JPG. It will be resized automatically.'}</p>
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">{uploading ? 'Uploading...' : 'Upload a PNG or JPG. It will be resized automatically.'}</p>
 
         <div className="border-t border-slate-100 dark:border-gray-700 pt-4 mt-2 mb-4">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">Continuous Assessment Weighting</h3>
-          <p className="text-xs text-slate-400 mb-3">Set the maximum score for each component. These should add up to your school's total (usually 100).</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">Set the maximum score for each component. These should add up to your school's total (usually 100).</p>
           <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="block text-xs mb-1 text-slate-600 dark:text-gray-300">CA1 Max</label>
@@ -302,7 +302,7 @@ function SchoolSettings() {
               <input type="number" value={examMax} onChange={(e) => setExamMax(Number(e.target.value))} className={inputClass} />
             </div>
           </div>
-          <p className="text-xs mt-2 text-slate-400">
+          <p className="text-xs mt-2 text-slate-500 dark:text-gray-400">
             Total: {ca1Max + ca2Max + examMax}
             {ca1Max + ca2Max + examMax !== 100 && (
               <span className="text-amber-600"> (doesn't add up to 100 — grades will still be calculated proportionally)</span>
@@ -312,7 +312,7 @@ function SchoolSettings() {
 
         <div className="border-t border-slate-100 dark:border-gray-700 pt-4 mt-2 mb-4">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">School Levels</h3>
-          <p className="text-xs text-slate-400 mb-3">
+          <p className="text-xs text-slate-500 dark:text-gray-400 mb-3">
             Choose the levels your school operates. Deselecting a level only hides it from dashboards and class
             dropdowns — any existing classes, students, or scores in it stay exactly as they are.
           </p>
@@ -353,7 +353,7 @@ function SchoolSettings() {
         </div>
 
         <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Portal Sign-in Link</label>
-        <p className="text-xs text-slate-400 mb-2">Parents who open this link won't need to type the School ID — it's filled in automatically.</p>
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-2">Parents who open this link won't need to type the School ID — it's filled in automatically.</p>
         <div className="flex gap-2">
           <input type="text" value={tenantId ? `${window.location.origin}/portal?tenantId=${tenantId}` : ''} readOnly className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-900 text-slate-800 dark:text-white text-xs font-mono break-all" />
           <button type="button" onClick={() => copyToClipboard(`${window.location.origin}/portal?tenantId=${tenantId}`, 'portalLink')} disabled={!tenantId} className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center gap-1 text-sm whitespace-nowrap">
@@ -370,7 +370,7 @@ function SchoolSettings() {
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           Connect your Meta Business WhatsApp account to send absence alerts, fee reminders and broadcasts to parents.{' '}
-          <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noreferrer" className="text-indigo-500 underline">
+          <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-300 underline">
             Get credentials →
           </a>
         </p>
@@ -396,15 +396,15 @@ function SchoolSettings() {
             placeholder="EAAxxxxxxxxxxxxx..."
             className="w-full p-2 pr-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
           />
-          <button type="button" onClick={() => setShowToken((v) => !v)} className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
+          <button type="button" onClick={() => setShowToken((v) => !v)} className="absolute right-2 top-2.5 text-slate-500 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300">
             {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
 
-        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">WhatsApp Business Account ID <span className="text-slate-400">(optional)</span></label>
+        <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">WhatsApp Business Account ID <span className="text-slate-500 dark:text-gray-400">(optional)</span></label>
         <input type="text" value={whatsappBusinessAccountId} onChange={(e) => setWhatsappBusinessAccountId(e.target.value)} placeholder="e.g. 987654321098765" className={inputClass} />
 
-        <button type="submit" disabled={saving} className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-2 rounded-lg transition mb-4">
+        <button type="submit" disabled={saving} className="w-full bg-green-700 hover:bg-green-800 disabled:bg-green-400 text-white font-semibold py-2 rounded-lg transition mb-4">
           {saving ? 'Saving...' : 'Save WhatsApp Settings'}
         </button>
 
@@ -412,12 +412,12 @@ function SchoolSettings() {
           <p className="text-xs font-semibold text-slate-600 dark:text-gray-300 mb-2">Test your connection</p>
           <div className="flex gap-2">
             <input type="tel" value={waTestPhone} onChange={(e) => setWaTestPhone(e.target.value)} placeholder="2348012345678 (no + sign)" className="flex-1 p-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:border-green-400 outline-none transition" />
-            <button type="button" onClick={handleTestWhatsApp} disabled={waTesting || !waTestPhone} className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap">
+            <button type="button" onClick={handleTestWhatsApp} disabled={waTesting || !waTestPhone} className="flex items-center gap-1 px-3 py-2 bg-green-700 hover:bg-green-800 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap">
               <Send size={13} /> {waTesting ? 'Sending...' : 'Test'}
             </button>
           </div>
           {waTestResult && (
-            <p className={`text-xs mt-2 ${waTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            <p className={`text-xs mt-2 ${waTestResult.startsWith('✅') ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
               {waTestResult}
             </p>
           )}
@@ -427,11 +427,11 @@ function SchoolSettings() {
       {/* ── SMS Integration (Termii) ── */}
       <form onSubmit={handleSaveSMS} className="glass-card p-6 rounded-xl max-w-md mt-6">
         <h2 className="text-lg font-bold mb-1 text-slate-800 dark:text-white flex items-center gap-2">
-          <Smartphone size={18} className="text-indigo-500" /> SMS &amp; WhatsApp via Termii
+          <Smartphone size={18} className="text-indigo-600" /> SMS &amp; WhatsApp via Termii
         </h2>
         <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           One Termii account — use it for SMS, WhatsApp, or both. Same API key for all channels.{' '}
-          <a href="https://termii.com" target="_blank" rel="noreferrer" className="text-indigo-500 underline">
+          <a href="https://termii.com" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-300 underline">
             Get Termii API key →
           </a>
         </p>
@@ -465,7 +465,7 @@ function SchoolSettings() {
             placeholder="TLxxxxxxxxxxxxxxxxxxxxxxxx"
             className="w-full p-2 pr-10 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition"
           />
-          <button type="button" onClick={() => setShowSmsKey((v) => !v)} className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300">
+          <button type="button" onClick={() => setShowSmsKey((v) => !v)} className="absolute right-2 top-2.5 text-slate-500 dark:text-gray-400 hover:text-slate-600 dark:hover:text-gray-300">
             {showSmsKey ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
@@ -479,7 +479,7 @@ function SchoolSettings() {
           maxLength={11}
           className={inputClass}
         />
-        <p className="text-xs text-slate-400 -mt-2 mb-3">Max 11 chars. Must be pre-approved by Termii.</p>
+        <p className="text-xs text-slate-500 dark:text-gray-400 -mt-2 mb-3">Max 11 chars. Must be pre-approved by Termii.</p>
 
         <button type="submit" disabled={saving} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2 rounded-lg transition mb-4">
           {saving ? 'Saving...' : 'Save Termii Settings'}
@@ -495,7 +495,7 @@ function SchoolSettings() {
             </button>
           </div>
           {smsTestResult && (
-            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{smsTestResult}</p>
+            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>{smsTestResult}</p>
           )}
         </div>
 
@@ -520,13 +520,13 @@ function SchoolSettings() {
                 } catch (e) { setSmsTestResult(`❌ ${e.message}`); }
                 finally { setSmsTesting(false); }
               }}
-              className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
+              className="flex items-center gap-1 px-3 py-2 bg-green-700 hover:bg-green-800 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition whitespace-nowrap"
             >
               <Send size={13} /> {smsTesting ? '...' : 'Test WA'}
             </button>
           </div>
           {smsTestResult && (
-            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{smsTestResult}</p>
+            <p className={`text-xs mt-2 ${smsTestResult.startsWith('✅') ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>{smsTestResult}</p>
           )}
         </div>
       </form>

@@ -77,21 +77,21 @@ function TeacherDashboard() {
           to="/dashboard/attendance"
           className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
-          <ClipboardCheck size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+          <ClipboardCheck size={20} className="text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Mark Attendance</span>
         </Link>
         <Link
           to="/dashboard/scores"
           className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
-          <ClipboardList size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+          <ClipboardList size={20} className="text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Enter Scores</span>
         </Link>
         <Link
           to="/dashboard/remarks"
           className="glass-card flex items-center gap-2 rounded-xl p-4 hover:border-indigo-300 dark:hover:border-indigo-600 transition"
         >
-          <PenLine size={20} className="text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+          <PenLine size={20} className="text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-800 dark:text-white">Add Remarks</span>
         </Link>
       </div>
@@ -100,7 +100,7 @@ function TeacherDashboard() {
         {/* Form class */}
         <div className="glass-card rounded-xl p-5">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
-            <GraduationCap size={18} className="text-indigo-600 dark:text-indigo-400" /> Your Form Class
+            <GraduationCap size={18} className="text-indigo-600 dark:text-indigo-300" /> Your Form Class
           </h3>
           {summary?.formClass ? (
             <div>
@@ -121,14 +121,14 @@ function TeacherDashboard() {
         {/* Subjects taught */}
         <div className="glass-card rounded-xl p-5">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
-            <BookOpen size={18} className="text-indigo-600 dark:text-indigo-400" /> Subjects You Teach
+            <BookOpen size={18} className="text-indigo-600 dark:text-indigo-300" /> Subjects You Teach
           </h3>
           {summary?.subjectsTaught?.length > 0 ? (
             <ul className="space-y-2">
               {summary.subjectsTaught.map((s) => (
                 <li key={s._id} className="text-sm text-slate-700 dark:text-gray-200 flex items-center justify-between">
                   <span className="font-medium">{s.name}</span>
-                  <span className="text-slate-400 dark:text-gray-500">
+                  <span className="text-slate-500 dark:text-gray-400">
                     {s.className} {s.classSection && `(${s.classSection})`}
                   </span>
                 </li>
@@ -145,7 +145,7 @@ function TeacherDashboard() {
       {/* Today's schedule */}
       <div className="glass-card rounded-xl p-5 mt-6">
         <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">
-          <Calendar size={18} className="text-indigo-600 dark:text-indigo-400" /> Today's Schedule ({today})
+          <Calendar size={18} className="text-indigo-600 dark:text-indigo-300" /> Today's Schedule ({today})
         </h3>
         {!isWeekday ? (
           <p className="text-sm text-slate-500 dark:text-gray-400">No classes today — enjoy the weekend!</p>
@@ -155,13 +155,13 @@ function TeacherDashboard() {
           <div className="divide-y divide-slate-50 dark:divide-gray-700">
             {todaySchedule.map((entry) => (
               <div key={entry._id} className="flex items-center justify-between py-2.5 text-sm">
-                <span className="text-slate-400 dark:text-gray-500 w-28 flex-shrink-0">
+                <span className="text-slate-500 dark:text-gray-400 w-28 flex-shrink-0">
                   {entry.startTime} – {entry.endTime}
                 </span>
                 <span className="flex-1 font-medium text-slate-800 dark:text-white">
                   {entry.type === 'lesson' ? (entry.subjectId?.name || 'Lesson') : entry.type === 'short_break' ? 'Short Break' : 'Long Break'}
                 </span>
-                <span className="text-slate-400 dark:text-gray-500">
+                <span className="text-slate-500 dark:text-gray-400">
                   {entry.classId?.name || ''}
                 </span>
               </div>

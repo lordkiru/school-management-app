@@ -130,18 +130,18 @@ function PromoteClass() {
     <div className="p-6">
       <div className="glass-card rounded-xl p-5 mb-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Promote Class</h2>
-        <p className="text-xs text-slate-400 mb-4">
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
           Select a class, choose the destination, then uncheck any student who is repeating —
           everyone else will be moved.
         </p>
 
         {error && (
-          <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
             {error}
           </div>
         )}
         {success && (
-          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-600 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
+          <div className="bg-emerald-50 dark:bg-green-900 text-emerald-700 dark:text-green-200 text-sm p-2 rounded-lg mb-3">
             {success}
           </div>
         )}
@@ -193,7 +193,7 @@ function PromoteClass() {
             {students.length > 0 && (
               <button
                 onClick={toggleAll}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-xs text-indigo-600 dark:text-indigo-300 hover:underline"
               >
                 {selectedIds.size === students.length ? 'Unselect all' : 'Select all'}
               </button>

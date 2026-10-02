@@ -163,7 +163,7 @@ function ScoreList({ refreshKey }) {
       </div>
 
       {editError && (
-        <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded mb-3">
+        <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded mb-3">
           {editError}
         </div>
       )}
@@ -251,7 +251,7 @@ function ScoreList({ refreshKey }) {
                             <button
                               onClick={() => saveEdit(score._id)}
                               disabled={saving}
-                              className="text-emerald-600 hover:text-emerald-700 disabled:opacity-50"
+                              className="text-emerald-700 hover:text-emerald-800 disabled:opacity-50"
                               title="Save"
                             >
                               <Check size={16} />
@@ -268,7 +268,7 @@ function ScoreList({ refreshKey }) {
                         ) : (
                           <button
                             onClick={() => startEdit(score)}
-                            className="text-indigo-500 hover:text-indigo-700"
+                            className="text-indigo-600 hover:text-indigo-700"
                             title="Edit this score"
                           >
                             <Pencil size={16} />

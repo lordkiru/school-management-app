@@ -133,14 +133,14 @@ function ParentList({ refreshKey }) {
   );
 
   if (loading) return <p className="p-6 text-slate-500 dark:text-gray-400">Loading parents...</p>;
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
       <div className="p-5 border-b border-slate-100 dark:border-gray-700">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-3">Parents</h2>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400" size={18} />
           <input
             type="text"
             placeholder="Search parents..."
@@ -167,7 +167,7 @@ function ParentList({ refreshKey }) {
                 </div>
                 <button
                   onClick={() => deleteParent(parent._id, parent.name)}
-                  className="text-red-500 hover:text-red-700 transition"
+                  className="text-red-600 dark:text-red-400 hover:text-red-800 transition"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -189,7 +189,7 @@ function ParentList({ refreshKey }) {
                         </span>
                         <button
                           onClick={() => unlinkChild(parent._id, child._id)}
-                          className="text-red-500 hover:text-red-700 text-xs"
+                          className="text-red-600 dark:text-red-300 hover:text-red-800 text-xs"
                         >
                           Remove
                         </button>
@@ -197,7 +197,7 @@ function ParentList({ refreshKey }) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500 dark:text-gray-500">No children linked</p>
+                  <p className="text-sm text-slate-500 dark:text-gray-400">No children linked</p>
                 )}
               </div>
 
@@ -213,7 +213,7 @@ function ParentList({ refreshKey }) {
                     }}
                     className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
-                  {searchingStudents && <p className="text-xs text-slate-500">Searching...</p>}
+                  {searchingStudents && <p className="text-xs text-slate-500 dark:text-gray-400">Searching...</p>}
                   {students.length > 0 && (
                     <div className="max-h-40 overflow-y-auto border border-slate-200 dark:border-gray-600 rounded-lg">
                       {students.map((student) => (
@@ -241,7 +241,7 @@ function ParentList({ refreshKey }) {
               ) : (
                 <button
                   onClick={() => setLinkingParentId(parent._id)}
-                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-300 hover:underline"
                 >
                   <UserPlus size={16} />
                   Link Child

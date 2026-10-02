@@ -217,7 +217,7 @@ function TimetableView() {
             <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-3">Add Timetable Entry</h3>
 
             {formError && (
-              <div className="bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
+              <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
                 {formError}
               </div>
             )}
@@ -318,7 +318,7 @@ function TimetableView() {
                 </p>
                 <button
                   onClick={() => printArea(printRef)}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                  className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition"
                 >
                   <Printer size={15} /> Print Timetable
                 </button>
@@ -328,7 +328,7 @@ function TimetableView() {
             {loading ? (
               <p className="p-5 text-slate-500 dark:text-gray-400">Loading timetable...</p>
             ) : error ? (
-              <p className="p-5 text-rose-600 dark:text-red-400">{error}</p>
+              <p className="p-5 text-rose-700 dark:text-red-400">{error}</p>
             ) : (
               /* Printable area — only this is sent to printer */
               <div ref={printRef} className="overflow-x-auto">
@@ -391,7 +391,7 @@ function TimetableView() {
                                   <button
                                     onClick={() => handleDelete(entry._id)}
                                     disabled={deletingId === entry._id}
-                                    className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                                    className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 transition"
                                   >
                                     <Trash2 size={16} />
                                   </button>

@@ -173,7 +173,7 @@ function DataImport({ userRole }) {
           </div>
           <button
             onClick={downloadTemplate}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+            className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
           >
             <Download size={15} /> Download Template
           </button>
@@ -219,7 +219,7 @@ function DataImport({ userRole }) {
                   <p className="font-semibold text-slate-700 dark:text-white text-sm">
                     Drag & drop your Excel file here
                   </p>
-                  <p className="text-xs text-slate-400 dark:text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
                     or click to browse — .xlsx or .csv, max 5MB
                   </p>
                 </div>
@@ -245,12 +245,12 @@ function DataImport({ userRole }) {
                 <span className="font-bold text-slate-800 dark:text-white">{preview.total}</span>
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg px-4 py-2 text-sm">
-                <span className="text-emerald-600 dark:text-emerald-400">✓ Valid: </span>
+                <span className="text-emerald-700 dark:text-emerald-400">✓ Valid: </span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-300">{preview.total - preview.errors}</span>
               </div>
               {preview.errors > 0 && (
                 <div className="bg-rose-50 dark:bg-rose-900/30 rounded-lg px-4 py-2 text-sm">
-                  <span className="text-rose-600 dark:text-rose-400">✗ Errors: </span>
+                  <span className="text-rose-700 dark:text-rose-400">✗ Errors: </span>
                   <span className="font-bold text-rose-700 dark:text-rose-300">{preview.errors}</span>
                 </div>
               )}
@@ -276,7 +276,7 @@ function DataImport({ userRole }) {
                         row.errors?.length ? 'bg-rose-50 dark:bg-rose-900/10' : ''
                       }`}
                     >
-                      <td className="px-3 py-2 text-slate-400">{row.row}</td>
+                      <td className="px-3 py-2 text-slate-500 dark:text-gray-400">{row.row}</td>
                       {currentType.previewCols.map((col) => (
                         <td key={col} className="px-3 py-2 text-slate-700 dark:text-gray-200 max-w-[120px] truncate">
                           {String(row[col] ?? '')}
@@ -285,8 +285,8 @@ function DataImport({ userRole }) {
                       <td className="px-3 py-2">
                         {row.errors?.length ? (
                           <div className="flex items-start gap-1">
-                            <XCircle size={13} className="text-rose-500 mt-0.5 flex-shrink-0" />
-                            <span className="text-rose-600 dark:text-rose-400">{row.errors.join('; ')}</span>
+                            <XCircle size={13} className="text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-rose-700 dark:text-rose-400">{row.errors.join('; ')}</span>
                           </div>
                         ) : (
                           <CheckCircle size={13} className="text-emerald-500" />
@@ -329,18 +329,18 @@ function DataImport({ userRole }) {
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Import Complete!</h3>
             <div className="flex justify-center gap-6 mb-6">
               <div>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{result.imported}</p>
+                <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400">{result.imported}</p>
                 <p className="text-sm text-slate-500 dark:text-gray-400">Imported</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-slate-400">{result.skipped}</p>
+                <p className="text-3xl font-bold text-slate-500 dark:text-gray-400">{result.skipped}</p>
                 <p className="text-sm text-slate-500 dark:text-gray-400">Skipped (duplicates/errors)</p>
               </div>
             </div>
             {result.errors?.length > 0 && (
               <div className="bg-rose-50 dark:bg-rose-900/20 rounded-lg p-3 mb-5 text-left max-h-32 overflow-y-auto">
                 {result.errors.map((e, i) => (
-                  <p key={i} className="text-xs text-rose-600 dark:text-rose-400">{e}</p>
+                  <p key={i} className="text-xs text-rose-700 dark:text-rose-400">{e}</p>
                 ))}
               </div>
             )}

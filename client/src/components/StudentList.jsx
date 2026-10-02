@@ -97,7 +97,7 @@ function StudentList({ refreshKey }) {
     }
   };
 
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   const filteredStudents = classFilter
     ? students.filter((s) => (s.classId?._id || s.classId) === classFilter)
@@ -175,7 +175,7 @@ function StudentList({ refreshKey }) {
                           <button
                             onClick={(e) => handleDelete(e, student._id, student.name)}
                             disabled={deletingId === student._id}
-                            className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                            className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 transition"
                             title="Delete student"
                           >
                             <Trash2 size={16} />

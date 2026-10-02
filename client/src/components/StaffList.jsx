@@ -153,7 +153,7 @@ function StaffList({ refreshKey }) {
     'p-1.5 text-sm rounded border border-indigo-300 dark:border-indigo-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 w-full';
 
   if (loading) return <p className="p-6 text-slate-500 dark:text-gray-400">Loading staff...</p>;
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   return (
     <div className="p-6">
@@ -230,13 +230,13 @@ function StaffList({ refreshKey }) {
                             ))}
                           </select>
                         ) : (
-                          <span className="text-xs text-slate-400 dark:text-gray-500 italic">N/A</span>
+                          <span className="text-xs text-slate-500 dark:text-gray-400 italic">N/A</span>
                         )}
                       </td>
                       <td className="py-2 px-4">
                         <div className="flex flex-col gap-1">
                           {editError && (
-                            <p className="text-xs text-rose-500 dark:text-rose-400">{editError}</p>
+                            <p className="text-xs text-rose-600 dark:text-rose-400">{editError}</p>
                           )}
                           <div className="flex gap-2">
                             <button
@@ -270,9 +270,9 @@ function StaffList({ refreshKey }) {
                             {classes.find((c) => c._id === member.assignedClassId)?.name || 'Assigned'}
                           </span>
                         ) : member.role === 'teacher' ? (
-                          <span className="text-xs text-slate-400 dark:text-gray-500 italic">Not assigned</span>
+                          <span className="text-xs text-slate-500 dark:text-gray-400 italic">Not assigned</span>
                         ) : (
-                          <span className="text-xs text-slate-300 dark:text-gray-600">—</span>
+                          <span className="text-xs text-slate-500 dark:text-gray-400">—</span>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -280,7 +280,7 @@ function StaffList({ refreshKey }) {
                           {/* Edit */}
                           <button
                             onClick={() => startEdit(member)}
-                            className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                            className="text-slate-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
                             title="Edit staff"
                           >
                             <Pencil size={15} />
@@ -289,7 +289,7 @@ function StaffList({ refreshKey }) {
                           <button
                             onClick={() => handleGenerateReset(member._id)}
                             disabled={resettingId === member._id}
-                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 text-xs font-medium disabled:opacity-50 transition whitespace-nowrap"
+                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 text-xs font-medium disabled:opacity-50 transition whitespace-nowrap"
                           >
                             {resettingId === member._id ? '...' : 'Reset pwd'}
                           </button>
@@ -298,7 +298,7 @@ function StaffList({ refreshKey }) {
                             <button
                               onClick={() => handleDelete(member._id, member.name)}
                               disabled={deletingId === member._id}
-                              className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                              className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 transition"
                               title="Remove staff"
                             >
                               <Trash2 size={15} />

@@ -216,7 +216,7 @@ function SubjectList({ refreshKey }) {
     }
   };
 
-  if (error) return <p className="p-6 text-rose-600 dark:text-red-400">{error}</p>;
+  if (error) return <p className="p-6 text-rose-700 dark:text-red-400">{error}</p>;
 
   const filteredSubjects = selectedClassId
     ? subjects.filter((s) => (s.classId?._id || s.classId) === selectedClassId)
@@ -273,13 +273,13 @@ function SubjectList({ refreshKey }) {
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                     <h3 className="font-semibold text-slate-800 dark:text-white">
                       {group.name}
-                      <span className="ml-2 text-xs font-normal text-slate-400 dark:text-gray-500">
+                      <span className="ml-2 text-xs font-normal text-slate-500 dark:text-gray-400">
                         {group.rows.length} class{group.rows.length === 1 ? '' : 'es'}
                       </span>
                     </h3>
                     <button
                       onClick={() => openBulkAssign(group.name)}
-                      className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                      className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-300 hover:underline"
                     >
                       <UserCog size={14} /> Assign teacher to multiple classes
                     </button>
@@ -310,12 +310,12 @@ function SubjectList({ refreshKey }) {
                         </button>
                         <button
                           onClick={() => setBulkAssignName(null)}
-                          className="text-xs text-slate-400 hover:text-slate-600"
+                          className="text-xs text-slate-500 dark:text-gray-400 hover:text-slate-600"
                         >
                           Cancel
                         </button>
                       </div>
-                      {bulkError && <p className="text-xs text-rose-500 mb-2">{bulkError}</p>}
+                      {bulkError && <p className="text-xs text-rose-600 dark:text-rose-400 mb-2">{bulkError}</p>}
                       {(() => {
                         const levelsInGroup = new Set(
                           group.rows.map((r) => r.classId?.section).filter(Boolean)
@@ -324,13 +324,13 @@ function SubjectList({ refreshKey }) {
                         if (shortcutLevels.length === 0) return null;
                         return (
                           <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                            <span className="text-xs text-slate-400 dark:text-gray-500">Quick select:</span>
+                            <span className="text-xs text-slate-500 dark:text-gray-400">Quick select:</span>
                             {shortcutLevels.map((level) => (
                               <button
                                 key={level}
                                 type="button"
                                 onClick={() => selectAllInLevel(group.rows, level)}
-                                className="text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-full px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
+                                className="text-xs font-medium text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-full px-2.5 py-1 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition"
                               >
                                 All {level} Classes
                               </button>
@@ -377,13 +377,13 @@ function SubjectList({ refreshKey }) {
                                   </select>
                                   <button
                                     onClick={() => handleAssignTeacher(subject._id)}
-                                    className="text-emerald-600 hover:text-emerald-700 text-xs font-medium"
+                                    className="text-emerald-700 hover:text-emerald-800 text-xs font-medium"
                                   >
                                     Save
                                   </button>
                                   <button
                                     onClick={() => setAssigningId(null)}
-                                    className="text-slate-400 hover:text-slate-600 text-xs"
+                                    className="text-slate-500 dark:text-gray-400 hover:text-slate-600 text-xs"
                                   >
                                     Cancel
                                   </button>
@@ -405,7 +405,7 @@ function SubjectList({ refreshKey }) {
                               <button
                                 onClick={() => handleDelete(subject._id, subject.name, subject.classId?.name || 'this class')}
                                 disabled={deletingId === subject._id}
-                                className="text-rose-500 hover:text-rose-700 disabled:opacity-50 transition"
+                                className="text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-50 transition"
                                 title="Remove subject from this class"
                               >
                                 <Trash2 size={15} />

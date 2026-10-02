@@ -176,7 +176,7 @@ function FeeStructureSetup() {
     <div className="p-6 max-w-2xl mx-auto">
       <div className="glass-card glass-card-strong rounded-xl p-6">
         <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Fee Structure Setup</h2>
-        <p className="text-xs text-slate-400 mb-5">
+        <p className="text-xs text-slate-500 dark:text-gray-400 mb-5">
           Define the fee breakdown for each class per term. This is for reference and printing — it does not automatically create student fee records.
         </p>
 
@@ -208,7 +208,7 @@ function FeeStructureSetup() {
           </div>
         </div>
 
-        {loading && <p className="text-sm text-slate-400 mb-4">Loading existing structure...</p>}
+        {loading && <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">Loading existing structure...</p>}
 
         {existing && (
           <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-xs text-amber-700 dark:text-amber-300">
@@ -220,10 +220,10 @@ function FeeStructureSetup() {
         {classId && term && session && (
           <form onSubmit={handleSave}>
             {error && (
-              <div className="mb-3 p-2 bg-rose-50 dark:bg-red-900 text-rose-600 dark:text-red-200 text-sm rounded-lg">{error}</div>
+              <div className="mb-3 p-2 bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm rounded-lg">{error}</div>
             )}
             {success && (
-              <div className="mb-3 p-2 bg-emerald-50 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-200 text-sm rounded-lg">{success}</div>
+              <div className="mb-3 p-2 bg-emerald-50 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-200 text-sm rounded-lg">{success}</div>
             )}
 
             <div className="space-y-2 mb-4">
@@ -254,7 +254,7 @@ function FeeStructureSetup() {
                     type="button"
                     onClick={() => removeItem(index)}
                     disabled={items.length === 1}
-                    className="p-1.5 text-rose-500 hover:text-rose-700 disabled:opacity-30 transition"
+                    className="p-1.5 text-rose-700 dark:text-rose-400 hover:text-rose-800 disabled:opacity-30 transition"
                   >
                     <X size={16} />
                   </button>
@@ -265,7 +265,7 @@ function FeeStructureSetup() {
             <button
               type="button"
               onClick={addItem}
-              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 mb-5 transition"
+              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-300 mb-5 transition"
             >
               <Plus size={15} /> Add another item
             </button>
@@ -288,7 +288,7 @@ function FeeStructureSetup() {
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="flex items-center gap-2 text-rose-600 hover:text-rose-800 dark:text-rose-400 text-sm font-medium transition"
+                  className="flex items-center gap-2 text-rose-700 hover:text-rose-800 dark:text-rose-400 text-sm font-medium transition"
                 >
                   <Trash2 size={15} /> Delete
                 </button>
@@ -298,7 +298,7 @@ function FeeStructureSetup() {
         )}
 
         {!classId && (
-          <p className="text-sm text-slate-400 dark:text-gray-500 text-center py-6">
+          <p className="text-sm text-slate-500 dark:text-gray-400 text-center py-6">
             Select a class, term, and session above to set up the fee structure.
           </p>
         )}

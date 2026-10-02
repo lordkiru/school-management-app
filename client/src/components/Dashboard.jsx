@@ -120,6 +120,7 @@ function Dashboard({ userRole }) {
       value: stats.totalStudents,
       icon: Users,
       iconColor: 'text-indigo-600 dark:text-indigo-400',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-900/30',
       border: 'border-indigo-500',
     },
     {
@@ -127,6 +128,7 @@ function Dashboard({ userRole }) {
       value: stats.totalClasses,
       icon: GraduationCap,
       iconColor: 'text-purple-600 dark:text-purple-400',
+      iconBg: 'bg-purple-50 dark:bg-purple-900/30',
       border: 'border-purple-500',
     },
   ];
@@ -138,6 +140,7 @@ function Dashboard({ userRole }) {
         value: `₦${stats.totalPaid.toLocaleString()}`,
         icon: Wallet,
         iconColor: 'text-emerald-600 dark:text-emerald-400',
+        iconBg: 'bg-emerald-50 dark:bg-emerald-900/30',
         border: 'border-emerald-500',
       },
       {
@@ -145,6 +148,7 @@ function Dashboard({ userRole }) {
         value: `₦${stats.totalOutstanding.toLocaleString()}`,
         icon: ClipboardList,
         iconColor: 'text-rose-600 dark:text-rose-400',
+        iconBg: 'bg-rose-50 dark:bg-rose-900/30',
         border: 'border-rose-500',
       }
     );
@@ -155,26 +159,30 @@ function Dashboard({ userRole }) {
       <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Overview</h2>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {summaryCards.map(({ label, value, icon: Icon, iconColor, border }) => (
+        {summaryCards.map(({ label, value, icon: Icon, iconColor, iconBg, border }) => (
           <div
             key={label}
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 border-l-4 ${border} p-5 flex flex-col gap-2`}
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-md border-l-4 ${border} p-6 flex flex-col gap-3`}
           >
-            <Icon className={iconColor} size={22} />
-            <span className="text-2xl font-bold text-slate-800 dark:text-white">{value}</span>
-            <span className="text-sm text-slate-500 dark:text-gray-400">{label}</span>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
+              <Icon className={iconColor} size={20} />
+            </div>
+            <div>
+              <span className="block text-2xl font-bold text-slate-800 dark:text-white">{value}</span>
+              <span className="text-sm text-slate-500 dark:text-gray-400">{label}</span>
+            </div>
           </div>
         ))}
       </div>
 
-      <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">Students by Section</h3>
+      <h3 className="text-lg font-semibold mb-5 text-slate-800 dark:text-white">Students by Section</h3>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
         {stats.enabledSections.map((section) => (
           <div
             key={section}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5 flex flex-col gap-1"
+            className="bg-slate-50 dark:bg-gray-800/60 rounded-xl p-5 flex flex-col gap-1"
           >
-            <span className="text-2xl font-bold text-slate-800 dark:text-white">
+            <span className="text-2xl font-bold text-slate-700 dark:text-gray-200">
               {stats.studentsBySection[section]}
             </span>
             <span className="text-sm text-slate-500 dark:text-gray-400">{section}</span>
@@ -184,15 +192,15 @@ function Dashboard({ userRole }) {
 
       {stats.canSeeFees && (
         <>
-          <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">Fees by Section</h3>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 overflow-x-auto">
+          <h3 className="text-lg font-semibold mb-5 text-slate-800 dark:text-white">Fees by Section</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-gray-700">
-                  <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Section</th>
-                  <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Expected</th>
-                  <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Collected</th>
-                  <th className="py-3 px-4 text-slate-500 dark:text-gray-400 text-sm font-medium">Outstanding</th>
+              <thead className="bg-slate-50 dark:bg-gray-900/40">
+                <tr>
+                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Section</th>
+                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Expected</th>
+                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Collected</th>
+                  <th className="py-3.5 px-4 text-slate-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Outstanding</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,12 +208,12 @@ function Dashboard({ userRole }) {
                   const { expected, paid } = stats.feesBySection[section];
                   return (
                     <tr key={section} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
-                      <td className="py-3 px-4 font-medium text-slate-800 dark:text-white">{section}</td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-gray-300">₦{expected.toLocaleString()}</td>
-                      <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-white">{section}</td>
+                      <td className="py-3.5 px-4 text-slate-600 dark:text-gray-300">₦{expected.toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-emerald-600 dark:text-emerald-400 font-medium">
                         ₦{paid.toLocaleString()}
                       </td>
-                      <td className="py-3 px-4 text-rose-600 dark:text-rose-400 font-medium">
+                      <td className="py-3.5 px-4 text-rose-600 dark:text-rose-400 font-medium">
                         ₦{(expected - paid).toLocaleString()}
                       </td>
                     </tr>

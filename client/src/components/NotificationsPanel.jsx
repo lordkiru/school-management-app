@@ -290,7 +290,7 @@ function NotificationsPanel() {
             {/* Channel selector */}
             <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Channel</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {CHANNEL_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
@@ -431,7 +431,7 @@ function NotificationsPanel() {
             {/* Channel selector */}
             <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Channel</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {CHANNEL_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}

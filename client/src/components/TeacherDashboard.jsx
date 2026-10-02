@@ -96,7 +96,7 @@ function TeacherDashboard() {
         </Link>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form class */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-slate-100 dark:border-gray-700 p-5">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-white mb-3">

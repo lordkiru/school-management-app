@@ -214,7 +214,7 @@ function DashboardShell({
                 index
                 element={
                   <RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}>
-                    <div className="grid md:grid-cols-2 gap-6 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                       <AddStudent onStudentAdded={() => bumpRefresh('student')} />
                       <StudentList refreshKey={refreshKeys.student} />
                     </div>
@@ -231,7 +231,7 @@ function DashboardShell({
               path="classes"
               element={
                 <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
-                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                     <AddClass onClassAdded={() => bumpRefresh('class')} />
                     <ClassList refreshKey={refreshKeys.class} />
                   </div>
@@ -242,7 +242,7 @@ function DashboardShell({
               path="subjects"
               element={
                 <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
-                  <div className="grid md:grid-cols-2 gap-6 p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                     <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
                     <SubjectList refreshKey={refreshKeys.subject} />
                   </div>
@@ -252,7 +252,7 @@ function DashboardShell({
             <Route
               path="scores"
               element={
-                <div className="grid md:grid-cols-2 gap-6 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                   <AddScore onScoreAdded={() => bumpRefresh('score')} userRole={user.role} />
                   <ScoreList refreshKey={refreshKeys.score} />
                 </div>
@@ -261,7 +261,7 @@ function DashboardShell({
             <Route
               path="cbt"
               element={
-                <div className="grid xl:grid-cols-2 gap-6 p-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
                   <CbtBuilder onTestCreated={() => bumpRefresh('cbt')} />
                   <CbtResults refreshKey={refreshKeys.cbt} />
                 </div>
@@ -294,7 +294,7 @@ function DashboardShell({
             <Route
               path="staff"
               element={
-                <div className="grid md:grid-cols-2 gap-6 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                   <AddStaff onStaffAdded={() => bumpRefresh('staff')} currentUserRole={user.role} />
                   <StaffList refreshKey={refreshKeys.staff} />
                 </div>
@@ -303,7 +303,7 @@ function DashboardShell({
             <Route
               path="parents"
               element={
-                <div className="grid md:grid-cols-2 gap-6 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
                   <AddParent onParentAdded={() => bumpRefresh('parent')} />
                   <ParentList refreshKey={refreshKeys.parent} />
                 </div>

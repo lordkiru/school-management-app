@@ -82,7 +82,7 @@ function ClassList({ refreshKey }) {
             </div>
 
             {classes.length > 0 && (
-              <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-t border-slate-100 dark:border-gray-700 text-sm">
                 <span className="text-slate-500 dark:text-gray-400">
                   Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, classes.length)} of{' '}
                   {classes.length}

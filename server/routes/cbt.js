@@ -249,7 +249,7 @@ router.get('/tests/available', requireAuth, requireRole('student'), async (req, 
 
     const available = tests
       .filter((t) => !attemptedTestIds.has(String(t._id)))
-      .map(stripAnswerKey);
+      .map((t) => stripAnswerKey(t)); // arrow wrapper: a bare .map(stripAnswerKey) would pass the array index as questionOrder
 
     res.json(available);
   } catch (err) {

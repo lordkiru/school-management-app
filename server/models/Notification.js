@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema({
   tenantId: { type: String, required: true },
   type: {
     type: String,
-    enum: ['absence_alert', 'fee_reminder', 'result_published', 'custom_broadcast', 'custom_individual'],
+    enum: ['absence_alert', 'late_alert', 'fee_reminder', 'result_published', 'meeting_notice', 'school_closure', 'exam_notice', 'custom_broadcast', 'custom_individual'],
     required: true,
   },
   channel: {

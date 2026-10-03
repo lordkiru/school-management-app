@@ -76,11 +76,10 @@ const formatLongDate = (d) =>
 const formatDate = (d) => new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' });
 const formatNaira = (amount) => `₦${Number(amount).toLocaleString()}`;
 
-// Send the approved fee-reminder template, one message per child, for the chosen children of
-// one parent. Amounts come from the real Fee records (largest outstanding balance, matching
-// template-preview), never from text typed into the message box. Fully-paid children are
-// skipped. Only the parent's own children are accepted.
-async function sendFeeReminderViaWhatsApp({ tenantId, config, parent, studentIds, sentBy }) {
+// Send an approved template to one parent, one message per chosen child. `valuesFor(student)`
+// builds that child's template values from real records (or returns null to skip the child).
+// Only the parent's own children are accepted, so a request cannot message about another family.
+async function sendTemplatePerChild({ tenantId, config, parent, studentIds, sentBy, templateKey, logType, valuesFor, nothingToSendError }) {
   const ownChildren = new Set((parent.children || []).map(String));
   const ids = [...new Set(studentIds.map(String))].filter((id) => ownChildren.has(id));
   const students = await Student.find({ _id: { $in: ids }, tenantId });
@@ -88,22 +87,15 @@ async function sendFeeReminderViaWhatsApp({ tenantId, config, parent, studentIds
   let sent = 0, failed = 0;
   const errors = [];
   for (const student of students) {
-    const fees = await Fee.find({ tenantId, studentId: student._id });
-    const outstanding = fees.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
-    if (outstanding.length === 0) continue; // nothing owed - nothing to remind
+    const values = await valuesFor(student);
+    if (!values) continue;
 
-    const values = {
-      schoolName: config.schoolName,
-      studentName: student.name,
-      amount: formatNaira(outstanding[0].balance),
-      asOfDate: formatDate(new Date()),
-    };
-    const result = await sendTemplateMessage(config, parent.phone, 'feeReminder', values);
+    const result = await sendTemplateMessage(config, parent.phone, templateKey, values);
     await logNotification(tenantId, {
-      type: 'fee_reminder', channel: 'whatsapp',
+      type: logType, channel: 'whatsapp',
       recipientPhone: parent.phone, recipientName: parent.name,
       parentId: parent._id, studentId: student._id,
-      message: renderTemplateBody('feeReminder', values),
+      message: renderTemplateBody(templateKey, values),
       status: result.success ? 'sent' : 'failed',
       metaMessageId: result.messageId || '', errorMessage: result.error || '',
       sentAt: result.success ? new Date() : null, sentBy,
@@ -112,8 +104,39 @@ async function sendFeeReminderViaWhatsApp({ tenantId, config, parent, studentIds
     else { failed++; errors.push(`${student.name}: ${result.error}`); }
   }
 
-  if (sent + failed === 0) return { success: false, sent, failed, error: 'None of the selected children have outstanding fees' };
+  if (sent + failed === 0) return { success: false, sent, failed, error: nothingToSendError };
   return { success: sent > 0, sent, failed, ...(errors.length ? { error: errors.join('; ') } : {}) };
+}
+
+// Fee reminder: amounts come from the real Fee records (largest outstanding balance, matching
+// template-preview), never from text typed into the message box. Fully-paid children are skipped.
+function sendFeeReminderViaWhatsApp({ tenantId, config, ...rest }) {
+  return sendTemplatePerChild({
+    tenantId, config, ...rest,
+    templateKey: 'feeReminder', logType: 'fee_reminder',
+    nothingToSendError: 'None of the selected children have outstanding fees',
+    valuesFor: async (student) => {
+      const fees = await Fee.find({ tenantId, studentId: student._id });
+      const outstanding = fees.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
+      if (outstanding.length === 0) return null; // nothing owed - nothing to remind
+      return {
+        schoolName: config.schoolName,
+        studentName: student.name,
+        amount: formatNaira(outstanding[0].balance),
+        asOfDate: formatDate(new Date()),
+      };
+    },
+  });
+}
+
+// Results published: one message per chosen child for the chosen term.
+function sendResultsViaWhatsApp({ config, term, ...rest }) {
+  return sendTemplatePerChild({
+    config, ...rest,
+    templateKey: 'resultPublished', logType: 'result_published',
+    nothingToSendError: 'None of the selected children could be found for this parent',
+    valuesFor: async (student) => ({ schoolName: config.schoolName, studentName: student.name, term }),
+  });
 }
 
 // A test send is business-initiated too, so it also needs an approved template. The fee
@@ -179,7 +202,7 @@ router.get('/template-preview', requireAuth, requireRole('proprietor', 'admin'),
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /notifications/send
 // Send a custom message to a single parent
-// Body: { parentId, message, channel?, template?, studentIds? }
+// Body: { parentId, message, channel?, template?, studentIds?, term? }
 // channel: 'whatsapp' | 'termii-whatsapp' | 'sms' | 'both' | 'all'
 // template: 'custom' (default) | 'feeReminder' | 'resultPublished' - which Messaging template the
 //   message came from. Meta WhatsApp needs it (plus studentIds) to pick an approved template;
@@ -187,7 +210,7 @@ router.get('/template-preview', requireAuth, requireRole('proprietor', 'admin'),
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/send', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const { parentId, message, channel = 'whatsapp', template = 'custom', studentIds = [] } = req.body;
+    const { parentId, message, channel = 'whatsapp', template = 'custom', studentIds = [], term } = req.body;
     if (!parentId || !message) {
       return res.status(400).json({ error: 'parentId and message are required' });
     }
@@ -214,6 +237,13 @@ router.post('/send', requireAuth, requireRole('proprietor', 'admin'), async (req
             tenantId: req.user.tenantId, config, parent,
             studentIds: Array.isArray(studentIds) ? studentIds : [], sentBy: req.user.id,
           });
+        } else if (template === 'resultPublished') {
+          results.whatsapp = term
+            ? await sendResultsViaWhatsApp({
+                tenantId: req.user.tenantId, config, parent, term,
+                studentIds: Array.isArray(studentIds) ? studentIds : [], sentBy: req.user.id,
+              })
+            : { success: false, error: 'A term is required to send results' };
         } else if (template === 'custom') {
           results.whatsapp = { success: false, error: WHATSAPP_FREE_TEXT_ERROR };
         } else {
@@ -510,10 +540,126 @@ router.get('/history', requireAuth, requireRole('proprietor', 'admin'), async (r
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Internal helper — used by attendance route to fire absence alerts
-// Sends via WhatsApp and/or SMS depending on what's configured
+// POST /notifications/notice
+// Template-only announcements over Meta WhatsApp: PTA meeting, school closure, exam notice.
+// Body: { type, classId?, fields, dryRun? }
+//   type:   'parentTeacherMeeting' | 'schoolClosure' | 'examNotice'
+//   fields: the template's own values (named exactly like its params in whatsappTemplates.js)
+//   dryRun: true returns the recipient count and a rendered sample without sending anything
+// Meeting and closure notices send one message per parent. An exam notice names a child, so
+// it sends one message per child in the chosen class (a parent with two children in the class
+// gets two). Parents without a phone, or who opted out of WhatsApp, are left out.
 // ─────────────────────────────────────────────────────────────────────────────
-async function sendAbsenceAlert(tenantId, studentId, date) {
+const NOTICE_TYPES = {
+  parentTeacherMeeting: { logType: 'meeting_notice', perChild: false, requiresClass: false, fields: ['meetingDate'] },
+  schoolClosure: { logType: 'school_closure', perChild: false, requiresClass: false, fields: ['closedOn', 'reason', 'resumeOn'] },
+  examNotice: { logType: 'exam_notice', perChild: true, requiresClass: true, fields: ['assessment', 'scheduledFor'] },
+};
+const NOTICE_FIELD_LABELS = {
+  meetingDate: 'Meeting date and time',
+  closedOn: 'Closure date',
+  reason: 'Reason',
+  resumeOn: 'Resume date',
+  assessment: 'Exam or test',
+  scheduledFor: 'Date and time',
+};
+const NOTICE_MAX_FIELD_LENGTH = 100;
+const NOTICE_BATCH_SIZE = 5; // messages sent at once - keeps a whole-school send well inside request time limits
+
+router.post('/notice', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
+  try {
+    const { type, classId, fields = {}, dryRun = false } = req.body;
+    const def = NOTICE_TYPES[type];
+    if (!def) return res.status(400).json({ error: 'Unknown notice type' });
+
+    const values = {};
+    for (const name of def.fields) {
+      // One line, single spaces: Meta rejects line breaks and long space runs inside variables
+      const value = String(fields[name] ?? '').replace(/\s+/g, ' ').trim();
+      if (!value) return res.status(400).json({ error: `${NOTICE_FIELD_LABELS[name]} is required` });
+      if (value.length > NOTICE_MAX_FIELD_LENGTH) {
+        return res.status(400).json({ error: `${NOTICE_FIELD_LABELS[name]} must be ${NOTICE_MAX_FIELD_LENGTH} characters or fewer` });
+      }
+      values[name] = value;
+    }
+    if (def.requiresClass && !classId) return res.status(400).json({ error: 'Choose a class for this notice' });
+
+    const tenantId = req.user.tenantId;
+    const config = await getWhatsAppConfig(tenantId);
+    if (!config) {
+      return res.status(400).json({ error: 'WhatsApp (Meta) is not configured or is disabled for this school. Go to Settings.' });
+    }
+
+    const studentQuery = { tenantId, status: 'Active' };
+    if (classId) studentQuery.classId = classId;
+    const students = await Student.find(studentQuery).select('_id name');
+    const studentById = new Map(students.map((s) => [String(s._id), s]));
+
+    const parents = await Parent.find({
+      tenantId,
+      children: { $in: students.map((s) => s._id) },
+      phone: { $nin: ['', null] },
+    }).select('_id name phone whatsappOptIn children');
+    const eligible = parents.filter((p) => p.whatsappOptIn !== false);
+
+    const messages = [];
+    for (const parent of eligible) {
+      if (def.perChild) {
+        for (const childId of parent.children.map(String)) {
+          const student = studentById.get(childId);
+          if (student) messages.push({ parent, student, values: { schoolName: config.schoolName, studentName: student.name, ...values } });
+        }
+      } else {
+        messages.push({ parent, values: { schoolName: config.schoolName, ...values } });
+      }
+    }
+    if (messages.length === 0) {
+      return res.status(400).json({ error: 'No eligible parents found (they need a phone number and must not have opted out of WhatsApp)' });
+    }
+
+    if (dryRun) {
+      return res.json({ recipients: eligible.length, messages: messages.length, sample: renderTemplateBody(type, messages[0].values) });
+    }
+
+    let sent = 0, failed = 0;
+    const errorCounts = new Map();
+    for (let i = 0; i < messages.length; i += NOTICE_BATCH_SIZE) {
+      await Promise.all(messages.slice(i, i + NOTICE_BATCH_SIZE).map(async ({ parent, student, values: v }) => {
+        const result = await sendTemplateMessage(config, parent.phone, type, v);
+        await logNotification(tenantId, {
+          type: def.logType, channel: 'whatsapp',
+          recipientPhone: parent.phone, recipientName: parent.name,
+          parentId: parent._id, studentId: student?._id || null,
+          message: renderTemplateBody(type, v),
+          status: result.success ? 'sent' : 'failed',
+          metaMessageId: result.messageId || '', errorMessage: result.error || '',
+          sentAt: result.success ? new Date() : null, sentBy: req.user.id,
+        });
+        if (result.success) sent++;
+        else { failed++; errorCounts.set(result.error, (errorCounts.get(result.error) || 0) + 1); }
+      }));
+    }
+
+    const errors = [...errorCounts.entries()].slice(0, 3).map(([error, count]) => ({ error, count }));
+    if (sent === 0) {
+      return res.status(502).json({ error: `Nothing was sent. ${errors[0]?.error || 'Unknown error'}`, sent, failed, errors });
+    }
+    res.json({ message: `Notice sent. Delivered to Meta: ${sent}, Failed: ${failed}`, sent, failed, errors });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helper - used by the attendance route to alert parents about a student's
+// attendance (absent / late). Sends via whichever channels the school has configured:
+// the approved WhatsApp template (Meta), WhatsApp via Termii, and SMS.
+//   logType          - Notification type to record ('absence_alert' | 'late_alert')
+//   whatsappTemplate - key in config/whatsappTemplates.js
+//   whatsappValues   - (student, schoolName) => template values for the Meta message
+//   smsText          - (student, schoolName) => plain text for Termii WhatsApp / SMS
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendAttendanceAlert(tenantId, studentId, { logType, whatsappTemplate, whatsappValues, smsText }) {
   try {
     const waConfig = await getWhatsAppConfig(tenantId);
     const twConfig = await getTermiiWhatsAppConfig(tenantId);
@@ -532,11 +678,11 @@ async function sendAbsenceAlert(tenantId, studentId, date) {
     for (const parent of parents) {
       // Meta WhatsApp alert
       if (waConfig && parent.whatsappOptIn !== false) {
-        const values = { schoolName: waConfig.schoolName, studentName: student.name, date: formatLongDate(date) };
-        const result = await sendTemplateMessage(waConfig, parent.phone, 'absenceAlert', values);
-        const message = renderTemplateBody('absenceAlert', values);
+        const values = whatsappValues(student, waConfig.schoolName);
+        const result = await sendTemplateMessage(waConfig, parent.phone, whatsappTemplate, values);
+        const message = renderTemplateBody(whatsappTemplate, values);
         await logNotification(tenantId, {
-          type: 'absence_alert', channel: 'whatsapp',
+          type: logType, channel: 'whatsapp',
           recipientPhone: parent.phone, recipientName: parent.name,
           parentId: parent._id, studentId: student._id, message,
           status: result.success ? 'sent' : 'failed',
@@ -547,10 +693,10 @@ async function sendAbsenceAlert(tenantId, studentId, date) {
 
       // WhatsApp via Termii alert
       if (twConfig) {
-        const message = smsTemplates.absenceAlert(student.name, date, twConfig.schoolName);
+        const message = smsText(student, twConfig.schoolName);
         const result = await sendWhatsAppViaTermii(twConfig, parent.phone, message);
         await logNotification(tenantId, {
-          type: 'absence_alert', channel: 'termii-whatsapp',
+          type: logType, channel: 'termii-whatsapp',
           recipientPhone: parent.phone, recipientName: parent.name,
           parentId: parent._id, studentId: student._id, message,
           status: result.success ? 'sent' : 'failed',
@@ -561,10 +707,10 @@ async function sendAbsenceAlert(tenantId, studentId, date) {
 
       // SMS alert
       if (smsConfig) {
-        const message = smsTemplates.absenceAlert(student.name, date, smsConfig.schoolName);
+        const message = smsText(student, smsConfig.schoolName);
         const result = await sendSMS(smsConfig, parent.phone, message);
         await logNotification(tenantId, {
-          type: 'absence_alert', channel: 'sms',
+          type: logType, channel: 'sms',
           recipientPhone: parent.phone, recipientName: parent.name,
           parentId: parent._id, studentId: student._id, message,
           status: result.success ? 'sent' : 'failed',
@@ -574,9 +720,37 @@ async function sendAbsenceAlert(tenantId, studentId, date) {
       }
     }
   } catch (err) {
-    console.error('[sendAbsenceAlert error]', err.message);
+    console.error(`[${logType} error]`, err.message);
   }
+}
+
+function sendAbsenceAlert(tenantId, studentId, date) {
+  return sendAttendanceAlert(tenantId, studentId, {
+    logType: 'absence_alert',
+    whatsappTemplate: 'absenceAlert',
+    whatsappValues: (student, schoolName) => ({ schoolName, studentName: student.name, date: formatLongDate(date) }),
+    smsText: (student, schoolName) => smsTemplates.absenceAlert(student.name, date, schoolName),
+  });
+}
+
+// "08:15" -> "8:15 AM" (the register stores 24-hour HH:MM)
+function formatClockTime(hhmm) {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+// Only sent when the teacher recorded an arrival time - the template needs one and the app
+// will not guess it.
+function sendLateAlert(tenantId, studentId, date, arrivalTime) {
+  const arrival = formatClockTime(arrivalTime);
+  return sendAttendanceAlert(tenantId, studentId, {
+    logType: 'late_alert',
+    whatsappTemplate: 'lateAlert',
+    whatsappValues: (student, schoolName) => ({ schoolName, studentName: student.name, date: formatLongDate(date), arrivalTime: arrival }),
+    smsText: (student, schoolName) => smsTemplates.lateAlert(student.name, date, arrival, schoolName),
+  });
 }
 
 module.exports = router;
 module.exports.sendAbsenceAlert = sendAbsenceAlert;
+module.exports.sendLateAlert = sendLateAlert;

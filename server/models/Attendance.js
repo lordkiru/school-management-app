@@ -13,6 +13,13 @@ const attendanceSchema = new mongoose.Schema({
   },
   markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   notes: { type: String, default: '' },
+  // 24-hour HH:MM, only meaningful for Late students. Optional: a late alert is sent to the
+  // parent only when the teacher recorded one.
+  arrivalTime: {
+    type: String,
+    default: '',
+    validate: { validator: (v) => !v || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), message: 'arrivalTime must be HH:MM (24-hour)' },
+  },
 }, { timestamps: true });
 
 // Indexes

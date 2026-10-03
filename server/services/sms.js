@@ -129,6 +129,11 @@ const smsTemplateBodies = {
     `${new Date(date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}. ` +
     `Contact school if incorrect.`,
 
+  lateAlert: (studentName, date, arrivalTime) =>
+    `${studentName} was marked late today, ` +
+    `${new Date(date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}, ` +
+    `arriving at ${arrivalTime}. Please ensure timely arrival.`,
+
   feeReminder: (studentName, amount, dueDate, portalUrl) =>
     `Fees for ${studentName} of N${Number(amount).toLocaleString()} ` +
     `${dueDate ? `are due ${new Date(dueDate).toLocaleDateString('en-NG')}` : 'are outstanding'}. ` +
@@ -156,6 +161,9 @@ const smsTemplateBodies = {
 const smsTemplates = {
   absenceAlert: (studentName, date, schoolName) =>
     `${schoolName}: ${smsTemplateBodies.absenceAlert(studentName, date)}`,
+
+  lateAlert: (studentName, date, arrivalTime, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.lateAlert(studentName, date, arrivalTime)}`,
 
   feeReminder: (studentName, amount, dueDate, schoolName) =>
     `${schoolName}: ${smsTemplateBodies.feeReminder(studentName, amount, dueDate)}`,

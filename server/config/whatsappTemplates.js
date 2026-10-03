@@ -28,6 +28,13 @@ const WHATSAPP_TEMPLATES = {
     body: 'Fee Notice from {{1}}: Our records show {{3}} in fees for {{2}} is outstanding as of {{4}}. View and pay via the parent portal.',
   },
 
+  resultPublished: {
+    name: 'results_published',
+    language: 'en',
+    params: ['schoolName', 'studentName', 'term'],
+    body: "Academic Update from {{1}}: {{2}}'s {{3}} results are now available. Please visit the parent portal to view them.",
+  },
+
   // Not wired to a screen yet (the app has no exam dates / closure notices to send).
   examNotice: {
     name: 'examtest_schedule_reminder',
@@ -44,6 +51,23 @@ const WHATSAPP_TEMPLATES = {
     params: ['schoolName', 'closedOn', 'reason', 'resumeOn'],
     body: 'Notice from {{1}}: School will be closed {{2}} due to {{3}}. Classes will resume on {{4}} as scheduled.',
   },
+};
+
+// Also not wired yet. pat_meeting_reminder is exactly as supplied ("pat", not "pta") and its
+// language was not stated, so en is assumed - confirm both against WhatsApp Manager.
+WHATSAPP_TEMPLATES.parentTeacherMeeting = {
+  name: 'pat_meeting_reminder',
+  language: 'en',
+  params: ['schoolName', 'meetingDate'],
+  body: 'Reminder from {{1}}: A Parent-Teacher meeting has been scheduled for {{2}}. Your attendance would be appreciated.',
+};
+
+// Not wired yet: the attendance register records no arrival time for {{4}}.
+WHATSAPP_TEMPLATES.lateAlert = {
+  name: 'attendance_late_alert',
+  language: 'en',
+  params: ['schoolName', 'studentName', 'date', 'arrivalTime'],
+  body: 'Attendance Alert from {{1}}: {{2}} was marked late for school today, {{3}}, arriving at {{4}}. Please ensure timely arrival going forward.',
 };
 
 module.exports = { WHATSAPP_TEMPLATES };

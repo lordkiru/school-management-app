@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Send, MessageSquare, Users, History, CheckCircle, XCircle, AlertCircle, Bell, Smartphone } from 'lucide-react';
+import { Send, MessageSquare, Users, History, CheckCircle, XCircle, AlertCircle, Bell, Smartphone, Megaphone } from 'lucide-react';
+import NoticesPanel from './NoticesPanel';
 
 const TYPE_LABELS = {
   absence_alert: 'Absence Alert',
+  late_alert: 'Late Alert',
   fee_reminder: 'Fee Reminder',
   result_published: 'Results',
+  meeting_notice: 'PTA Meeting',
+  school_closure: 'School Closure',
+  exam_notice: 'Exam Notice',
   custom_broadcast: 'Broadcast',
   custom_individual: 'Individual',
 };
@@ -56,7 +61,7 @@ function ChannelBadge({ channel }) {
 }
 
 function NotificationsPanel() {
-  const [activeTab, setActiveTab] = useState('send'); // 'send' | 'broadcast' | 'history'
+  const [activeTab, setActiveTab] = useState('send'); // 'send' | 'broadcast' | 'notices' | 'history'
   const [parents, setParents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [history, setHistory] = useState([]);
@@ -198,7 +203,7 @@ function NotificationsPanel() {
         body: JSON.stringify({
           parentId: selectedParentId, message: individualMessage, channel: sendChannel,
           // Meta WhatsApp needs the template + children (not the typed text) to pick an approved template
-          template: sendTemplate, studentIds: sendChildIds,
+          template: sendTemplate, studentIds: sendChildIds, term: sendTerm,
         }),
       });
       const data = await res.json();
@@ -278,10 +283,16 @@ function NotificationsPanel() {
         <button className={tabClass('broadcast')} onClick={() => setActiveTab('broadcast')}>
           <span className="flex items-center gap-1.5"><Users size={14} /> Broadcast</span>
         </button>
+        <button className={tabClass('notices')} onClick={() => setActiveTab('notices')}>
+          <span className="flex items-center gap-1.5"><Megaphone size={14} /> Notices</span>
+        </button>
         <button className={tabClass('history')} onClick={() => setActiveTab('history')}>
           <span className="flex items-center gap-1.5"><History size={14} /> History</span>
         </button>
       </div>
+
+      {/* ── Notices (PTA meeting / school closure / exam) ── */}
+      {activeTab === 'notices' && <NoticesPanel classes={classes} />}
 
       {/* ── Send to Individual Parent ── */}
       {activeTab === 'send' && (

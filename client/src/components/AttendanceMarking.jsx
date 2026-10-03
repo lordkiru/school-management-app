@@ -14,6 +14,7 @@ function AttendanceMarking({ userRole }) {
   const [selectedClassId, setSelectedClassId] = useState('');
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({}); // { studentId: 'Present' | 'Absent' | 'Late' | 'Excused' }
+  const [arrivalTimes, setArrivalTimes] = useState({}); // { studentId: 'HH:MM' } - only used for Late students
   const [alreadyMarked, setAlreadyMarked] = useState(false);
   const [existingRecords, setExistingRecords] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -75,6 +76,7 @@ function AttendanceMarking({ userRole }) {
     if (!selectedClassId) {
       setStudents([]);
       setAttendance({});
+      setArrivalTimes({});
       setAlreadyMarked(false);
       setExistingRecords([]);
       return;
@@ -111,14 +113,18 @@ function AttendanceMarking({ userRole }) {
           setExistingRecords(attData.records);
           // Pre-fill with existing data
           const existingMap = {};
+          const existingTimes = {};
           attData.records.forEach((r) => {
             const sid = r.studentId?._id || r.studentId;
             existingMap[sid] = r.status;
+            if (r.arrivalTime) existingTimes[sid] = r.arrivalTime;
           });
           setAttendance(existingMap);
+          setArrivalTimes(existingTimes);
         } else {
           setAlreadyMarked(false);
           setExistingRecords([]);
+          setArrivalTimes({});
           // Default all to Present
           const defaultMap = {};
           allStudents.forEach((s) => { defaultMap[s._id] = 'Present'; });
@@ -138,22 +144,35 @@ function AttendanceMarking({ userRole }) {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
   };
 
+  const setArrivalTime = (studentId, time) => {
+    setArrivalTimes((prev) => ({ ...prev, [studentId]: time }));
+  };
+
   const markAll = (status) => {
     const newMap = {};
     students.forEach((s) => { newMap[s._id] = status; });
     setAttendance(newMap);
   };
 
+  // Arrival time rides along only for Late students; the server sends the parent a late alert
+  // only when one is present.
+  const buildRecords = () =>
+    students.map((s) => {
+      const status = attendance[s._id] || 'Present';
+      return {
+        studentId: s._id,
+        status,
+        notes: '',
+        ...(status === 'Late' && arrivalTimes[s._id] ? { arrivalTime: arrivalTimes[s._id] } : {}),
+      };
+    });
+
   const handleSubmit = async () => {
     setError('');
     setSuccess('');
     setSubmitting(true);
     try {
-      const records = students.map((s) => ({
-        studentId: s._id,
-        status: attendance[s._id] || 'Present',
-        notes: '',
-      }));
+      const records = buildRecords();
 
       // If offline, queue locally and show message
       if (!navigator.onLine) {
@@ -191,11 +210,7 @@ function AttendanceMarking({ userRole }) {
     } catch (err) {
       // Network failure — queue offline
       try {
-        const records = students.map((s) => ({
-          studentId: s._id,
-          status: attendance[s._id] || 'Present',
-          notes: '',
-        }));
+        const records = buildRecords();
         await queueAttendance({ classId: selectedClassId, date: today, records });
         setSuccess(`📥 Network error — attendance saved locally and will sync when you reconnect.`);
         setAlreadyMarked(true);
@@ -302,26 +317,44 @@ function AttendanceMarking({ userRole }) {
               {students.map((student, idx) => {
                 const currentStatus = attendance[student._id] || 'Present';
                 return (
-                  <div key={student._id} className="flex items-center gap-3 px-4 py-3">
-                    <span className="text-sm text-slate-500 dark:text-gray-400 w-6 text-right">{idx + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{student.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">{student.admissionNumber}</p>
+                  <div key={student._id}>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                      <span className="text-sm text-slate-500 dark:text-gray-400 w-6 text-right">{idx + 1}</span>
+                      <div className="flex-1 min-w-[10rem]">
+                        <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{student.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-400">{student.admissionNumber}</p>
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap justify-end">
+                        {STATUS_OPTIONS.map(({ value, label, color, activeColor }) => (
+                          <button
+                            key={value}
+                            disabled={alreadyMarked}
+                            onClick={() => setStatus(student._id, value)}
+                            className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition ${
+                              currentStatus === value ? activeColor : color
+                            } ${alreadyMarked ? 'opacity-70 cursor-default' : 'hover:opacity-90'}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1.5 flex-wrap justify-end">
-                      {STATUS_OPTIONS.map(({ value, label, color, activeColor }) => (
-                        <button
-                          key={value}
+                    {currentStatus === 'Late' && (
+                      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pl-[3.25rem] text-xs text-slate-600 dark:text-gray-300">
+                        <label htmlFor={`arrival-${student._id}`}>Arrived at</label>
+                        <input
+                          id={`arrival-${student._id}`}
+                          type="time"
+                          value={arrivalTimes[student._id] || ''}
                           disabled={alreadyMarked}
-                          onClick={() => setStatus(student._id, value)}
-                          className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition ${
-                            currentStatus === value ? activeColor : color
-                          } ${alreadyMarked ? 'opacity-70 cursor-default' : 'hover:opacity-90'}`}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                          onChange={(e) => setArrivalTime(student._id, e.target.value)}
+                          className="p-1 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white text-sm"
+                        />
+                        {!alreadyMarked && !arrivalTimes[student._id] && (
+                          <span className="text-slate-500 dark:text-gray-400">Optional: add a time to notify the parent</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

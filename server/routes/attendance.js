@@ -5,12 +5,19 @@ const Student = require('../models/Student');
 const Session = require('../models/Session');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
-const { sendAbsenceAlert } = require('./notifications');
+const { sendAbsenceAlert, sendLateAlert } = require('./notifications');
+
+// A valid 24-hour "HH:MM" arrival time, or '' - anything else is dropped rather than failing
+// the whole register over one bad value.
+function cleanArrivalTime(value) {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value.trim()) ? value.trim() : '';
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /attendance/mark
 // Teacher (or admin) submits the full class register for today.
-// Body: { classId, date (optional, defaults to today), records: [{ studentId, status, notes }] }
+// Body: { classId, date (optional, defaults to today), records: [{ studentId, status, notes, arrivalTime? }] }
+// arrivalTime (HH:MM) is kept only for Late students.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/mark', requireAuth, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
   try {
@@ -61,6 +68,7 @@ router.post('/mark', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
       status: r.status || 'Present',
       markedBy: req.user.id,
       notes: r.notes || '',
+      arrivalTime: r.status === 'Late' ? cleanArrivalTime(r.arrivalTime) : '',
     }));
 
     await Attendance.insertMany(docs, { ordered: false });
@@ -81,6 +89,15 @@ router.post('/mark', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
       for (const sid of absentStudentIds) {
         sendAbsenceAlert(req.user.tenantId, sid, attendanceDate).catch((e) =>
           console.error('[absenceAlert]', e.message)
+        );
+      }
+    }
+
+    // Late alerts too - but only for students with a recorded arrival time (the message states it)
+    for (const doc of docs) {
+      if (doc.status === 'Late' && doc.arrivalTime) {
+        sendLateAlert(req.user.tenantId, doc.studentId, attendanceDate, doc.arrivalTime).catch((e) =>
+          console.error('[lateAlert]', e.message)
         );
       }
     }
@@ -358,6 +375,7 @@ router.post('/sync', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
         status: r.status || 'Present',
         markedBy: req.user.id,
         notes: r.notes || '',
+        arrivalTime: r.status === 'Late' ? cleanArrivalTime(r.arrivalTime) : '',
       }));
 
       try {

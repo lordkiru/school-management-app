@@ -7,50 +7,51 @@
  */
 
 const axios = require('axios');
+const { WHATSAPP_TEMPLATES } = require('../config/whatsappTemplates');
 
 const META_API_VERSION = 'v19.0';
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
 
-// "message (code 131047, subcode 2494007)" from Meta's { error: { message, code, error_subcode } }.
+// Plain-English follow-ups for the Meta error codes people actually hit. Codes per Meta's
+// Cloud API error reference; anything not listed just shows Meta's own message.
+const META_ERROR_HINTS = {
+  131047: 'Outside the 24-hour reply window: business-initiated messages must use an approved template',
+  132000: 'The number of template variables sent does not match the template',
+  132001: 'No approved template with that name and language exists on this WhatsApp Business Account',
+  132012: 'A template variable has the wrong format',
+  132015: 'This template is paused by Meta',
+  132016: 'This template has been disabled by Meta',
+};
+
+// "message (code 131047, subcode 2494007) - hint" from Meta's { error: { message, code, error_subcode } }.
 function formatMetaError(e) {
   if (!e) return '';
   const codes = [e.code != null && `code ${e.code}`, e.error_subcode != null && `subcode ${e.error_subcode}`].filter(Boolean).join(', ');
-  return `${e.message || 'Unknown Meta error'}${codes ? ` (${codes})` : ''}`;
+  const hint = META_ERROR_HINTS[e.code];
+  return `${e.message || 'Unknown Meta error'}${codes ? ` (${codes})` : ''}${hint ? ` - ${hint}` : ''}`;
 }
 
-/**
- * Send a plain text WhatsApp message.
- * @param {Object} config - { phoneNumberId, accessToken }
- * @param {string} toPhone - Recipient phone number (international format, no +, e.g. "2348012345678")
- * @param {string} message - Text message body
- * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
- */
-async function sendTextMessage(config, toPhone, message) {
+// Strip anything Meta refuses inside a template variable: line breaks, tabs and runs of 4+
+// spaces, plus surrounding whitespace. Returns '' for null/undefined.
+function sanitizeTemplateValue(value) {
+  return String(value ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {4,}/g, '   ').trim();
+}
+
+// Normalize a phone number to digits only (no leading +). Returns null if it can't be valid.
+function normalizePhone(toPhone) {
+  const normalized = String(toPhone || '').replace(/\D/g, '');
+  return normalized.length >= 10 ? normalized : null;
+}
+
+// POST one message payload to Meta's /messages endpoint and turn the outcome into
+// { success, messageId?, error? }. Shared by every message type so logging and failure
+// handling behave identically for text and template sends.
+async function postMessage(config, normalized, payload) {
   const { phoneNumberId, accessToken } = config;
-
-  if (!phoneNumberId || !accessToken) {
-    return { success: false, error: 'WhatsApp not configured for this school' };
-  }
-
-  // Normalize phone number — strip non-digits, ensure no leading +
-  const normalized = toPhone.replace(/\D/g, '');
-  if (!normalized || normalized.length < 10) {
-    return { success: false, error: `Invalid phone number: ${toPhone}` };
-  }
-
   try {
     const response = await axios.post(
       `${META_BASE_URL}/${phoneNumberId}/messages`,
-      {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: normalized,
-        type: 'text',
-        text: {
-          preview_url: false,
-          body: message,
-        },
-      },
+      { messaging_product: 'whatsapp', recipient_type: 'individual', to: normalized, ...payload },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -88,6 +89,80 @@ async function sendTextMessage(config, toPhone, message) {
 }
 
 /**
+ * Send a plain text WhatsApp message.
+ * Only valid inside the 24-hour window after the recipient last messaged the school (e.g. a
+ * reply to a parent who wrote first). Business-initiated messages must use sendTemplateMessage.
+ * @param {Object} config - { phoneNumberId, accessToken }
+ * @param {string} toPhone - Recipient phone number (international format, no +, e.g. "2348012345678")
+ * @param {string} message - Text message body
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendTextMessage(config, toPhone, message) {
+  const { phoneNumberId, accessToken } = config;
+
+  if (!phoneNumberId || !accessToken) {
+    return { success: false, error: 'WhatsApp not configured for this school' };
+  }
+
+  const normalized = normalizePhone(toPhone);
+  if (!normalized) {
+    return { success: false, error: `Invalid phone number: ${toPhone}` };
+  }
+
+  return postMessage(config, normalized, {
+    type: 'text',
+    text: { preview_url: false, body: message },
+  });
+}
+
+/**
+ * Send an approved template message - required for any business-initiated contact.
+ * @param {Object} config - { phoneNumberId, accessToken }
+ * @param {string} toPhone - Recipient phone number
+ * @param {string} templateKey - Key in config/whatsappTemplates.js (e.g. 'examNotice')
+ * @param {Object} values - Named values for the template's variables, e.g.
+ *   { schoolName, studentName, assessment, scheduledFor } (their order is set in the template config)
+ * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
+ */
+async function sendTemplateMessage(config, toPhone, templateKey, values = {}) {
+  const { phoneNumberId, accessToken } = config;
+
+  if (!phoneNumberId || !accessToken) {
+    return { success: false, error: 'WhatsApp not configured for this school' };
+  }
+
+  const template = WHATSAPP_TEMPLATES[templateKey];
+  if (!template) {
+    return { success: false, error: `No WhatsApp template configured for "${templateKey}"` };
+  }
+
+  const normalized = normalizePhone(toPhone);
+  if (!normalized) {
+    return { success: false, error: `Invalid phone number: ${toPhone}` };
+  }
+
+  // Fill {{1}}, {{2}}... in the configured order. Meta rejects empty variables, so catch a
+  // missing value here with a clear message instead of a vague Meta error after the round trip.
+  const parameters = [];
+  for (const name of template.params) {
+    const text = sanitizeTemplateValue(values[name]);
+    if (!text) {
+      return { success: false, error: `Missing value "${name}" for WhatsApp template "${template.name}"` };
+    }
+    parameters.push({ type: 'text', text });
+  }
+
+  return postMessage(config, normalized, {
+    type: 'template',
+    template: {
+      name: template.name,
+      language: { code: template.language },
+      components: [{ type: 'body', parameters }],
+    },
+  });
+}
+
+/**
  * Build message templates for common school events.
  */
 const templates = {
@@ -111,4 +186,4 @@ const templates = {
     `📢 *${schoolName}*\n\n${message}`,
 };
 
-module.exports = { sendTextMessage, templates };
+module.exports = { sendTextMessage, sendTemplateMessage, templates };

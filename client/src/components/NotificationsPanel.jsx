@@ -195,11 +195,24 @@ function NotificationsPanel() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/notifications/send`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parentId: selectedParentId, message: individualMessage, channel: sendChannel }),
+        body: JSON.stringify({
+          parentId: selectedParentId, message: individualMessage, channel: sendChannel,
+          // Meta WhatsApp needs the template + children (not the typed text) to pick an approved template
+          template: sendTemplate, studentIds: sendChildIds,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setSendError(data.error); return; }
-      setSendStatus(`✅ Message sent via ${sendChannel === 'both' ? 'WhatsApp & SMS' : sendChannel}!`);
+      // The server answers 200 if ANY channel worked, so surface a channel that failed or only
+      // partly worked instead of showing a plain success.
+      const wa = data.results?.whatsapp;
+      if (wa && !wa.success) {
+        setSendStatus(`⚠️ Sent, but WhatsApp failed: ${wa.error}`);
+      } else if (wa && wa.failed > 0) {
+        setSendStatus(`⚠️ WhatsApp: ${wa.sent} sent, ${wa.failed} failed (${wa.error})`);
+      } else {
+        setSendStatus(`✅ Message sent via ${sendChannel === 'both' ? 'WhatsApp & SMS' : sendChannel}!`);
+      }
       setIndividualMessage('');
       setSelectedParentId('');
       setSendTemplate('custom');

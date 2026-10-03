@@ -7,7 +7,7 @@ const Parent = require('../models/Parent');
 const Student = require('../models/Student');
 const Fee = require('../models/Fee');
 const Notification = require('../models/Notification');
-const { sendTextMessage, templates } = require('../services/whatsapp');
+const { sendTemplateMessage, renderTemplateBody } = require('../services/whatsapp');
 const { sendSMS, sendBulkSMS, sendWhatsAppViaTermii, sendBulkWhatsAppViaTermii, smsTemplates, smsTemplateBodies } = require('../services/sms');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,6 +62,71 @@ async function logNotification(tenantId, data) {
   }
 }
 
+// Meta WhatsApp rule: anything the school starts (rather than a reply inside the 24-hour
+// window after a parent messages first) must be an approved template. The app does not track
+// inbound messages, so free text over Meta is refused up front with an explanation instead of
+// being sent and silently failing later (Meta error 131047).
+const WHATSAPP_FREE_TEXT_ERROR =
+  'WhatsApp (Meta) cannot send free-text messages to parents who have not messaged the school in the last 24 hours. Use an approved template message (such as Fee Reminder) or SMS.';
+const whatsappNoTemplateError = (template) =>
+  `No approved WhatsApp template is set up for "${template}" yet. Use SMS for this message.`;
+
+const formatLongDate = (d) =>
+  new Date(d).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const formatDate = (d) => new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' });
+const formatNaira = (amount) => `₦${Number(amount).toLocaleString()}`;
+
+// Send the approved fee-reminder template, one message per child, for the chosen children of
+// one parent. Amounts come from the real Fee records (largest outstanding balance, matching
+// template-preview), never from text typed into the message box. Fully-paid children are
+// skipped. Only the parent's own children are accepted.
+async function sendFeeReminderViaWhatsApp({ tenantId, config, parent, studentIds, sentBy }) {
+  const ownChildren = new Set((parent.children || []).map(String));
+  const ids = [...new Set(studentIds.map(String))].filter((id) => ownChildren.has(id));
+  const students = await Student.find({ _id: { $in: ids }, tenantId });
+
+  let sent = 0, failed = 0;
+  const errors = [];
+  for (const student of students) {
+    const fees = await Fee.find({ tenantId, studentId: student._id });
+    const outstanding = fees.filter((f) => f.balance > 0).sort((a, b) => b.balance - a.balance);
+    if (outstanding.length === 0) continue; // nothing owed - nothing to remind
+
+    const values = {
+      schoolName: config.schoolName,
+      studentName: student.name,
+      amount: formatNaira(outstanding[0].balance),
+      asOfDate: formatDate(new Date()),
+    };
+    const result = await sendTemplateMessage(config, parent.phone, 'feeReminder', values);
+    await logNotification(tenantId, {
+      type: 'fee_reminder', channel: 'whatsapp',
+      recipientPhone: parent.phone, recipientName: parent.name,
+      parentId: parent._id, studentId: student._id,
+      message: renderTemplateBody('feeReminder', values),
+      status: result.success ? 'sent' : 'failed',
+      metaMessageId: result.messageId || '', errorMessage: result.error || '',
+      sentAt: result.success ? new Date() : null, sentBy,
+    });
+    if (result.success) sent++;
+    else { failed++; errors.push(`${student.name}: ${result.error}`); }
+  }
+
+  if (sent + failed === 0) return { success: false, sent, failed, error: 'None of the selected children have outstanding fees' };
+  return { success: sent > 0, sent, failed, ...(errors.length ? { error: errors.join('; ') } : {}) };
+}
+
+// A test send is business-initiated too, so it also needs an approved template. The fee
+// template is used with an unmistakable test child so nobody mistakes it for a real notice.
+function sendWhatsAppTest(config, phone) {
+  return sendTemplateMessage(config, phone, 'feeReminder', {
+    schoolName: config.schoolName,
+    studentName: 'TEST ONLY - please ignore this message',
+    amount: formatNaira(0),
+    asOfDate: formatDate(new Date()),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /notifications/template-preview?template=feeReminder|resultPublished&studentIds=id1,id2&term=
 // Builds the message body (no school name prefix — the send routes add that)
@@ -114,12 +179,15 @@ router.get('/template-preview', requireAuth, requireRole('proprietor', 'admin'),
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /notifications/send
 // Send a custom message to a single parent
-// Body: { parentId, message, channel? }
+// Body: { parentId, message, channel?, template?, studentIds? }
 // channel: 'whatsapp' | 'termii-whatsapp' | 'sms' | 'both' | 'all'
+// template: 'custom' (default) | 'feeReminder' | 'resultPublished' - which Messaging template the
+//   message came from. Meta WhatsApp needs it (plus studentIds) to pick an approved template;
+//   SMS and Termii keep sending `message` as written.
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/send', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const { parentId, message, channel = 'whatsapp' } = req.body;
+    const { parentId, message, channel = 'whatsapp', template = 'custom', studentIds = [] } = req.body;
     if (!parentId || !message) {
       return res.status(400).json({ error: 'parentId and message are required' });
     }
@@ -141,17 +209,15 @@ router.post('/send', requireAuth, requireRole('proprietor', 'admin'), async (req
         const config = await getWhatsAppConfig(req.user.tenantId);
         if (!config) {
           results.whatsapp = { success: false, error: 'WhatsApp (Meta) not configured. Go to Settings.' };
-        } else {
-          const fullMessage = templates.custom(message, config.schoolName);
-          const result = await sendTextMessage(config, parent.phone, fullMessage);
-          results.whatsapp = result;
-          await logNotification(req.user.tenantId, {
-            type: 'custom_individual', channel: 'whatsapp',
-            recipientPhone: parent.phone, recipientName: parent.name, parentId: parent._id,
-            message: fullMessage, status: result.success ? 'sent' : 'failed',
-            metaMessageId: result.messageId || '', errorMessage: result.error || '',
-            sentAt: result.success ? new Date() : null, sentBy: req.user.id,
+        } else if (template === 'feeReminder') {
+          results.whatsapp = await sendFeeReminderViaWhatsApp({
+            tenantId: req.user.tenantId, config, parent,
+            studentIds: Array.isArray(studentIds) ? studentIds : [], sentBy: req.user.id,
           });
+        } else if (template === 'custom') {
+          results.whatsapp = { success: false, error: WHATSAPP_FREE_TEXT_ERROR };
+        } else {
+          results.whatsapp = { success: false, error: whatsappNoTemplateError(template) };
         }
       }
     }
@@ -237,6 +303,7 @@ router.post('/broadcast', requireAuth, requireRole('proprietor', 'admin'), async
     const useSMS = channel === 'sms' || channel === 'both' || channel === 'all';
 
     let waSent = 0, waFailed = 0, twSent = 0, twFailed = 0, smsSent = 0, smsFailed = 0;
+    let waNote = '';
 
     // ── Meta WhatsApp broadcast ──
     if (useWhatsapp) {
@@ -244,20 +311,10 @@ router.post('/broadcast', requireAuth, requireRole('proprietor', 'admin'), async
       if (!waConfig) {
         waFailed = parents.length;
       } else {
-        const fullMessage = templates.custom(message, waConfig.schoolName);
-        const eligible = parents.filter((p) => p.whatsappOptIn !== false);
-        for (const parent of eligible) {
-          const result = await sendTextMessage(waConfig, parent.phone, fullMessage);
-          await logNotification(req.user.tenantId, {
-            type: 'custom_broadcast', channel: 'whatsapp',
-            recipientPhone: parent.phone, recipientName: parent.name, parentId: parent._id,
-            message: fullMessage, status: result.success ? 'sent' : 'failed',
-            metaMessageId: result.messageId || '', errorMessage: result.error || '',
-            sentAt: result.success ? new Date() : null, sentBy: req.user.id,
-          });
-          if (result.success) waSent++; else waFailed++;
-          await new Promise((r) => setTimeout(r, 100));
-        }
+        // A broadcast is free text, which Meta only accepts inside a 24-hour reply window.
+        // Not sent - say so rather than letting every message fail at Meta.
+        waFailed = parents.filter((p) => p.whatsappOptIn !== false).length;
+        waNote = WHATSAPP_FREE_TEXT_ERROR;
       }
     }
 
@@ -306,9 +363,9 @@ router.post('/broadcast', requireAuth, requireRole('proprietor', 'admin'), async
     const totalSent = waSent + twSent + smsSent;
     const totalFailed = waFailed + twFailed + smsFailed;
     res.json({
-      message: `Broadcast complete. Sent: ${totalSent}, Failed: ${totalFailed}`,
+      message: `Broadcast complete. Sent: ${totalSent}, Failed: ${totalFailed}${waNote ? `. WhatsApp (Meta) was not sent: ${waNote}` : ''}`,
       sent: totalSent, failed: totalFailed,
-      whatsapp: { sent: waSent, failed: waFailed },
+      whatsapp: { sent: waSent, failed: waFailed, ...(waNote ? { error: waNote } : {}) },
       termiiWhatsapp: { sent: twSent, failed: twFailed },
       sms: { sent: smsSent, failed: smsFailed },
     });
@@ -331,8 +388,7 @@ router.post('/test-whatsapp', requireAuth, requireRole('proprietor', 'admin'), a
       return res.status(400).json({ error: 'WhatsApp is not configured or disabled for this school.' });
     }
 
-    const testMessage = `✅ WhatsApp test from *${config.schoolName}*.\n\nYour WhatsApp integration is working correctly! 🎉`;
-    const result = await sendTextMessage(config, phone, testMessage);
+    const result = await sendWhatsAppTest(config, phone);
 
     if (!result.success) {
       return res.status(502).json({ error: `Test failed: ${result.error}` });
@@ -411,8 +467,7 @@ router.post('/test', requireAuth, requireRole('proprietor', 'admin'), async (req
       return res.status(400).json({ error: 'WhatsApp is not configured or disabled for this school.' });
     }
 
-    const testMessage = `✅ WhatsApp test from *${config.schoolName}*.\n\nYour WhatsApp integration is working correctly! 🎉`;
-    const result = await sendTextMessage(config, phone, testMessage);
+    const result = await sendWhatsAppTest(config, phone);
 
     if (!result.success) {
       return res.status(502).json({ error: `Test failed: ${result.error}` });
@@ -477,8 +532,9 @@ async function sendAbsenceAlert(tenantId, studentId, date) {
     for (const parent of parents) {
       // Meta WhatsApp alert
       if (waConfig && parent.whatsappOptIn !== false) {
-        const message = templates.absenceAlert(student.name, date, waConfig.schoolName);
-        const result = await sendTextMessage(waConfig, parent.phone, message);
+        const values = { schoolName: waConfig.schoolName, studentName: student.name, date: formatLongDate(date) };
+        const result = await sendTemplateMessage(waConfig, parent.phone, 'absenceAlert', values);
+        const message = renderTemplateBody('absenceAlert', values);
         await logNotification(tenantId, {
           type: 'absence_alert', channel: 'whatsapp',
           recipientPhone: parent.phone, recipientName: parent.name,

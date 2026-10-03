@@ -8,6 +8,7 @@
 
 const axios = require('axios');
 const { WHATSAPP_TEMPLATES } = require('../config/whatsappTemplates');
+const { normalizePhone: normalizeNigerianPhone } = require('./sms');
 
 const META_API_VERSION = 'v19.0';
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
@@ -37,10 +38,12 @@ function sanitizeTemplateValue(value) {
   return String(value ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {4,}/g, '   ').trim();
 }
 
-// Normalize a phone number to digits only (no leading +). Returns null if it can't be valid.
+// Meta needs international format without "+". Nigerian numbers saved locally (08012345678)
+// are converted to 2348012345678 exactly as the SMS channel does; any other number with at
+// least 10 digits is passed through as-is. Returns null if it can't be valid.
 function normalizePhone(toPhone) {
-  const normalized = String(toPhone || '').replace(/\D/g, '');
-  return normalized.length >= 10 ? normalized : null;
+  const digits = String(toPhone || '').replace(/\D/g, '');
+  return normalizeNigerianPhone(digits) || (digits.length >= 10 ? digits : null);
 }
 
 // POST one message payload to Meta's /messages endpoint and turn the outcome into
@@ -163,6 +166,17 @@ async function sendTemplateMessage(config, toPhone, templateKey, values = {}) {
 }
 
 /**
+ * Render a template's approved body with its values filled in ({{1}} -> first param, ...).
+ * For notification history / logs only - Meta delivers its own approved text.
+ * @returns {string} the rendered text, or '' if the template key is unknown
+ */
+function renderTemplateBody(templateKey, values = {}) {
+  const template = WHATSAPP_TEMPLATES[templateKey];
+  if (!template) return '';
+  return template.body.replace(/\{\{(\d+)\}\}/g, (_, n) => sanitizeTemplateValue(values[template.params[Number(n) - 1]]));
+}
+
+/**
  * Build message templates for common school events.
  */
 const templates = {
@@ -186,4 +200,4 @@ const templates = {
     `📢 *${schoolName}*\n\n${message}`,
 };
 
-module.exports = { sendTextMessage, sendTemplateMessage, templates };
+module.exports = { sendTextMessage, sendTemplateMessage, renderTemplateBody, templates };

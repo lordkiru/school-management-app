@@ -8,7 +8,7 @@ const Student = require('../models/Student');
 const Fee = require('../models/Fee');
 const Notification = require('../models/Notification');
 const { sendTemplateMessage, renderTemplateBody } = require('../services/whatsapp');
-const { sendSMS, sendBulkSMS, sendWhatsAppViaTermii, sendBulkWhatsAppViaTermii, smsTemplates, smsTemplateBodies } = require('../services/sms');
+const { sendSMS, sendBulkSMS, sendWhatsAppViaTermii, sendBulkWhatsAppViaTermii, smsTemplates, smsTemplateBodies, smsSegments } = require('../services/sms');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -541,19 +541,31 @@ router.get('/history', requireAuth, requireRole('proprietor', 'admin'), async (r
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /notifications/notice
-// Template-only announcements over Meta WhatsApp: PTA meeting, school closure, exam notice.
-// Body: { type, classId?, fields, dryRun? }
-//   type:   'parentTeacherMeeting' | 'schoolClosure' | 'examNotice'
-//   fields: the template's own values (named exactly like its params in whatsappTemplates.js)
-//   dryRun: true returns the recipient count and a rendered sample without sending anything
-// Meeting and closure notices send one message per parent. An exam notice names a child, so
-// it sends one message per child in the chosen class (a parent with two children in the class
-// gets two). Parents without a phone, or who opted out of WhatsApp, are left out.
+// Announcements for parents: PTA meeting, school closure, exam notice.
+// Body: { type, classId?, fields, channel?, dryRun? }
+//   type:    'parentTeacherMeeting' | 'schoolClosure' | 'examNotice'
+//   fields:  the template's own values (named exactly like its params in whatsappTemplates.js)
+//   channel: 'whatsapp' (default, Meta approved template) | 'termii-whatsapp' | 'sms' | 'all'.
+//            Termii WhatsApp and SMS send the short plain-text wording from sms.js.
+//   dryRun:  true returns the recipient counts and a rendered sample per channel, sends nothing
+// Meeting and closure notices send one message per parent per channel. An exam notice names a
+// child, so it sends one message per child in the chosen class (a parent with two children in
+// the class gets two). Parents without a phone are left out; parents who opted out of WhatsApp
+// are left out of the two WhatsApp channels only (SMS still reaches them).
 // ─────────────────────────────────────────────────────────────────────────────
 const NOTICE_TYPES = {
-  parentTeacherMeeting: { logType: 'meeting_notice', perChild: false, requiresClass: false, fields: ['meetingDate'] },
-  schoolClosure: { logType: 'school_closure', perChild: false, requiresClass: false, fields: ['closedOn', 'reason', 'resumeOn'] },
-  examNotice: { logType: 'exam_notice', perChild: true, requiresClass: true, fields: ['assessment', 'scheduledFor'] },
+  parentTeacherMeeting: {
+    logType: 'meeting_notice', perChild: false, requiresClass: false, fields: ['meetingDate'],
+    sms: (v, school) => smsTemplates.parentTeacherMeeting(v.meetingDate, school),
+  },
+  schoolClosure: {
+    logType: 'school_closure', perChild: false, requiresClass: false, fields: ['closedOn', 'reason', 'resumeOn'],
+    sms: (v, school) => smsTemplates.schoolClosure(v.closedOn, v.reason, v.resumeOn, school),
+  },
+  examNotice: {
+    logType: 'exam_notice', perChild: true, requiresClass: true, fields: ['assessment', 'scheduledFor'],
+    sms: (v, school) => smsTemplates.examNotice(v.studentName, v.assessment, v.scheduledFor, school),
+  },
 };
 const NOTICE_FIELD_LABELS = {
   meetingDate: 'Meeting date and time',
@@ -563,14 +575,24 @@ const NOTICE_FIELD_LABELS = {
   assessment: 'Exam or test',
   scheduledFor: 'Date and time',
 };
+const NOTICE_CHANNELS = ['whatsapp', 'termii-whatsapp', 'sms'];
+const NOTICE_CHANNEL_LABELS = { whatsapp: 'WhatsApp (Meta)', 'termii-whatsapp': 'WhatsApp (Termii)', sms: 'SMS' };
+const NOTICE_NOT_CONFIGURED = {
+  whatsapp: 'WhatsApp (Meta) is not configured or is disabled. Go to Settings.',
+  'termii-whatsapp': 'WhatsApp via Termii is not configured or is disabled. Go to Settings.',
+  sms: 'SMS is not configured. Go to Settings.',
+};
 const NOTICE_MAX_FIELD_LENGTH = 100;
 const NOTICE_BATCH_SIZE = 5; // messages sent at once - keeps a whole-school send well inside request time limits
 
 router.post('/notice', requireAuth, requireRole('proprietor', 'admin'), async (req, res) => {
   try {
-    const { type, classId, fields = {}, dryRun = false } = req.body;
+    const { type, classId, fields = {}, channel = 'whatsapp', dryRun = false } = req.body;
     const def = NOTICE_TYPES[type];
     if (!def) return res.status(400).json({ error: 'Unknown notice type' });
+    if (channel !== 'all' && !NOTICE_CHANNELS.includes(channel)) {
+      return res.status(400).json({ error: 'Unknown channel' });
+    }
 
     const values = {};
     for (const name of def.fields) {
@@ -584,11 +606,18 @@ router.post('/notice', requireAuth, requireRole('proprietor', 'admin'), async (r
     }
     if (def.requiresClass && !classId) return res.status(400).json({ error: 'Choose a class for this notice' });
 
+    // Which of the requested channels this school actually has set up
     const tenantId = req.user.tenantId;
-    const config = await getWhatsAppConfig(tenantId);
-    if (!config) {
-      return res.status(400).json({ error: 'WhatsApp (Meta) is not configured or is disabled for this school. Go to Settings.' });
-    }
+    const configs = {
+      whatsapp: await getWhatsAppConfig(tenantId),
+      'termii-whatsapp': await getTermiiWhatsAppConfig(tenantId),
+      sms: await getSMSConfig(tenantId),
+    };
+    const requested = channel === 'all' ? NOTICE_CHANNELS : [channel];
+    const active = requested.filter((ch) => configs[ch]);
+    const notConfigured = requested.filter((ch) => !configs[ch]).map((ch) => NOTICE_NOT_CONFIGURED[ch]);
+    if (active.length === 0) return res.status(400).json({ error: notConfigured.join(' ') });
+    const schoolName = configs[active[0]].schoolName;
 
     const studentQuery = { tenantId, status: 'Active' };
     if (classId) studentQuery.classId = classId;
@@ -600,51 +629,81 @@ router.post('/notice', requireAuth, requireRole('proprietor', 'admin'), async (r
       children: { $in: students.map((s) => s._id) },
       phone: { $nin: ['', null] },
     }).select('_id name phone whatsappOptIn children');
-    const eligible = parents.filter((p) => p.whatsappOptIn !== false);
 
+    // One entry per message to send: channel x parent (x child, for an exam notice)
     const messages = [];
-    for (const parent of eligible) {
-      if (def.perChild) {
-        for (const childId of parent.children.map(String)) {
-          const student = studentById.get(childId);
-          if (student) messages.push({ parent, student, values: { schoolName: config.schoolName, studentName: student.name, ...values } });
+    for (const ch of active) {
+      const isWhatsapp = ch !== 'sms';
+      for (const parent of parents) {
+        if (isWhatsapp && parent.whatsappOptIn === false) continue;
+        const subjects = def.perChild
+          ? parent.children.map((id) => studentById.get(String(id))).filter(Boolean)
+          : [null];
+        for (const student of subjects) {
+          const v = { schoolName, ...(student ? { studentName: student.name } : {}), ...values };
+          messages.push({
+            channel: ch, parent, student, values: v,
+            text: ch === 'whatsapp' ? renderTemplateBody(type, v) : def.sms(v, schoolName),
+          });
         }
-      } else {
-        messages.push({ parent, values: { schoolName: config.schoolName, ...values } });
       }
     }
     if (messages.length === 0) {
-      return res.status(400).json({ error: 'No eligible parents found (they need a phone number and must not have opted out of WhatsApp)' });
+      return res.status(400).json({ error: 'No eligible parents found (they need a phone number; WhatsApp channels also skip parents who opted out)' });
     }
 
     if (dryRun) {
-      return res.json({ recipients: eligible.length, messages: messages.length, sample: renderTemplateBody(type, messages[0].values) });
+      return res.json({
+        recipients: new Set(messages.map((m) => String(m.parent._id))).size,
+        channels: active.map((ch) => {
+          const forChannel = messages.filter((m) => m.channel === ch);
+          const sample = forChannel[0]?.text || '';
+          return {
+            channel: ch, label: NOTICE_CHANNEL_LABELS[ch], messages: forChannel.length, sample,
+            ...(ch === 'sms' && sample ? { parts: smsSegments(sample) } : {}),
+          };
+        }),
+        notConfigured,
+      });
     }
 
-    let sent = 0, failed = 0;
+    const byChannel = Object.fromEntries(active.map((ch) => [ch, { sent: 0, failed: 0 }]));
     const errorCounts = new Map();
     for (let i = 0; i < messages.length; i += NOTICE_BATCH_SIZE) {
-      await Promise.all(messages.slice(i, i + NOTICE_BATCH_SIZE).map(async ({ parent, student, values: v }) => {
-        const result = await sendTemplateMessage(config, parent.phone, type, v);
+      await Promise.all(messages.slice(i, i + NOTICE_BATCH_SIZE).map(async ({ channel: ch, parent, student, values: v, text }) => {
+        let result;
+        if (ch === 'whatsapp') result = await sendTemplateMessage(configs.whatsapp, parent.phone, type, v);
+        else if (ch === 'termii-whatsapp') result = await sendWhatsAppViaTermii(configs['termii-whatsapp'], parent.phone, text);
+        else result = await sendSMS(configs.sms, parent.phone, text);
+
         await logNotification(tenantId, {
-          type: def.logType, channel: 'whatsapp',
+          type: def.logType, channel: ch,
           recipientPhone: parent.phone, recipientName: parent.name,
           parentId: parent._id, studentId: student?._id || null,
-          message: renderTemplateBody(type, v),
+          message: text,
           status: result.success ? 'sent' : 'failed',
           metaMessageId: result.messageId || '', errorMessage: result.error || '',
           sentAt: result.success ? new Date() : null, sentBy: req.user.id,
         });
-        if (result.success) sent++;
-        else { failed++; errorCounts.set(result.error, (errorCounts.get(result.error) || 0) + 1); }
+        if (result.success) byChannel[ch].sent++;
+        else {
+          byChannel[ch].failed++;
+          const key = `${ch}|${result.error}`;
+          errorCounts.set(key, (errorCounts.get(key) || 0) + 1);
+        }
       }));
     }
 
-    const errors = [...errorCounts.entries()].slice(0, 3).map(([error, count]) => ({ error, count }));
+    const sent = Object.values(byChannel).reduce((n, c) => n + c.sent, 0);
+    const failed = Object.values(byChannel).reduce((n, c) => n + c.failed, 0);
+    const errors = [...errorCounts.entries()].slice(0, 4).map(([key, count]) => {
+      const [ch, ...rest] = key.split('|');
+      return { channel: ch, label: NOTICE_CHANNEL_LABELS[ch], error: rest.join('|'), count };
+    });
     if (sent === 0) {
-      return res.status(502).json({ error: `Nothing was sent. ${errors[0]?.error || 'Unknown error'}`, sent, failed, errors });
+      return res.status(502).json({ error: `Nothing was sent. ${errors[0]?.label}: ${errors[0]?.error || 'Unknown error'}`, sent, failed, byChannel, errors, notConfigured });
     }
-    res.json({ message: `Notice sent. Delivered to Meta: ${sent}, Failed: ${failed}`, sent, failed, errors });
+    res.json({ message: `Notice sent. Accepted: ${sent}, Failed: ${failed}`, sent, failed, byChannel, errors, notConfigured });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

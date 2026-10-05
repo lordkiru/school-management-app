@@ -142,6 +142,17 @@ const smsTemplateBodies = {
   resultPublished: (studentName, term) =>
     `${studentName}'s ${term} results are now available. Visit the parent portal to view.`,
 
+  // Announcements (Messaging > Notices). Plain ASCII on purpose: one non-ASCII character
+  // switches a message to Unicode SMS, which fits less than half as much per part.
+  parentTeacherMeeting: (meetingDate) =>
+    `A Parent-Teacher meeting has been scheduled for ${meetingDate}. Your attendance would be appreciated.`,
+
+  schoolClosure: (closedOn, reason, resumeOn) =>
+    `School will be closed ${closedOn} due to ${reason}. Classes will resume on ${resumeOn}.`,
+
+  examNotice: (studentName, assessment, scheduledFor) =>
+    `${studentName} has a ${assessment} scheduled for ${scheduledFor}. Please ensure preparedness.`,
+
   // For a parent with multiple children — entries: [{ name, amount }], only
   // ever built from children who actually have an outstanding balance
   // (fully-paid siblings are filtered out by the caller before this runs).
@@ -171,10 +182,28 @@ const smsTemplates = {
   resultPublished: (studentName, term, schoolName) =>
     `${schoolName}: ${smsTemplateBodies.resultPublished(studentName, term)}`,
 
+  parentTeacherMeeting: (meetingDate, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.parentTeacherMeeting(meetingDate)}`,
+
+  schoolClosure: (closedOn, reason, resumeOn, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.schoolClosure(closedOn, reason, resumeOn)}`,
+
+  examNotice: (studentName, assessment, scheduledFor, schoolName) =>
+    `${schoolName}: ${smsTemplateBodies.examNotice(studentName, assessment, scheduledFor)}`,
+
   custom: (message, schoolName) => `${schoolName}: ${message}`,
 };
 
+// How many SMS parts a message is billed as: 160 characters (153 per part once split) for plain
+// text, but only 70 (67 per part) as soon as any character outside basic ASCII appears.
+function smsSegments(text) {
+  const unicode = /[^\x20-\x7E\n\r]/.test(text);
+  const [single, perPart] = unicode ? [70, 67] : [160, 153];
+  return text.length <= single ? 1 : Math.ceil(text.length / perPart);
+}
+
 module.exports = {
+  smsSegments,
   sendSMS,
   sendBulkSMS,
   sendWhatsAppViaTermii,

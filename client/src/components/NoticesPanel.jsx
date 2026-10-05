@@ -34,11 +34,19 @@ const NOTICE_TYPES = [
   },
 ];
 
+const CHANNEL_OPTIONS = [
+  { value: 'whatsapp', label: '💬 WhatsApp (Meta)' },
+  { value: 'termii-whatsapp', label: '📲 WhatsApp (Termii)' },
+  { value: 'sms', label: '📱 SMS' },
+  { value: 'all', label: '📡 All Channels' },
+];
+
 const inputClass = 'w-full p-2.5 rounded-lg border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900 outline-none transition';
 
 function NoticesPanel({ classes }) {
   const [type, setType] = useState(NOTICE_TYPES[0].value);
   const [classId, setClassId] = useState('');
+  const [channel, setChannel] = useState('whatsapp');
   const [fields, setFields] = useState({});
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -58,7 +66,7 @@ function NoticesPanel({ classes }) {
     fetch(`${import.meta.env.VITE_API_URL}/notifications/notice`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ type, classId: classId || undefined, fields, dryRun }),
+      body: JSON.stringify({ type, classId: classId || undefined, fields, channel, dryRun }),
     });
 
   const handleSubmit = async (e) => {
@@ -72,9 +80,12 @@ function NoticesPanel({ classes }) {
       const preview = await previewRes.json();
       if (!previewRes.ok) { setError(preview.error); return; }
 
+      const perChannel = preview.channels
+        .map((c) => `${c.label}: ${c.messages} message${c.messages === 1 ? '' : 's'}${c.parts > 1 ? ` (${c.parts} SMS parts each)` : ''}\n"${c.sample}"`)
+        .join('\n\n');
+      const skipped = preview.notConfigured?.length ? `\n\nNot sent (not set up): ${preview.notConfigured.join(' ')}` : '';
       const confirmed = window.confirm(
-        `Send this WhatsApp notice to ${preview.recipients} parent(s) (${preview.messages} message${preview.messages === 1 ? '' : 's'})?\n\n` +
-        `Preview:\n${preview.sample}\n\nThis cannot be undone.`
+        `Send this notice to ${preview.recipients} parent(s)?\n\n${perChannel}${skipped}\n\nThis cannot be undone.`
       );
       if (!confirmed) return;
 
@@ -82,8 +93,9 @@ function NoticesPanel({ classes }) {
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
 
-      const problems = (data.errors || []).map((x) => `${x.error} (${x.count})`).join('; ');
-      setStatus(data.failed > 0 ? `⚠️ ${data.message}. ${problems}` : `✅ ${data.message}`);
+      const problems = (data.errors || []).map((x) => `${x.label}: ${x.error} (${x.count})`).join('; ');
+      const notSet = data.notConfigured?.length ? ` Not sent: ${data.notConfigured.join(' ')}` : '';
+      setStatus(data.failed > 0 || notSet ? `⚠️ ${data.message}. ${problems}${notSet}` : `✅ ${data.message}`);
       setFields({});
     } catch (err) {
       setError(err.message);
@@ -97,8 +109,9 @@ function NoticesPanel({ classes }) {
       <form onSubmit={handleSubmit} className="glass-card rounded-xl p-6 space-y-4">
         <h3 className="font-semibold text-slate-800 dark:text-white">Send a Notice</h3>
         <p className="text-xs text-slate-500 dark:text-gray-400">
-          Sent over WhatsApp (Meta) using an approved template, so the wording is fixed and every field is required.
-          Parents without a phone number, or who opted out of WhatsApp, are skipped.
+          The wording is fixed and every field is required. WhatsApp (Meta) sends the approved template; Termii WhatsApp and
+          SMS send a short text version. Parents without a phone number are skipped, and parents who opted out of
+          WhatsApp are skipped on the WhatsApp channels only.
         </p>
 
         {error && (
@@ -111,6 +124,26 @@ function NoticesPanel({ classes }) {
             {status}
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-2">Channel</label>
+          <div className="flex flex-wrap gap-2">
+            {CHANNEL_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setChannel(opt.value)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition ${
+                  channel === opt.value
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white dark:bg-gray-700 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-600 hover:border-indigo-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Notice</label>

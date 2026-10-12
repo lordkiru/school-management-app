@@ -1,4 +1,8 @@
 .super-admin-dashboard {
+  /* Always a light page (even in dark mode): set the base text colour so anything that doesn't set its own
+     (table cells, counts, pagination) isn't left white-on-white. */
+  color: #2c3e50;
+  color-scheme: light;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;

@@ -1,4 +1,8 @@
 .tenant-management {
+  /* Always a light page (even in dark mode): set the base text colour so anything that doesn't set its own
+     (table cells, counts, pagination) isn't left white-on-white. */
+  color: #2c3e50;
+  color-scheme: light;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -218,6 +222,8 @@ td small {
 
 .modal-content {
   background: white;
+  color: #2c3e50; /* the modal is always white, so its text must not inherit the app's dark-mode white */
+  color-scheme: light; /* native dropdown lists and date pickers render light too */
   border-radius: 12px;
   padding: 2rem;
   max-width: 500px;
@@ -263,6 +269,27 @@ td small {
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 1rem;
+}
+
+/* These pages are always light (white cards on a pale page), even when the app is in dark mode, so
+   their form controls set their own colours. They used to inherit the app's white dark-mode text,
+   which made typed text and selected options invisible (white on white). Used by Manage Schools,
+   Subscriptions and every modal on them (Create School, Payment Setup, ...). */
+.search-input,
+.status-filter,
+.action-select,
+.form-group input,
+.form-group select,
+.form-group textarea {
+  color: #2c3e50;
+  background-color: #fff;
+  color-scheme: light;
+}
+
+.search-input::placeholder,
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #6b7280;
 }
 
 .form-group small {

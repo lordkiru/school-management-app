@@ -1,6 +1,34 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* School admin dashboard design tokens (client/src/components/dashboard). Utilities: bg-lem-sidebar,
+   text-lem-muted, font-display, font-body, ... Muted greys are a touch darker than the design mock
+   (#70758A / #9AA0B4) so small text stays above 4.5:1 on white and on the canvas. */
+@theme {
+  --color-lem-brand: #4338ca;
+  --color-lem-brand-deep: #312e9c;
+  --color-lem-sidebar: #211c4a;
+  --color-lem-canvas: #f6f5fb;
+  --color-lem-ink: #1e2433;
+  --color-lem-muted: #656b80;
+  --color-lem-track: #f0f0f6;
+  --color-lem-amber: #d98a3d;
+  --color-lem-amber-track: #f6eee3;
+  --color-lem-green: #2e9e6e;
+  --color-lem-red: #e0585a;
+  --font-display: "Space Grotesk", "Manrope", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+}
+
+/* Admin shell only (light mode): existing pages put slate/gray-500 helper text straight on the page
+   background. The admin canvas (#F6F5FB) is a touch darker than the white those pages were built on,
+   which drops that shade to ~4.4:1, just under AA. This nudges it to a tone between 500 and 600 so
+   helper text keeps its place in the hierarchy. Unlayered and :not(.dark) on purpose, so it beats the
+   utility in light mode but never overrides a dark: variant. */
+html:not(.dark) .lem-admin :is(.text-slate-500, .text-gray-500) {
+  color: #5a6a82;
+}
+
 /* Keep table row text readable on hover in dark mode — some rows use a
    light hover background even when dark mode is active, which made white
    text disappear. This overrides text color for any hovered row, everywhere. */

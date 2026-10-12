@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { LogOut, WifiOff, RefreshCw, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { syncOfflineQueue, getPendingCount } from './utils/offlineQueue';
 import ThemeToggle from './components/ThemeToggle';
 import TrialBanner from './components/TrialBanner';
@@ -19,6 +19,8 @@ import AddScore from './components/AddScore';
 import FeeList from './components/FeeList';
 import AddFee from './components/AddFee';
 import Dashboard from './components/Dashboard';
+import AdminLayout from './components/dashboard/AdminLayout';
+import ConnectionBanners from './components/ConnectionBanners';
 import SchoolSettings from './components/SchoolSettings';
 import AddClassFee from './components/AddClassFee';
 import AuditLogList from './components/AuditLogList';
@@ -139,34 +141,175 @@ function DashboardShell({
   refreshKeys,
   bumpRefresh,
 }) {
+  const routes = (
+    <Routes>
+      <Route index element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard userRole={user.role} userName={user.name} />} />
+
+      <Route path="students">
+        <Route
+          index
+          element={
+            <RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                <AddStudent onStudentAdded={() => bumpRefresh('student')} />
+                <StudentList refreshKey={refreshKeys.student} />
+              </div>
+            </RequireRole>
+          }
+        />
+        <Route
+          path=":studentId"
+          element={<RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}><StudentDetail /></RequireRole>}
+        />
+      </Route>
+
+      <Route
+        path="classes"
+        element={
+          <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+              <AddClass onClassAdded={() => bumpRefresh('class')} />
+              <ClassList refreshKey={refreshKeys.class} />
+            </div>
+          </RequireRole>
+        }
+      />
+      <Route
+        path="subjects"
+        element={
+          <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+              <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
+              <SubjectList refreshKey={refreshKeys.subject} />
+            </div>
+          </RequireRole>
+        }
+      />
+      <Route
+        path="scores"
+        element={
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <AddScore onScoreAdded={() => bumpRefresh('score')} userRole={user.role} />
+            <ScoreList refreshKey={refreshKeys.score} />
+          </div>
+        }
+      />
+      <Route
+        path="cbt"
+        element={
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
+            <CbtBuilder onTestCreated={() => bumpRefresh('cbt')} />
+            <CbtResults refreshKey={refreshKeys.cbt} />
+          </div>
+        }
+      />
+
+      <Route
+        path="fees"
+        element={
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <div className="flex flex-col gap-6">
+              <AddClassFee onFeesAdded={() => bumpRefresh('fee')} />
+              <AdjustClassFee onAdjusted={() => bumpRefresh('fee')} />
+              <AddFee onFeeAdded={() => bumpRefresh('fee')} />
+            </div>
+            <FeeList refreshKey={refreshKeys.fee} />
+          </div>
+        }
+      />
+      <Route path="fees/report" element={<FeeReportByClass />} />
+      <Route path="fees/setup" element={<FeeStructureSetup />} />
+      <Route path="fees/breakdown" element={<FeeBreakdownView />} />
+
+      <Route
+        path="sessions"
+        element={<RequireRole roles={['proprietor']} userRole={user.role}><SessionManager /></RequireRole>}
+      />
+      <Route path="timetable" element={<TimetableView />} />
+      <Route path="promote" element={<PromoteClass />} />
+      <Route
+        path="staff"
+        element={
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <AddStaff onStaffAdded={() => bumpRefresh('staff')} currentUserRole={user.role} />
+            <StaffList refreshKey={refreshKeys.staff} />
+          </div>
+        }
+      />
+      <Route
+        path="parents"
+        element={
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <AddParent onParentAdded={() => bumpRefresh('parent')} />
+            <ParentList refreshKey={refreshKeys.parent} />
+          </div>
+        }
+      />
+      <Route
+        path="auditlog"
+        element={<RequireRole roles={['proprietor']} userRole={user.role}><AuditLogList /></RequireRole>}
+      />
+      <Route
+        path="subscription"
+        element={<RequireRole roles={['proprietor']} userRole={user.role}><MySubscription /></RequireRole>}
+      />
+      <Route
+        path="settings"
+        element={<RequireRole roles={['proprietor']} userRole={user.role}><SchoolSettings /></RequireRole>}
+      />
+      <Route path="reportcards" element={<ReportCardView />} />
+      <Route path="remarks" element={<TeacherRemarks userRole={user.role} />} />
+      <Route path="dataimport" element={<DataImport userRole={user.role} />} />
+      <Route path="notifications" element={<NotificationsPanel />} />
+
+      {/* Attendance — teachers see marking UI, admin/proprietor see the dashboard */}
+      <Route
+        path="attendance"
+        element={user.role === 'teacher' ? <AttendanceMarking userRole={user.role} /> : <AttendanceDashboard />}
+      />
+
+      {/* Super Admin routes */}
+      <Route
+        path="superadmin"
+        element={<RequireRole roles={['super_admin']} userRole={user.role}><SuperAdminDashboard /></RequireRole>}
+      />
+      <Route
+        path="superadmin/tenants"
+        element={<RequireRole roles={['super_admin']} userRole={user.role}><TenantManagement /></RequireRole>}
+      />
+      <Route
+        path="superadmin/subscriptions"
+        element={<RequireRole roles={['super_admin']} userRole={user.role}><SubscriptionManagement /></RequireRole>}
+      />
+
+      <Route path="*" element={<div className="p-6 text-gray-500 dark:text-gray-400">Page not found.</div>} />
+    </Routes>
+  );
+
+  // School roles get the dark-sidebar layout; teachers and super admins keep the original shell below.
+  if (['proprietor', 'admin', 'bursar'].includes(user.role)) {
+    return (
+      <AdminLayout
+        user={user}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        onLogout={onLogout}
+        isOnline={isOnline}
+        pendingSync={pendingSync}
+        syncStatus={syncStatus}
+      >
+        {routes}
+      </AdminLayout>
+    );
+  }
+
   return (
     <div className="relative isolate min-h-screen bg-amber-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       {/* App-wide glass backdrop: one fixed layer (so the glows stay in view on long pages) behind every screen */}
       <div aria-hidden="true" className="glass-page-bg fixed inset-0 -z-10 print:hidden" />
 
       {/* Offline / Sync banner */}
-      {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-amber-700 text-white text-sm font-medium py-2 px-4">
-          <WifiOff size={15} />
-          You're offline — attendance will sync automatically when reconnected
-          {pendingSync > 0 && (
-            <span className="bg-white text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full ml-1">
-              {pendingSync} queued
-            </span>
-          )}
-        </div>
-      )}
-      {isOnline && syncStatus === 'syncing' && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-medium py-2 px-4">
-          <RefreshCw size={15} className="animate-spin" />
-          Syncing offline attendance records...
-        </div>
-      )}
-      {isOnline && syncStatus === 'synced' && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 bg-emerald-700 text-white text-sm font-medium py-2 px-4">
-          ✅ Offline attendance synced successfully!
-        </div>
-      )}
+      <ConnectionBanners isOnline={isOnline} pendingSync={pendingSync} syncStatus={syncStatus} />
 
       {/* ── Fixed top header bar ── */}
       <header className={`glass-card glass-card-quiet fixed top-0 left-0 right-0 z-40 rounded-none border-0 border-b border-slate-200/70 dark:border-white/10 print:hidden ${!isOnline ? 'mt-8' : ''}`}>
@@ -209,148 +352,7 @@ function DashboardShell({
 
         <main className="flex-1 min-w-0 overflow-x-hidden">
           <TrialBanner />
-          <Routes>
-            <Route index element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard userRole={user.role} />} />
-
-            <Route path="students">
-              <Route
-                index
-                element={
-                  <RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                      <AddStudent onStudentAdded={() => bumpRefresh('student')} />
-                      <StudentList refreshKey={refreshKeys.student} />
-                    </div>
-                  </RequireRole>
-                }
-              />
-              <Route
-                path=":studentId"
-                element={<RequireRole roles={['proprietor', 'admin', 'bursar']} userRole={user.role}><StudentDetail /></RequireRole>}
-              />
-            </Route>
-
-            <Route
-              path="classes"
-              element={
-                <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                    <AddClass onClassAdded={() => bumpRefresh('class')} />
-                    <ClassList refreshKey={refreshKeys.class} />
-                  </div>
-                </RequireRole>
-              }
-            />
-            <Route
-              path="subjects"
-              element={
-                <RequireRole roles={['proprietor', 'admin']} userRole={user.role}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                    <AddSubject onSubjectAdded={() => bumpRefresh('subject')} />
-                    <SubjectList refreshKey={refreshKeys.subject} />
-                  </div>
-                </RequireRole>
-              }
-            />
-            <Route
-              path="scores"
-              element={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                  <AddScore onScoreAdded={() => bumpRefresh('score')} userRole={user.role} />
-                  <ScoreList refreshKey={refreshKeys.score} />
-                </div>
-              }
-            />
-            <Route
-              path="cbt"
-              element={
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
-                  <CbtBuilder onTestCreated={() => bumpRefresh('cbt')} />
-                  <CbtResults refreshKey={refreshKeys.cbt} />
-                </div>
-              }
-            />
-
-            <Route
-              path="fees"
-              element={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                  <div className="flex flex-col gap-6">
-                    <AddClassFee onFeesAdded={() => bumpRefresh('fee')} />
-                    <AdjustClassFee onAdjusted={() => bumpRefresh('fee')} />
-                    <AddFee onFeeAdded={() => bumpRefresh('fee')} />
-                  </div>
-                  <FeeList refreshKey={refreshKeys.fee} />
-                </div>
-              }
-            />
-            <Route path="fees/report" element={<FeeReportByClass />} />
-            <Route path="fees/setup" element={<FeeStructureSetup />} />
-            <Route path="fees/breakdown" element={<FeeBreakdownView />} />
-
-            <Route
-              path="sessions"
-              element={<RequireRole roles={['proprietor']} userRole={user.role}><SessionManager /></RequireRole>}
-            />
-            <Route path="timetable" element={<TimetableView />} />
-            <Route path="promote" element={<PromoteClass />} />
-            <Route
-              path="staff"
-              element={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                  <AddStaff onStaffAdded={() => bumpRefresh('staff')} currentUserRole={user.role} />
-                  <StaffList refreshKey={refreshKeys.staff} />
-                </div>
-              }
-            />
-            <Route
-              path="parents"
-              element={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                  <AddParent onParentAdded={() => bumpRefresh('parent')} />
-                  <ParentList refreshKey={refreshKeys.parent} />
-                </div>
-              }
-            />
-            <Route
-              path="auditlog"
-              element={<RequireRole roles={['proprietor']} userRole={user.role}><AuditLogList /></RequireRole>}
-            />
-            <Route
-              path="subscription"
-              element={<RequireRole roles={['proprietor']} userRole={user.role}><MySubscription /></RequireRole>}
-            />
-            <Route
-              path="settings"
-              element={<RequireRole roles={['proprietor']} userRole={user.role}><SchoolSettings /></RequireRole>}
-            />
-            <Route path="reportcards" element={<ReportCardView />} />
-            <Route path="remarks" element={<TeacherRemarks userRole={user.role} />} />
-            <Route path="dataimport" element={<DataImport userRole={user.role} />} />
-            <Route path="notifications" element={<NotificationsPanel />} />
-
-            {/* Attendance — teachers see marking UI, admin/proprietor see the dashboard */}
-            <Route
-              path="attendance"
-              element={user.role === 'teacher' ? <AttendanceMarking userRole={user.role} /> : <AttendanceDashboard />}
-            />
-
-            {/* Super Admin routes */}
-            <Route
-              path="superadmin"
-              element={<RequireRole roles={['super_admin']} userRole={user.role}><SuperAdminDashboard /></RequireRole>}
-            />
-            <Route
-              path="superadmin/tenants"
-              element={<RequireRole roles={['super_admin']} userRole={user.role}><TenantManagement /></RequireRole>}
-            />
-            <Route
-              path="superadmin/subscriptions"
-              element={<RequireRole roles={['super_admin']} userRole={user.role}><SubscriptionManagement /></RequireRole>}
-            />
-
-            <Route path="*" element={<div className="p-6 text-gray-500 dark:text-gray-400">Page not found.</div>} />
-          </Routes>
+          {routes}
         </main>
       </div>
     </div>

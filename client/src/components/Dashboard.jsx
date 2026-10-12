@@ -1,235 +1,169 @@
-import { useState, useEffect } from 'react';
-import { Users, GraduationCap, ClipboardList, Wallet } from 'lucide-react';
-import { SCHOOL_LEVELS } from '../constants/schoolLevels';
+import { useState, useEffect, useMemo } from 'react';
+import { Users, BookOpen, Wallet, CircleAlert, UserPlus, Banknote, ClipboardCheck, Send } from 'lucide-react';
+import { buildDashboardModel, buildActivity, toBreakdownRows, formatNaira } from '../utils/dashboardStats';
+import DashboardTopbar from './dashboard/DashboardTopbar';
+import StatCard from './dashboard/StatCard';
+import SectionBreakdownCard from './dashboard/SectionBreakdownCard';
+import ActivityFeed from './dashboard/ActivityFeed';
+import TermProgressCard from './dashboard/TermProgressCard';
+import QuickActions from './dashboard/QuickActions';
 
-const SECTIONS = SCHOOL_LEVELS;
-
-function Dashboard({ userRole }) {
-  const [stats, setStats] = useState(null);
+// School admin dashboard (proprietor, admin, bursar). Fetches the raw data; every number on
+// screen is derived from it in utils/dashboardStats.js.
+function Dashboard({ userRole, userName }) {
+  const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const canSeeFees = userRole === 'proprietor' || userRole === 'bursar';
+  const canUseMessaging = userRole === 'proprietor' || userRole === 'admin';
+
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+        // null on any failure, so one optional endpoint being down can't blank the whole page
+        const get = async (path) => {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}${path}`, { headers });
+          return res.ok ? res.json() : null;
+        };
 
-        const canSeeFees = userRole === 'proprietor' || userRole === 'bursar';
+        const [students, classes, school, sessions, fees, history] = await Promise.all([
+          get('/students'),
+          get('/classes'),
+          get('/school'),
+          get('/sessions'),
+          canSeeFees ? get('/fees') : Promise.resolve([]),
+          canUseMessaging ? get('/notifications/history?limit=60') : Promise.resolve(null),
+        ]);
 
-        const fetchPromises = [
-          fetch(`${import.meta.env.VITE_API_URL}/students`, { headers }),
-          fetch(`${import.meta.env.VITE_API_URL}/classes`, { headers }),
-          fetch(`${import.meta.env.VITE_API_URL}/school`, { headers }),
-        ];
-        if (canSeeFees) {
-          fetchPromises.push(fetch(`${import.meta.env.VITE_API_URL}/fees`, { headers }));
+        // These are the page: if they fail, say so rather than showing zeros as if they were real.
+        if (!Array.isArray(students) || !Array.isArray(classes) || !Array.isArray(fees)) {
+          throw new Error('Failed to load');
         }
 
-        const results = await Promise.all(fetchPromises);
-        const students = await results[0].json();
-        const classes = await results[1].json();
-        const school = results[2].ok ? await results[2].json() : null;
-        const fees = canSeeFees ? await results[3].json() : [];
-
-        const enabledSections = Array.isArray(school?.schoolLevels) && school.schoolLevels.length > 0
-          ? SECTIONS.filter((s) => school.schoolLevels.includes(s))
-          : SECTIONS;
-
-        const classSectionMap = {};
-        classes.forEach((cls) => {
-          classSectionMap[cls._id] = cls.section;
+        setRaw({
+          fetchedAt: Date.now(), // relative times ("3h ago") are measured from when the data was loaded
+          students,
+          classes,
+          fees,
+          school,
+          sessions: Array.isArray(sessions) ? sessions : [],
+          notifications: Array.isArray(history?.notifications) ? history.notifications : [],
         });
-
-        const studentSectionMap = {};
-        students.forEach((student) => {
-          const classId = student.classId?._id || student.classId;
-          studentSectionMap[student._id] = classSectionMap[classId];
-        });
-
-        // A student/fee with no section at all (not yet linked to a class) is kept in
-        // the totals — it's unclassified, not deselected. Only records whose section
-        // is a real value the school has since turned OFF are excluded.
-        const isVisibleSection = (section) => !section || enabledSections.includes(section);
-
-        const visibleClasses = classes.filter((cls) => isVisibleSection(cls.section));
-        const visibleStudents = students.filter((student) => isVisibleSection(studentSectionMap[student._id]));
-        const visibleFees = fees.filter((fee) => {
-          const studentId = fee.studentId?._id || fee.studentId;
-          return isVisibleSection(studentSectionMap[studentId]);
-        });
-
-        const studentsBySection = {};
-        SECTIONS.forEach((s) => (studentsBySection[s] = 0));
-        let unassignedStudents = 0;
-
-        students.forEach((student) => {
-          const section = studentSectionMap[student._id];
-          if (section && studentsBySection[section] !== undefined) {
-            studentsBySection[section]++;
-          } else {
-            unassignedStudents++;
-          }
-        });
-
-        const feesBySection = {};
-        SECTIONS.forEach((s) => (feesBySection[s] = { expected: 0, paid: 0 }));
-
-        fees.forEach((fee) => {
-          const studentId = fee.studentId?._id || fee.studentId;
-          const section = studentSectionMap[studentId];
-          if (section && feesBySection[section]) {
-            feesBySection[section].expected += fee.amountExpected;
-            feesBySection[section].paid += fee.amountPaid;
-          }
-        });
-
-        const totalExpected = visibleFees.reduce((sum, f) => sum + f.amountExpected, 0);
-        const totalPaid = visibleFees.reduce((sum, f) => sum + f.amountPaid, 0);
-        const totalOutstanding = totalExpected - totalPaid;
-
-        setStats({
-          totalStudents: visibleStudents.length,
-          totalClasses: visibleClasses.length,
-          studentsBySection,
-          unassignedStudents,
-          feesBySection,
-          totalExpected,
-          totalPaid,
-          totalOutstanding,
-          canSeeFees,
-          enabledSections,
-        });
-      } catch (err) {
+      } catch {
         setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
-  }, [userRole]);
+    fetchData();
+  }, [userRole, canSeeFees, canUseMessaging]);
 
-  if (loading) return <div className="min-h-screen p-6"><p>Loading dashboard...</p></div>;
-  if (error) return <div className="min-h-screen p-6"><p className="text-red-600 dark:text-red-400">{error}</p></div>;
+  const view = useMemo(() => {
+    if (!raw) return null;
+    const model = buildDashboardModel({ ...raw, canSeeFees });
+    return {
+      model,
+      now: raw.fetchedAt,
+      activity: buildActivity({ students: raw.students, fees: raw.fees, notifications: raw.notifications }),
+    };
+  }, [raw, canSeeFees]);
 
-  const summaryCards = [
-    {
-      label: 'Total Students',
-      value: stats.totalStudents,
-      icon: Users,
-      iconColor: 'text-indigo-600 dark:text-indigo-300',
-      iconBg: 'bg-indigo-500/10 dark:bg-indigo-400/15',
-      border: 'border-l-indigo-500',
-    },
-    {
-      label: 'Total Classes',
-      value: stats.totalClasses,
-      icon: GraduationCap,
-      iconColor: 'text-purple-600 dark:text-purple-400',
-      iconBg: 'bg-purple-500/10 dark:bg-purple-400/15',
-      border: 'border-l-purple-500',
-    },
-  ];
+  if (loading) return <p className="px-9 py-8 text-lem-muted dark:text-gray-400">Loading dashboard...</p>;
+  if (error) return <p className="px-9 py-8 text-red-600 dark:text-red-400">{error}</p>;
 
-  if (stats.canSeeFees) {
-    summaryCards.push(
-      {
-        label: 'Fees Collected',
-        value: `₦${stats.totalPaid.toLocaleString()}`,
-        icon: Wallet,
-        iconColor: 'text-emerald-700 dark:text-emerald-400',
-        iconBg: 'bg-emerald-500/10 dark:bg-emerald-400/15',
-        border: 'border-l-emerald-500',
-      },
-      {
-        label: 'Fees Outstanding',
-        value: `₦${stats.totalOutstanding.toLocaleString()}`,
-        icon: ClipboardList,
-        iconColor: 'text-rose-700 dark:text-rose-400',
-        iconBg: 'bg-rose-500/10 dark:bg-rose-400/15',
-        border: 'border-l-rose-500',
-      }
-    );
-  }
+  const { model, now, activity } = view;
+  const fees = model.fees;
+  const termLabel = model.term ? `${model.term.term}, ${model.term.session}` : model.session;
+  const subtitle = [raw.school?.name, termLabel].filter(Boolean).join(' · ');
+
+  // Only offer what this role can actually open
+  const quickActions = [
+    userRole !== 'bursar' && { to: '/dashboard/students', label: 'Add Student', icon: UserPlus },
+    canSeeFees && { to: '/dashboard/fees', label: 'Record Payment', icon: Banknote },
+    userRole !== 'bursar' && { to: '/dashboard/attendance', label: 'Mark Attendance', icon: ClipboardCheck },
+    canUseMessaging && { to: '/dashboard/notifications?tab=notices', label: 'Send Notice', icon: Send },
+  ].filter(Boolean);
+
+  const studentRows = toBreakdownRows(model.studentsBySection, (s) => s.count, (n) => n.toLocaleString());
+  const feeRows = fees ? toBreakdownRows(fees.bySection, (s) => s.outstanding, formatNaira) : [];
 
   return (
-    <div className="min-h-screen p-6">
-      <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">Overview</h2>
+    <div className="relative overflow-hidden px-4 pb-12 pt-6 min-[700px]:px-9 min-[700px]:pb-14 min-[700px]:pt-8">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-10 h-[420px] w-[420px] rounded-full bg-lem-brand/5 blur-[90px]" />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {summaryCards.map(({ label, value, icon: Icon, iconColor, iconBg, border }) => (
-          <div
-            key={label}
-            className={`glass-card rounded-xl border-l-4 ${border} p-6 flex flex-col gap-3`}
-          >
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-              <Icon className={iconColor} size={20} />
-            </div>
-            <div>
-              <span className="block text-2xl font-bold text-slate-800 dark:text-white">{value}</span>
-              <span className="text-sm text-slate-600 dark:text-gray-300">{label}</span>
-            </div>
+      <div className="relative">
+        <DashboardTopbar
+          userName={userName}
+          subtitle={subtitle}
+          students={raw.students}
+          classes={raw.classes}
+          canOpenClasses={userRole !== 'bursar'}
+          canOpenMessaging={canUseMessaging}
+          canRecordPayment={canSeeFees}
+        />
+
+        {/* Stat row: fee cards only for roles that can see fees */}
+        <div className={`mb-5 grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 ${fees ? 'min-[1280px]:grid-cols-4' : ''}`}>
+          <StatCard
+            icon={Users}
+            tone="brand"
+            value={model.totalStudents.toLocaleString()}
+            label="Total Students"
+            footnote={model.unassignedStudents > 0 ? `${model.unassignedStudents} not yet linked to a class` : undefined}
+          />
+          <StatCard icon={BookOpen} tone="ink" value={model.totalClasses.toLocaleString()} label="Total Classes" />
+          {fees && (
+            <>
+              <StatCard
+                icon={Wallet}
+                tone="brand"
+                value={formatNaira(fees.collected)}
+                label={model.term ? 'Fees Collected This Term' : 'Fees Collected'}
+              />
+              <StatCard icon={CircleAlert} tone="red" value={formatNaira(fees.outstanding)} label="Fees Outstanding" />
+            </>
+          )}
+        </div>
+
+        {/* Same card pattern for both breakdowns */}
+        <div className={`mb-4 grid grid-cols-1 gap-4 ${fees ? 'min-[800px]:grid-cols-2' : ''}`}>
+          <SectionBreakdownCard
+            title="Students by Section"
+            total={`${model.totalStudents.toLocaleString()} total`}
+            rows={studentRows}
+            tone="brand"
+          />
+          {fees && (
+            <SectionBreakdownCard
+              title="Outstanding Fees by Section"
+              total={`${formatNaira(fees.outstanding)} total`}
+              rows={feeRows}
+              tone="amber"
+              emptyText="No fees to show yet."
+            />
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <ActivityFeed events={activity} now={now} />
+          <div className="flex min-w-0 flex-col gap-4">
+            {fees && (
+              <TermProgressCard
+                collected={fees.collected}
+                expected={fees.expected}
+                percent={fees.percentCollected}
+                termLabel={model.term ? model.term.term : null}
+              />
+            )}
+            <QuickActions actions={quickActions} />
           </div>
-        ))}
+        </div>
       </div>
-
-      <h3 className="text-lg font-semibold mb-5 text-slate-800 dark:text-white">Students by Section</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        {stats.enabledSections.map((section) => (
-          <div
-            key={section}
-            className="glass-card glass-card-quiet rounded-xl p-5 flex flex-col gap-1"
-          >
-            <span className="text-2xl font-bold text-slate-700 dark:text-gray-200">
-              {stats.studentsBySection[section]}
-            </span>
-            <span className="text-sm text-slate-600 dark:text-gray-300">{section}</span>
-          </div>
-        ))}
-      </div>
-
-      {stats.canSeeFees && (
-        <>
-          <h3 className="text-lg font-semibold mb-5 text-slate-800 dark:text-white">Fees by Section</h3>
-          <div className="glass-card rounded-xl overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr>
-                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Section</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Expected</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Collected</th>
-                  <th className="py-3.5 px-4 text-xs font-semibold uppercase tracking-wide">Outstanding</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.enabledSections.map((section) => {
-                  const { expected, paid } = stats.feesBySection[section];
-                  return (
-                    <tr key={section} className="border-b border-slate-50 dark:border-gray-700 last:border-0">
-                      <td className="py-3.5 px-4 font-medium text-slate-800 dark:text-white">{section}</td>
-                      <td className="py-3.5 px-4 text-slate-600 dark:text-gray-300">₦{expected.toLocaleString()}</td>
-                      <td className="py-3.5 px-4 text-emerald-700 dark:text-emerald-400 font-medium">
-                        ₦{paid.toLocaleString()}
-                      </td>
-                      <td className="py-3.5 px-4 text-rose-700 dark:text-rose-300 font-medium">
-                        ₦{(expected - paid).toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {stats.unassignedStudents > 0 && (
-        <p className="text-xs text-slate-600 dark:text-gray-400 mt-4">
-          {stats.unassignedStudents} student(s) not yet linked to a section.
-        </p>
-      )}
     </div>
   );
 }

@@ -61,7 +61,10 @@ function ChannelBadge({ channel }) {
 }
 
 function NotificationsPanel() {
-  const [activeTab, setActiveTab] = useState('send'); // 'send' | 'broadcast' | 'notices' | 'history'
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    return ['send', 'broadcast', 'notices', 'history'].includes(tab) ? tab : 'send';
+  }); // 'send' | 'broadcast' | 'notices' | 'history'
   const [parents, setParents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [history, setHistory] = useState([]);

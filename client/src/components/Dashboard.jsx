@@ -116,12 +116,12 @@ function Dashboard({ userRole, userName }) {
             label="Total Students"
             footnote={model.unassignedStudents > 0 ? `${model.unassignedStudents} not yet linked to a class` : undefined}
           />
-          <StatCard icon={BookOpen} tone="ink" value={model.totalClasses.toLocaleString()} label="Total Classes" />
+          <StatCard icon={BookOpen} tone="purple" value={model.totalClasses.toLocaleString()} label="Total Classes" />
           {fees && (
             <>
               <StatCard
                 icon={Wallet}
-                tone="brand"
+                tone="green"
                 value={formatNaira(fees.collected)}
                 label={model.term ? 'Fees Collected This Term' : 'Fees Collected'}
               />

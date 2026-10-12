@@ -1,16 +1,29 @@
 import Card from './Card';
 
 const TONES = {
-  brand: { chip: 'bg-lem-brand/[0.08] dark:bg-indigo-400/15', icon: 'text-lem-brand dark:text-indigo-300' },
-  ink: { chip: 'bg-lem-ink/[0.08] dark:bg-white/10', icon: 'text-lem-ink dark:text-gray-200' },
-  red: { chip: 'bg-lem-red/[0.08] dark:bg-rose-400/15', icon: 'text-[#C94547] dark:text-rose-300' },
+  brand: {
+    chip: 'bg-lem-brand/[0.08] dark:bg-indigo-400/15',
+    icon: 'text-lem-brand dark:text-indigo-300',
+    shadow: 'shadow-[0_14px_30px_-12px_rgba(67,56,202,0.45)] dark:shadow-[0_14px_30px_-12px_rgba(129,140,248,0.4)]',
+  },
+  ink: {
+    chip: 'bg-lem-ink/[0.08] dark:bg-white/10',
+    icon: 'text-lem-ink dark:text-gray-200',
+    shadow: 'shadow-[0_14px_30px_-12px_rgba(71,85,105,0.4)] dark:shadow-[0_14px_30px_-12px_rgba(148,163,184,0.3)]',
+  },
+  red: {
+    chip: 'bg-lem-red/[0.08] dark:bg-rose-400/15',
+    icon: 'text-[#C94547] dark:text-rose-300',
+    shadow: 'shadow-[0_14px_30px_-12px_rgba(224,88,90,0.45)] dark:shadow-[0_14px_30px_-12px_rgba(251,113,133,0.4)]',
+  },
 };
 
-// One headline number: tinted icon chip, big value, muted label, optional small footnote.
+// One headline number: tinted icon chip, big value, muted label, optional small footnote. The card's
+// shadow is tinted to match its tone.
 function StatCard({ icon: Icon, tone = 'brand', value, label, footnote }) {
   const t = TONES[tone] || TONES.brand;
   return (
-    <Card className="p-5">
+    <Card className="p-5" shadow={t.shadow}>
       <div className={`mb-4 flex h-9 w-9 items-center justify-center rounded-[10px] ${t.chip}`}>
         <Icon size={18} className={t.icon} aria-hidden="true" />
       </div>

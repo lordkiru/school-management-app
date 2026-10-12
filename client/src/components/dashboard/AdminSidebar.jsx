@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { LogOut, Menu, Moon, Sun, X } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { ChevronDown, LogOut, Menu, Moon, Sun, X } from 'lucide-react';
 import { navItems } from '../../constants/navItems';
 import { ADMIN_NAV_GROUPS, ADMIN_NAV_LABELS, ROLE_LABELS } from '../../constants/adminNav';
 
@@ -13,9 +13,13 @@ const initialsOf = (name) =>
 const needsExactMatch = (item) =>
   item.end || navItems.some((other) => other !== item && other.to.startsWith(`${item.to}/`));
 
+const isItemActive = (item, pathname) =>
+  needsExactMatch(item) ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
+
 // Dark navigation column: grouped real links (filtered to this user's role), user chip pinned at
-// the bottom. Above 700px it stays in view beside the content; below that it sits on top and its
-// menu folds away behind a button so the page content isn't pushed a screen down.
+// the bottom. Each group heading is a dropdown: the group you're in is open, the rest are folded.
+// Above 700px it stays in view beside the content; below that it sits on top and its menu folds
+// away behind a button so the page content isn't pushed a screen down.
 function AdminSidebar({ user, darkMode, setDarkMode, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -27,6 +31,27 @@ function AdminSidebar({ user, darkMode, setDarkMode, onLogout }) {
         .filter((item) => item && item.allowedRoles.includes(user.role)),
     }))
     .filter((group) => group.items.length > 0);
+
+  const { pathname } = useLocation();
+  const activeGroup = groups.find((g) => g.items.some((item) => isItemActive(item, pathname)))?.label;
+
+  // Which groups are open: by default only the one you're in. Clicking a heading overrides that for
+  // the group. Moving to a page inside a group clears its override so it always opens to show where
+  // you are (adjusted while rendering rather than in an effect).
+  const [overrides, setOverrides] = useState({});
+  const [lastPath, setLastPath] = useState(pathname);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    if (activeGroup && activeGroup in overrides) {
+      setOverrides((prev) => {
+        const next = { ...prev };
+        delete next[activeGroup];
+        return next;
+      });
+    }
+  }
+  const isOpen = (label) => overrides[label] ?? label === activeGroup;
+  const toggleGroup = (label) => setOverrides((prev) => ({ ...prev, [label]: !isOpen(label) }));
 
   const linkClass = ({ isActive }) =>
     `flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2.5 text-[13.5px] font-semibold transition ${
@@ -62,31 +87,52 @@ function AdminSidebar({ user, darkMode, setDarkMode, onLogout }) {
         {/* Only the nav scrolls (the real menu is long); the user chip below stays pinned. */}
         <nav
           aria-label="Main"
-          className="flex min-h-0 flex-1 flex-col gap-[22px] overflow-y-auto pr-1 [scrollbar-color:rgba(255,255,255,0.25)_transparent] [scrollbar-width:thin]"
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 [scrollbar-color:rgba(255,255,255,0.25)_transparent] [scrollbar-width:thin]"
         >
-          {groups.map((group) => (
-            <div key={group.label}>
-              <div className="px-2.5 pb-2 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8783BD]">{group.label}</div>
-              <div className="flex flex-col gap-px">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.key}
-                    to={item.to}
-                    end={needsExactMatch(item)}
-                    onClick={() => setMenuOpen(false)}
-                    className={linkClass}
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span className={`h-1.5 w-1.5 flex-none rounded-full ${isActive ? 'bg-indigo-400' : 'bg-transparent'}`} aria-hidden="true" />
-                        <span>{ADMIN_NAV_LABELS[item.key] || item.label}</span>
-                      </>
+          {groups.map((group) => {
+            const open = isOpen(group.label);
+            const panelId = `nav-group-${group.label.toLowerCase()}`;
+            return (
+              <div key={group.label}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  className="flex w-full items-center justify-between rounded-lg px-2.5 pb-2 pt-1 text-left text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#8783BD] transition hover:text-white"
+                >
+                  <span className="flex items-center gap-2">
+                    {group.label}
+                    {/* a folded group that holds the page you're on keeps a dot, so you never lose your place */}
+                    {!open && group.label === activeGroup && (
+                      <span role="img" aria-label="Contains the current page" className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
                     )}
-                  </NavLink>
-                ))}
+                  </span>
+                  <ChevronDown size={14} className={`flex-none transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
+                {open && (
+                  <div id={panelId} className="flex flex-col gap-px">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.key}
+                        to={item.to}
+                        end={needsExactMatch(item)}
+                        onClick={() => setMenuOpen(false)}
+                        className={linkClass}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <span className={`h-1.5 w-1.5 flex-none rounded-full ${isActive ? 'bg-indigo-400' : 'bg-transparent'}`} aria-hidden="true" />
+                            <span>{ADMIN_NAV_LABELS[item.key] || item.label}</span>
+                          </>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* User chip */}

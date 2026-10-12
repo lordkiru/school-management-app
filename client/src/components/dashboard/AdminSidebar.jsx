@@ -60,16 +60,11 @@ function AdminSidebar({ user, darkMode, setDarkMode, onLogout }) {
 
   return (
     <aside className="flex-none bg-lem-sidebar px-3.5 py-6 font-body text-white print:hidden min-[700px]:sticky min-[700px]:top-0 min-[700px]:flex min-[700px]:h-screen min-[700px]:w-60 min-[700px]:flex-col">
-      {/* Logo mark + menu button (mobile) */}
-      <div className="flex items-center justify-between px-2.5 py-1">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-lem-brand">
-            <span className="font-display text-base font-bold text-white">L</span>
-          </div>
-          <div className="leading-[1.15]">
-            <div className="font-display text-[15.5px] font-bold text-white">Lemida</div>
-            <div className="text-[10.5px] tracking-[0.06em] text-[#9793D1]">SCHOOL MANAGER</div>
-          </div>
+      {/* Logo + menu button (mobile). The logo art has blue/grey lettering that disappears on the dark
+          sidebar, so it sits on a light plate. */}
+      <div className="flex items-center justify-between gap-3 px-1 py-1">
+        <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
+          <img src="/assets/logo.png" alt="Lemida SchoolManager" className="h-11 w-auto min-[700px]:h-14" />
         </div>
         <button
           type="button"

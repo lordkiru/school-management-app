@@ -1,5 +1,40 @@
 const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
+const { isIP } = require('net');
+
+// Key used when req.ip is missing or still isn't a real address after cleaning, so
+// the request is still counted (in one shared bucket) instead of throwing or
+// skipping rate limiting.
+const UNKNOWN_IP_KEY = 'ip:unknown';
+
+// Turn req.ip into a clean address, or null if it can't be made into one.
+//
+// Why this exists: our traffic goes Cloudflare -> Worker -> Azure App Service, and
+// Azure's front end appends the source port to the X-Forwarded-For entry it adds
+// ("104.23.229.60:9368"). With `trust proxy` on, Express hands that string back as
+// req.ip. express-rate-limit's default key generator then throws
+// ERR_ERL_INVALID_IP_ADDRESS on it, and used raw as a key it changes with every
+// connection (new port), so one client would get a fresh budget each time. Don't
+// "simplify" this back to plain req.ip.
+function cleanIp(raw) {
+  if (typeof raw !== 'string') return null;
+  let ip = raw.trim();
+
+  const bracketed = ip.match(/^\[([^\]]+)\](?::\d{1,5})?$/); // "[2001:db8::1]:443" or "[::1]"
+  const ipv4WithPort = ip.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d{1,5}$/); // "1.2.3.4:5678"
+  if (bracketed) ip = bracketed[1];
+  else if (ipv4WithPort) ip = ipv4WithPort[1];
+  // a bare IPv6 address ("2001:db8::1") is left alone: its colons aren't a port
+
+  return isIP(ip) ? ip : null;
+}
+
+// IP-only key. Used by the login and payment limiters, where the bucket must be the
+// caller's network address and never something the caller can choose.
+function ipKey(req) {
+  const ip = cleanIp(req.ip);
+  return ip ? `ip:${ip}` : UNKNOWN_IP_KEY;
+}
 
 // Key by authenticated user when a token is present, so staff sharing one office
 // IP don't share one rate-limit budget — falls back to IP for anonymous requests
@@ -16,7 +51,7 @@ function rateLimitKey(req) {
       // malformed token — fall through to IP-based key
     }
   }
-  return req.ip;
+  return ipKey(req);
 }
 
 // General API rate limiter
@@ -44,6 +79,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
+  keyGenerator: ipKey,
   handler: (req, res) => {
     res.status(429).json({
       error: 'Too many login attempts, please try again after 15 minutes.'
@@ -57,6 +93,7 @@ const paymentLimiter = rateLimit({
   max: 10, // Limit each IP to 10 payment attempts per hour
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: ipKey,
   handler: (req, res) => {
     res.status(429).json({
       error: 'Too many payment attempts, please try again later.'
@@ -68,4 +105,8 @@ module.exports = {
   apiLimiter,
   authLimiter,
   paymentLimiter,
+  // exported for verification only
+  cleanIp,
+  ipKey,
+  rateLimitKey,
 };

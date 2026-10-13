@@ -175,13 +175,30 @@ router.post('/generate-reset', authLimiter, requireAuth, requireRole('proprietor
 // Always returns 200 to avoid leaking whether an email exists in the system.
 router.post('/forgot-password', authLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, subdomain } = req.body;
 
     if (!email || typeof email !== 'string') {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Same scoping as /login: User.email is only unique per tenant, so a global findOne({ email })
+    // could pick another school's account that shares this email and reset the wrong password.
+    // A subdomain that was sent is always honoured: resolve its tenant and look the user up within
+    // it only. If it matches no tenant (or isn't a string) that is "user not found" — it never falls
+    // through to the global lookup. The global lookup is only for requests with no subdomain at all
+    // (dev/localhost/super admin/root domain).
+    const subdomainSent = subdomain != null && !(typeof subdomain === 'string' && !subdomain.trim());
+    let user;
+    if (subdomainSent) {
+      const tenant = typeof subdomain === 'string'
+        ? await Tenant.findOne({ subdomain: subdomain.toLowerCase().trim() })
+        : null;
+      user = tenant ? await User.findOne({ email: normalizedEmail, tenantId: tenant.tenantId }) : null;
+    } else {
+      user = await User.findOne({ email: normalizedEmail });
+    }
 
     // Always respond with success — never reveal if email exists (security best practice)
     if (!user) {

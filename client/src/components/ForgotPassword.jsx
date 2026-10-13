@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getTenantSubdomain } from '../utils/subdomain';
 
 /**
  * ForgotPassword — self-service "I forgot my password" page.
@@ -22,7 +23,8 @@ function ForgotPassword() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        // subdomain scopes the lookup to this school, so a shared staff email can't reset another school's account
+        body: JSON.stringify({ email, subdomain: getTenantSubdomain() }),
       });
 
       const data = await res.json();

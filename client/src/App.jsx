@@ -33,6 +33,7 @@ import TimetableView from './components/Timetableview';
 import PromoteClass from './components/PromoteClass';
 import ReportCardView from './components/ReportCardView';
 import FeeReportByClass from './components/FeeReportByClass';
+import DebtorsList from './components/DebtorsList';
 import FeeStructureSetup from './components/FeeStructureSetup';
 import FeeBreakdownView from './components/FeeBreakdownView';
 import SessionManager from './components/SessionManager';
@@ -218,6 +219,7 @@ function DashboardShell({
         }
       />
       <Route path="fees/report" element={<FeeReportByClass />} />
+      <Route path="fees/debtors" element={<DebtorsList />} />
       <Route path="fees/setup" element={<FeeStructureSetup />} />
       <Route path="fees/breakdown" element={<FeeBreakdownView />} />
 

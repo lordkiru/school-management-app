@@ -459,4 +459,54 @@ router.get('/report-by-class', requireAuth, requireRole('proprietor', 'bursar'),
   }
 });
 
+// Debtors: every student with an outstanding balance, one flat row per unpaid fee record. The client
+// shows it whole-school or groups it by class from this same list.
+router.get('/debtors', requireAuth, requireRole('proprietor', 'bursar'), async (req, res) => {
+  try {
+    const { term, session, classId } = req.query;
+
+    const filter = { tenantId: req.user.tenantId };
+    if (typeof term === 'string' && term) filter.term = term;
+    if (typeof session === 'string' && session) filter.session = session;
+
+    const fees = await Fee.find(filter).populate({
+      path: 'studentId',
+      populate: { path: 'classId' },
+    });
+
+    const debtors = [];
+
+    for (const fee of fees) {
+      const balance = fee.amountExpected - fee.amountPaid;
+      if (balance <= 0) continue; // fully paid or overpaid: not a debtor
+
+      const student = fee.studentId;
+      const cls = student?.classId;
+      if (!student || !cls) continue; // orphaned record (student or class no longer exists)
+
+      if (classId && String(cls._id) !== classId) continue;
+
+      debtors.push({
+        feeId: fee._id,
+        studentId: student._id,
+        studentName: student.name,
+        admissionNumber: student.admissionNumber,
+        classId: cls._id,
+        className: cls.name,
+        term: fee.term,
+        session: fee.session,
+        amountExpected: fee.amountExpected,
+        amountPaid: fee.amountPaid,
+        balance,
+      });
+    }
+
+    debtors.sort((a, b) => a.className.localeCompare(b.className) || b.balance - a.balance);
+
+    res.json(debtors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

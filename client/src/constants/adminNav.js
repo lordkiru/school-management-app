@@ -5,7 +5,7 @@
 export const ADMIN_NAV_GROUPS = [
   { label: 'Overview', items: ['dashboard'] },
   { label: 'Academics', items: ['students', 'classes', 'subjects', 'timetable', 'promote', 'scores', 'cbt', 'reportcards', 'remarks'] },
-  { label: 'Finance', items: ['fees', 'feesetup', 'feebreakdown', 'feereport', 'subscription'] },
+  { label: 'Finance', items: ['fees', 'feesetup', 'feebreakdown', 'feereport', 'debtors', 'subscription'] },
   { label: 'Engagement', items: ['attendance', 'notifications'] },
   { label: 'Administration', items: ['staff', 'parents', 'sessions', 'dataimport', 'auditlog', 'settings'] },
 ];

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor, CreditCard, UserX } from 'lucide-react';
 
 // Every leaf item is declared once. `group` assigns it to a collapsible
 // section for roles that use grouped navigation; items with no `group`
@@ -25,6 +25,7 @@ const navItems = [
   { key: 'feesetup', to: '/dashboard/fees/setup', label: 'Fee Setup', icon: ListTree, allowedRoles: ['proprietor', 'admin', 'bursar'], group: 'billing' },
   { key: 'feebreakdown', to: '/dashboard/fees/breakdown', label: 'Fee Breakdown', icon: BarChart3, allowedRoles: ['proprietor', 'admin', 'bursar'], group: 'billing' },
   { key: 'feereport', to: '/dashboard/fees/report', label: 'Fee Report', icon: FileText, allowedRoles: ['proprietor', 'bursar'], group: 'billing' },
+  { key: 'debtors', to: '/dashboard/fees/debtors', label: 'Debtors List', icon: UserX, allowedRoles: ['proprietor', 'bursar'], group: 'billing' },
   { key: 'subscription', to: '/dashboard/subscription', label: 'My Subscription', icon: CreditCard, allowedRoles: ['proprietor'], group: 'billing' },
 
   { key: 'staff', to: '/dashboard/staff', label: 'Staff', icon: UserCog, allowedRoles: ['proprietor', 'admin'], group: 'people' },

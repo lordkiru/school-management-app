@@ -8,7 +8,7 @@ const Student = require('../models/Student');
 const Fee = require('../models/Fee');
 const AuditLog = require('../models/AuditLog');
 const requireAuth = require('../middleware/auth');
-const { PLAN_NAMES } = require('../config/plans');
+const { PLAN_NAMES, FOUNDING_SCHOOL_LIMIT } = require('../config/plans');
 const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
 // The super admin's own internal tenant — not a real customer school,
@@ -275,6 +275,15 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
 
     if (!isTrial && !PLAN_NAMES.includes(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
+    }
+
+    if (plan === 'founding') {
+      const foundingCount = await Tenant.countDocuments({ subscriptionPlan: 'founding' });
+      if (foundingCount >= FOUNDING_SCHOOL_LIMIT) {
+        return res.status(400).json({
+          error: `Founding tier is capped at ${FOUNDING_SCHOOL_LIMIT} schools (currently full). Assign a different plan or raise FOUNDING_SCHOOL_LIMIT in config/plans.js if you're making a deliberate exception.`
+        });
+      }
     }
 
     // Levels the school operates — defaults to all 5 if omitted; must be a

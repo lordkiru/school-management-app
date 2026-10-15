@@ -12,6 +12,11 @@ const PLANS = {
 
 const PLAN_NAMES = Object.keys(PLANS);
 
+// Founding is a deliberately scarce tier — only this many schools may hold it.
+// Enforced when a super admin creates a tenant; raise it here if the business
+// decides to grant an exception.
+const FOUNDING_SCHOOL_LIMIT = 2;
+
 // Per-term price in Naira (this business bills per academic term, not monthly/yearly).
 // Only the tiers a proprietor can self-service purchase appear here — Founding is a
 // manually-granted status only a super admin assigns, and Enterprise is "Contact Us"
@@ -26,4 +31,4 @@ const PLAN_PRICES = {
 
 const SELF_SERVICE_PLAN_NAMES = Object.keys(PLAN_PRICES);
 
-module.exports = { PLANS, PLAN_NAMES, PLAN_PRICES, SELF_SERVICE_PLAN_NAMES };
+module.exports = { PLANS, PLAN_NAMES, PLAN_PRICES, SELF_SERVICE_PLAN_NAMES, FOUNDING_SCHOOL_LIMIT };

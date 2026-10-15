@@ -32,3 +32,23 @@ Thumbs.db
 dist/
 build/
 *.local
+
+# More environment files (anything .env.* except the committed example)
+.env.*
+!.env.example
+
+# Keys, certificates and deployment credentials
+*.pem
+*.key
+*.pfx
+*.p12
+*.publishsettings
+
+# Question bank content is imported through Lemida Content Studio and must never be committed.
+# Test fixtures use clearly fake sample questions instead.
+question-data/
+**/question-data/
+question-bank-data/
+**/question-bank-data/
+*.questions.json
+*.questionbank.json

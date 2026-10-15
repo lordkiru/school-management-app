@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
 const AuditLog = require('../models/AuditLog');
+const Student = require('../models/Student');
 const Subscription = require('../models/Subscription');
 const Tenant = require('../models/Tenant');
 const { SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
@@ -59,8 +60,8 @@ router.post('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fee payment — credits a Fee record. This is the exact logic that was here
-// before the subscription branch was added; behavior is unchanged.
+// Fee payment — credits a Fee record, capped at its outstanding balance; any
+// overpayment goes to the student's wallet.
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
   const { feeId } = metadata;
@@ -70,7 +71,15 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
   const alreadyProcessed = fee.payments && fee.payments.some((p) => p.reference === reference);
   if (alreadyProcessed) return;
 
-  fee.amountPaid += amountPaid;
+  const balance = fee.amountExpected - fee.amountPaid;
+  // Cap what's applied to this fee at the outstanding balance; anything beyond that is an
+  // overpayment — same handling as a manual payment in PATCH /fees/:id/pay.
+  const appliedToFee = Math.max(Math.min(amountPaid, balance), 0);
+  const excess = amountPaid - appliedToFee;
+
+  fee.amountPaid += appliedToFee;
+  // Record the full amount received (not just what was applied) so the history
+  // reflects what actually changed hands — the audit log explains the split.
   fee.payments.push({
     amount: amountPaid,
     reference,
@@ -86,6 +95,8 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
     entityId: fee._id,
     snapshot: {
       amountPaid,
+      appliedToFee,
+      excess,
       reference,
       paymentMethod: 'Paystack',
       newAmountPaid: fee.amountPaid,
@@ -93,6 +104,30 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
     },
     performedBy: 'system:paystack-webhook', // no authenticated user on a webhook
   });
+
+  if (excess > 0) {
+    // Route the overpayment into the student's wallet as credit for a future term,
+    // rather than letting it silently inflate amountPaid past what was actually owed.
+    const student = await Student.findOneAndUpdate(
+      { _id: fee.studentId, tenantId: fee.tenantId },
+      { $inc: { walletBalance: excess } },
+      { new: true }
+    );
+
+    await AuditLog.create({
+      tenantId: fee.tenantId,
+      action: 'update',
+      entityType: 'Student',
+      entityId: fee.studentId,
+      snapshot: {
+        reason: 'Fee overpayment credited to wallet',
+        feeId: fee._id,
+        overpaymentAmount: excess,
+        newWalletBalance: student?.walletBalance,
+      },
+      performedBy: 'system:paystack-webhook',
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

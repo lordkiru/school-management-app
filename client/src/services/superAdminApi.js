@@ -70,6 +70,13 @@ export const extendTenantTrial = async (tenantId, days) => {
   return response.data;
 };
 
+// Lemida Question Bank: counts of approved / draft / rejected questions per subject and topic
+export const getQuestionBankStats = async () => {
+  const api = createAuthAxios();
+  const response = await api.get('/bank/stats');
+  return response.data;
+};
+
 // Switch a school's CBT add-on (mock exams + practice tests) on or off, or move its end date.
 // payload: { active, expiresAt?: ISO date, amountPaid?, note? }
 export const setTenantCbtAddon = async (tenantId, payload) => {

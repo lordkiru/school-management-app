@@ -22,6 +22,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const requireAuth = require('./middleware/auth');
+const requireRole = require('./middleware/requireRole');
+const { createQuestionBankRouter } = require('./modules/questionBank');
 const { initSentry, getSentryMiddleware } = require('./config/sentry');
 const paystackWebhookRoutes = require('./routes/paystackWebhook');
 
@@ -138,6 +141,8 @@ app.use('/notifications', notificationRoutes);
 app.use('/remarks', remarkRoutes);
 app.use('/import', importRoutes);
 app.use('/cbt', cbtRoutes);
+// Lemida Question Bank: a self-contained module (modules/questionBank), shared across schools
+app.use('/bank', createQuestionBankRouter({ requireAuth, requireRole }));
 app.use('/whatsapp', whatsappWebhookRoutes);
 app.get('/', (req, res) => {
   res.send('API is running');

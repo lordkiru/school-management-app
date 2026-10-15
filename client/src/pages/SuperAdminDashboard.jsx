@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboard } from '../services/superAdminApi';
+import { getDashboard, getQuestionBankStats } from '../services/superAdminApi';
 import './SuperAdminDashboard.css';
+
+// Where Lemida Content Studio (the separate question bank admin app) lives; set per environment.
+const CONTENT_STUDIO_URL = import.meta.env.VITE_CONTENT_STUDIO_URL;
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
+  const [bank, setBank] = useState(null); // { stats } | { error: true } | null while loading
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboard();
+  }, []);
+
+  // Loaded on its own so the dashboard still opens if the question bank can't be reached
+  useEffect(() => {
+    getQuestionBankStats()
+      .then((stats) => setBank({ stats }))
+      .catch(() => setBank({ error: true }));
   }, []);
 
   const fetchDashboard = async () => {
@@ -168,6 +179,42 @@ const SuperAdminDashboard = () => {
           {(!subscriptionsByPlan || subscriptionsByPlan.length === 0) && (
             <p className="no-data">No subscription data available</p>
           )}
+        </div>
+      </div>
+
+      {/* Question Bank */}
+      <div className="dashboard-section">
+        <h2>📚 Question Bank</h2>
+        {!bank ? (
+          <p className="no-data">Loading question bank...</p>
+        ) : bank.error ? (
+          <p className="no-data">Question bank counts are unavailable right now.</p>
+        ) : (
+          <>
+            <div className="plan-stats">
+              {bank.stats.subjects.map((s) => (
+                <div key={s.subject} className="plan-card">
+                  <div className="plan-name">{s.subject}</div>
+                  <div className="plan-count">{s.approved}</div>
+                  <small>approved · {s.draft} draft</small>
+                </div>
+              ))}
+              {bank.stats.subjects.length === 0 && <p className="no-data">No questions imported yet</p>}
+            </div>
+            <p className="no-data">
+              {bank.stats.totals.approved} approved, {bank.stats.totals.draft} draft, {bank.stats.totals.rejected} rejected
+            </p>
+          </>
+        )}
+        <div className="quick-actions">
+          <button
+            className="action-btn primary"
+            onClick={() => window.open(CONTENT_STUDIO_URL, '_blank', 'noopener,noreferrer')}
+            disabled={!CONTENT_STUDIO_URL}
+            title={CONTENT_STUDIO_URL ? 'Import, review and approve questions' : 'Set VITE_CONTENT_STUDIO_URL to enable this link'}
+          >
+            📝 Open Content Studio
+          </button>
         </div>
       </div>
 

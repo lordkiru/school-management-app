@@ -13,6 +13,10 @@ const questionSchema = new mongoose.Schema({
   correctIndex: { type: Number, required: true },
   marks: { type: Number, default: 1, min: 1 },
   topic: { type: String, trim: true, maxlength: 100 }, // optional; lets mock/practice results show weak topics
+  explanation: { type: String, trim: true, maxlength: 2000 }, // optional; why the answer is right (never sent to students taking the test)
+  // Set when the question was pulled from the Lemida question bank. The question text is copied into the
+  // test, so later bank edits never change an existing test; this is only a record of where it came from.
+  bankQuestionId: { type: mongoose.Schema.Types.ObjectId },
 }, { _id: true });
 
 const cbtTestSchema = new mongoose.Schema({

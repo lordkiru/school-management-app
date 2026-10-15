@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { fetchCbtAccess, isAddonOnly } from '../utils/cbtAccess';
+import BankQuestionPicker from './BankQuestionPicker';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 const EMPTY_QUESTION = () => ({ text: '', options: ['', ''], correctIndex: 0, marks: 1, topic: '' });
+
+// A question pulled from the Lemida question bank, in the shape the form edits.
+const fromBank = (b) => ({
+  text: b.text,
+  options: b.options,
+  correctIndex: b.correctIndex,
+  marks: 1,
+  topic: b.topic || '',
+  explanation: b.explanation || '',
+  bankQuestionId: b.bankQuestionId,
+});
+const isBlank = (q) => !q.text.trim() && q.options.every((o) => !o.trim());
 
 // Escapes student-supplied text before it gets injected into the print window's raw HTML string
 function escapeHtml(str) {
@@ -76,8 +89,13 @@ function CbtBuilder({ onTestCreated }) {
 
   const selectedSubject = subjects.find((s) => s._id === subjectId);
 
+  // Changing the wording, the options or the correct answer of a question pulled from the bank makes it the
+  // teacher's own question, so it stops pointing at the bank. Topic, marks and explanation don't.
   const updateQuestion = (index, patch) => {
-    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, ...patch } : q)));
+    const detaches = 'text' in patch || 'correctIndex' in patch;
+    setQuestions((prev) =>
+      prev.map((q, i) => (i === index ? { ...q, ...patch, ...(detaches ? { bankQuestionId: undefined } : {}) } : q))
+    );
   };
 
   const updateOption = (qIndex, oIndex, value) => {
@@ -86,14 +104,14 @@ function CbtBuilder({ onTestCreated }) {
         if (i !== qIndex) return q;
         const options = [...q.options];
         options[oIndex] = value;
-        return { ...q, options };
+        return { ...q, options, bankQuestionId: undefined };
       })
     );
   };
 
   const addOption = (qIndex) => {
     setQuestions((prev) =>
-      prev.map((q, i) => (i === qIndex && q.options.length < 6 ? { ...q, options: [...q.options, ''] } : q))
+      prev.map((q, i) => (i === qIndex && q.options.length < 6 ? { ...q, options: [...q.options, ''], bankQuestionId: undefined } : q))
     );
   };
 
@@ -103,12 +121,16 @@ function CbtBuilder({ onTestCreated }) {
         if (i !== qIndex || q.options.length <= 2) return q;
         const options = q.options.filter((_, idx) => idx !== oIndex);
         const correctIndex = q.correctIndex >= options.length ? 0 : q.correctIndex;
-        return { ...q, options, correctIndex };
+        return { ...q, options, correctIndex, bankQuestionId: undefined };
       })
     );
   };
 
   const addQuestion = () => setQuestions((prev) => [...prev, EMPTY_QUESTION()]);
+
+  // Questions pulled from the bank go on the end of the list (replacing the untouched blank first question)
+  const addFromBank = (pulled) =>
+    setQuestions((prev) => [...(prev.length === 1 && isBlank(prev[0]) ? [] : prev), ...pulled.map(fromBank)]);
   const removeQuestion = (index) => setQuestions((prev) => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (e) => {
@@ -151,7 +173,12 @@ function CbtBuilder({ onTestCreated }) {
           // only CA tests feed a CA slot
           ...(testType === 'ca' ? { caSlot } : {}),
           shuffleQuestions,
-          questions: questions.map((q) => ({ ...q, marks: Number(q.marks) || 1, topic: q.topic.trim() || undefined })),
+          questions: questions.map((q) => ({
+            ...q,
+            marks: Number(q.marks) || 1,
+            topic: q.topic.trim() || undefined,
+            explanation: q.explanation?.trim() || undefined,
+          })),
         }),
       });
 
@@ -484,6 +511,9 @@ function CbtBuilder({ onTestCreated }) {
         Shuffle question order for each student
       </label>
 
+      {/* Only mock and practice tests can use the bank, and only on a plan or add-on that allows them */}
+      {testType !== 'ca' && cbtAccess?.mockPractice && <BankQuestionPicker onAdd={addFromBank} inputClass={inputClass} />}
+
       <div className="mt-4 mb-2 flex items-center justify-between">
         <h3 className="font-semibold text-slate-800 dark:text-white">Questions</h3>
         <button
@@ -519,6 +549,17 @@ function CbtBuilder({ onTestCreated }) {
               </button>
             )}
           </div>
+
+          {(q.bankQuestionId || q.explanation) && (
+            <div className="pl-6 mb-2 text-xs text-slate-500 dark:text-gray-400">
+              {q.bankQuestionId && (
+                <span className="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 font-medium text-indigo-800 dark:text-indigo-200 mr-2">
+                  From Lemida question bank
+                </span>
+              )}
+              {q.explanation && <span>Explanation (students don't see it during the test): {q.explanation}</span>}
+            </div>
+          )}
 
           {q.options.map((opt, oIndex) => (
             <div key={oIndex} className="flex items-center gap-2 mb-2 pl-6">

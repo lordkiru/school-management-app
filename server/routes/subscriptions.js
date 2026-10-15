@@ -6,6 +6,7 @@ const Tenant = require('../models/Tenant');
 const requireAuth = require('../middleware/auth');
 const requireRole = require('../middleware/requireRole');
 const { PLANS, PLAN_PRICES, SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
+const { getCbtEntitlements } = require('../utils/cbtAccess');
 
 // Get current tenant's subscription
 router.get('/me', requireAuth, async (req, res) => {
@@ -42,6 +43,25 @@ router.get('/plans', requireAuth, (req, res) => {
     cbt: PLANS.enterprise.features.cbt,
   };
   res.json({ selfService, enterprise });
+});
+
+// What this school may do with CBT: full CBT (CA + mock + practice), mock/practice only via the
+// CBT add-on, or neither. Any role may read it (the test builder and the subscription page use it).
+// Never blocks: it reports what the school gets, including when that is nothing.
+router.get('/cbt-access', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role === 'super_admin') {
+      return res.json({ fullCbt: true, mockPractice: true, addon: null, inTrial: false });
+    }
+
+    const tenant = await Tenant.findOne({ tenantId: req.user.tenantId });
+    if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+
+    const subscription = await Subscription.findActiveByTenant(tenant.tenantId);
+    res.json(getCbtEntitlements({ tenant, subscription }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Get subscription history for current tenant

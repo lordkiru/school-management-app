@@ -6,6 +6,12 @@ import { buildMockView, PASS_MARK } from '../utils/mockStats';
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 const TYPE_SHORT = { mock: 'Mock', practice: 'Practice' };
 
+// Friendly text for the 403 codes the CBT routes can return
+const ACCESS_MESSAGES = {
+  CBT_NOT_AVAILABLE: 'Mock & Practice comes with CBT. It needs the Growth plan or the CBT add-on. Contact Lemida to add it.',
+  CBT_CA_NOT_AVAILABLE: 'CA tests need the Growth plan. Mock exams and practice tests are available on your plan.',
+};
+
 function authHeaders() {
   const token = localStorage.getItem('token');
   return { Authorization: `Bearer ${token}` };
@@ -126,12 +132,8 @@ function MockResults() {
     body = <p className={messageClass}>Choose a subject and session to see mock and practice results.</p>;
   } else if (!current) {
     body = <p className={messageClass}>Loading results...</p>;
-  } else if (current.code === 'CBT_NOT_AVAILABLE') {
-    body = (
-      <p className={messageClass}>
-        Mock &amp; Practice comes with CBT, which needs the Growth plan (or any plan that includes CBT).
-      </p>
-    );
+  } else if (ACCESS_MESSAGES[current.code]) {
+    body = <p className={messageClass}>{ACCESS_MESSAGES[current.code]}</p>;
   } else if (current.error) {
     body = (
       <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-3 rounded-lg">
@@ -329,6 +331,12 @@ function MockResults() {
           </label>
         </div>
       </div>
+
+      {data?.readOnly && (
+        <div role="status" className="rounded-xl bg-amber-100 p-4 text-sm text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+          Your CBT add-on has expired. You can view past results; renew to set new mocks.
+        </div>
+      )}
 
       {body}
     </div>

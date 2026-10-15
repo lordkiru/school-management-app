@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { fetchCbtAccess, isAddonOnly } from '../utils/cbtAccess';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
 const EMPTY_QUESTION = () => ({ text: '', options: ['', ''], correctIndex: 0, marks: 1, topic: '' });
@@ -20,6 +21,7 @@ function CbtBuilder({ onTestCreated }) {
 
   const [title, setTitle] = useState('');
   const [testType, setTestType] = useState('ca'); // 'ca' | 'mock' | 'practice'
+  const [cbtAccess, setCbtAccess] = useState(null); // see utils/cbtAccess.js
   const [subjectId, setSubjectId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [session, setSession] = useState('');
@@ -61,6 +63,16 @@ function CbtBuilder({ onTestCreated }) {
     };
     fetchOptions();
   }, []);
+
+  // A school on the CBT add-on can run mock exams and practice tests but not CA tests: offer only those
+  // two, starting on Mock exam. Everyone else (and anyone whose access couldn't be loaded) sees all three.
+  useEffect(() => {
+    fetchCbtAccess().then((access) => {
+      setCbtAccess(access);
+      if (isAddonOnly(access)) setTestType((current) => (current === 'ca' ? 'mock' : current));
+    });
+  }, []);
+  const addonOnly = isAddonOnly(cbtAccess);
 
   const selectedSubject = subjects.find((s) => s._id === subjectId);
 
@@ -333,7 +345,7 @@ function CbtBuilder({ onTestCreated }) {
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Test type</label>
       <select value={testType} onChange={(e) => setTestType(e.target.value)} className={inputClass}>
-        <option value="ca">CA test (counts on report card)</option>
+        {!addonOnly && <option value="ca">CA test (counts on report card)</option>}
         <option value="mock">Mock exam (not counted in CA)</option>
         <option value="practice">Practice test (not counted in CA)</option>
       </select>
@@ -341,6 +353,9 @@ function CbtBuilder({ onTestCreated }) {
         <p className="text-xs text-slate-500 dark:text-gray-400 -mt-2 mb-3">
           Results for this test appear only on the Mock &amp; Practice page. They are never added to CA scores or report cards.
         </p>
+      )}
+      {addonOnly && (
+        <p className="text-xs text-slate-500 dark:text-gray-400 -mt-2 mb-3">CA tests need the Growth plan.</p>
       )}
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Subject</label>

@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Clock, AlertTriangle, Monitor } from 'lucide-react';
+import { fetchCbtAccess, formatDate } from '../utils/cbtAccess';
+
+// Price of the CBT add-on per term. Not decided yet - put the real figure here (e.g. '25,000') and the
+// "Not active" line below will show it.
+const CBT_ADDON_PRICE_PER_TERM = '[PRICE]';
 
 // Builds the "Up to N students · N staff accounts" bullet lines from real
 // config values (fetched from GET /subscriptions/plans, sourced from
@@ -32,6 +37,7 @@ function MySubscription() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [upgradingPlan, setUpgradingPlan] = useState(null);
+  const [cbtAccess, setCbtAccess] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -39,6 +45,8 @@ function MySubscription() {
       try {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
+
+        fetchCbtAccess().then(setCbtAccess);
 
         const [tenantRes, subRes, historyRes, plansRes] = await Promise.all([
           fetch(`${import.meta.env.VITE_API_URL}/tenants/me`, { headers }),
@@ -103,6 +111,21 @@ function MySubscription() {
     : (subscription?.status || tenant?.subscriptionStatus || 'none');
   const statusIsBad = trialExpired || currentStatus === 'past_due' || currentStatus === 'canceled' || currentStatus === 'none';
 
+  // One line about CBT: in the plan, an active/ended add-on, or not active
+  let cbtLine = null;
+  if (cbtAccess) {
+    const addon = cbtAccess.addon;
+    if (cbtAccess.fullCbt) {
+      cbtLine = cbtAccess.inTrial ? 'CBT: included in your free trial' : 'CBT: included in your plan';
+    } else if (addon?.active) {
+      cbtLine = `CBT add-on: active until ${formatDate(addon.expiresAt)} (mock & practice tests)`;
+    } else if (addon) {
+      cbtLine = `CBT add-on: ended ${formatDate(addon.expiresAt)}. Contact Lemida to renew mock & practice tests for ₦${CBT_ADDON_PRICE_PER_TERM} per term`;
+    } else {
+      cbtLine = `CBT add-on: not active. Contact Lemida to add mock & practice tests for ₦${CBT_ADDON_PRICE_PER_TERM} per term`;
+    }
+  }
+
   return (
     <div className="p-6 max-w-5xl">
       <h2 className="text-xl font-bold mb-6 text-slate-800 dark:text-white">My Subscription</h2>
@@ -137,6 +160,11 @@ function MySubscription() {
             </div>
           )}
         </div>
+        {cbtLine && (
+          <p className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-300 mt-4">
+            <Monitor size={16} aria-hidden="true" /> {cbtLine}
+          </p>
+        )}
       </div>
 
       {/* Available plans */}

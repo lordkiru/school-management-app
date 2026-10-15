@@ -70,6 +70,14 @@ export const extendTenantTrial = async (tenantId, days) => {
   return response.data;
 };
 
+// Switch a school's CBT add-on (mock exams + practice tests) on or off, or move its end date.
+// payload: { active, expiresAt?: ISO date, amountPaid?, note? }
+export const setTenantCbtAddon = async (tenantId, payload) => {
+  const api = createAuthAxios();
+  const response = await api.patch(`/superadmin/tenants/${tenantId}/cbt-addon`, payload);
+  return response.data;
+};
+
 export const deleteTenant = async (tenantId) => {
   const api = createAuthAxios();
   const response = await api.delete(`/superadmin/tenants/${tenantId}`);

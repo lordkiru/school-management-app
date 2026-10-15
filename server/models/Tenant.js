@@ -72,6 +72,30 @@ const tenantSchema = new mongoose.Schema({
     extendedAt: { type: Date, default: Date.now },
   }],
   
+  // CBT add-on: lets a school on a plan without CBT run mock exams and practice tests (never CA
+  // tests) until expiresAt. Switched on by a super admin only; see utils/cbtAccess.js for the rules.
+  cbtAddon: {
+    active: { type: Boolean, default: false },
+    expiresAt: { type: Date },
+    grantedBy: { type: String },
+    grantedAt: { type: Date },
+    amountPaid: { type: Number }, // naira, optional
+    // internal; select:false keeps it out of GET /tenants/me (which schools can read)
+    note: { type: String, select: false },
+  },
+  // Audit trail of add-on changes (select:false for the same reason: super-admin routes ask for it)
+  cbtAddonLog: {
+    type: [{
+      action: { type: String, enum: ['enabled', 'disabled', 'extended'], required: true },
+      expiresAt: { type: Date },
+      amountPaid: { type: Number },
+      note: { type: String },
+      by: { type: String },
+      at: { type: Date, default: Date.now },
+    }],
+    select: false,
+  },
+
   // Plan limits
   limits: {
     maxStudents: { type: Number, default: 50 },
@@ -167,6 +191,12 @@ tenantSchema.methods.isTrialExpired = function() {
   if (!this.isTrialing) return false;
   if (!this.trialEndsAt) return false;
   return new Date() > this.trialEndsAt;
+};
+
+// Method to check if the CBT add-on is switched on and has not run out
+tenantSchema.methods.hasActiveCbtAddon = function() {
+  const addon = this.cbtAddon;
+  return !!(addon && addon.active && addon.expiresAt && addon.expiresAt > new Date());
 };
 
 // Method to check if usage limit is reached

@@ -11,17 +11,36 @@ const Score = require('../models/Score');
 const School = require('../models/School');
 const { validateCbtTest, validateCbtSubmit, validateMongoId } = require('../middleware/validators');
 
-// CBT is a plan feature, not just an active/inactive gate — blocks tenants whose
-// plan doesn't include it (trialing tenants always pass, per checkSubscriptionAccess).
-function assertCbtAvailable(req, res) {
-  if (!req.planAccess.unlimited && !req.planAccess.limits.features.cbt) {
+// CBT is a plan feature, not just an active/inactive gate. Two levels (see utils/cbtAccess.js):
+//   full CBT      - the plan includes it, or the school is trialing (trialing always passes, per
+//                   checkSubscriptionAccess): CA tests, mock exams and practice tests
+//   mock/practice - full CBT, or a plan without CBT that has an active CBT add-on: mock exams and
+//                   practice tests only. The add-on must never let a school make or publish a CA test.
+const canUseFullCbt = (req) => !!(req.planAccess.unlimited || (req.planAccess.limits && req.planAccess.limits.features.cbt));
+const canUseMockPractice = (req) => canUseFullCbt(req) || !!req.planAccess.cbtAddonActive;
+const isMockOrPractice = (testType) => testType === 'mock' || testType === 'practice';
+
+function denyNoCbt(req, res) {
+  res.status(403).json({
+    error: `Computer-based testing is not available on your current plan (${req.planAccess.plan}). Upgrade to access CBT.`,
+    code: 'CBT_NOT_AVAILABLE',
+  });
+  return false;
+}
+
+// Is this kind of test allowed for the school? Sends the 403 itself and returns false when not.
+// A missing testType is a CA test.
+function assertTestTypeAvailable(req, res, testType) {
+  if (isMockOrPractice(testType)) return canUseMockPractice(req) || denyNoCbt(req, res);
+  if (canUseFullCbt(req)) return true;
+  if (canUseMockPractice(req)) {
     res.status(403).json({
-      error: `Computer-based testing is not available on your current plan (${req.planAccess.plan}). Upgrade to access CBT.`,
-      code: 'CBT_NOT_AVAILABLE',
+      error: 'CA tests need the Growth plan. Mock exams and practice tests are available on your CBT add-on.',
+      code: 'CBT_CA_NOT_AVAILABLE',
     });
     return false;
   }
-  return true;
+  return denyNoCbt(req, res);
 }
 
 // Restrict a teacher to subjects they're actually assigned to. Admins/proprietors bypass this.
@@ -63,7 +82,7 @@ function stripAnswerKey(test, questionOrder) {
 // ── Teacher/admin: create a test ─────────────────────────────────────────────
 router.post('/tests', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), validateCbtTest, async (req, res) => {
   try {
-    if (!assertCbtAvailable(req, res)) return;
+    if (!assertTestTypeAvailable(req, res, req.body.testType || 'ca')) return;
 
     const canManage = await assertCanManageSubject(req, req.body.subjectId);
     if (!canManage) {
@@ -147,7 +166,8 @@ router.patch('/tests/:id/publish', requireAuth, requireActiveSubscription, check
 
     // Only gate the draft->published transition — always allow unpublishing,
     // even if the tenant's plan no longer includes CBT (e.g. after a downgrade).
-    if (test.status !== 'published' && !assertCbtAvailable(req, res)) return;
+    // The rule that applies depends on the kind of test being published.
+    if (test.status !== 'published' && !assertTestTypeAvailable(req, res, test.testType)) return;
 
     if (req.user.role === 'teacher' && String(test.createdBy) !== String(req.user.id)) {
       return res.status(403).json({ error: 'You did not create this test' });
@@ -399,7 +419,14 @@ const percentOf = (correct, total) => (total > 0 ? Math.round((correct / total) 
 // writes Score — mock/practice results exist only here, never in CA or the report card. ──────────
 router.get('/mock-results', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
   try {
-    if (!assertCbtAvailable(req, res)) return;
+    // Past results stay visible after the add-on ends: a school with no current access but with
+    // mock/practice tests on record gets them back read-only. No access and none on record = no CBT.
+    let readOnly = false;
+    if (!canUseMockPractice(req)) {
+      const hasPastMocks = await CbtTest.exists({ tenantId: req.user.tenantId, testType: { $in: ['mock', 'practice'] } });
+      if (!hasPastMocks) return denyNoCbt(req, res);
+      readOnly = true;
+    }
 
     const { subjectId, session, term, testType } = req.query;
 
@@ -501,6 +528,7 @@ router.get('/mock-results', requireAuth, requireActiveSubscription, checkSubscri
       .sort(byWeakest);
 
     res.json({
+      readOnly,
       subject: { _id: subject._id, name: subject.name },
       tests: tests.map((t) => ({
         _id: t._id,

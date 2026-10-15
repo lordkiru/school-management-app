@@ -8,6 +8,9 @@ const Student = require('../models/Student');
 const Fee = require('../models/Fee');
 const AuditLog = require('../models/AuditLog');
 const requireAuth = require('../middleware/auth');
+const { body } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/validators');
+const { getTenantCbtStatus } = require('../utils/cbtAccess');
 const { PLAN_NAMES, FOUNDING_SCHOOL_LIMIT } = require('../config/plans');
 const { SCHOOL_LEVELS } = require('../config/schoolLevels');
 
@@ -138,6 +141,7 @@ router.get('/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
     const tenantsWithCounts = tenants.map((t) => ({
       ...t.toObject(),
       studentCount: countMap[t.tenantId] || 0,
+      cbtStatus: getTenantCbtStatus(t),
     }));
 
     res.json({
@@ -155,6 +159,7 @@ router.get('/tenants', requireAuth, requireSuperAdmin, async (req, res) => {
 router.get('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const tenant = await Tenant.findOne({ tenantId: req.params.tenantId })
+      .select('+cbtAddonLog +cbtAddon.note')
       .populate('ownerId', 'name email phone');
 
     if (!tenant) {
@@ -176,6 +181,7 @@ router.get('/tenants/:tenantId', requireAuth, requireSuperAdmin, async (req, res
 
     res.json({
       tenant,
+      cbtStatus: getTenantCbtStatus(tenant),
       statistics: {
         userCount,
         studentCount,
@@ -252,6 +258,102 @@ router.patch('/tenants/:tenantId/extend-trial', requireAuth, requireSuperAdmin, 
       message: `Trial extended by ${days} day(s)`,
       trialEndsAt: tenant.trialEndsAt,
       isTrialing: tenant.isTrialing,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// CBT add-on: switch a school's mock-exam / practice-test access on or off, or move its end date.
+// Never grants CA tests; those stay on plans that include CBT (see utils/cbtAccess.js).
+// expiresAt is a full ISO timestamp (the client sends the end of the chosen day).
+const validateCbtAddon = [
+  body('active').isBoolean({ strict: true }).withMessage('active must be true or false'),
+  // Enabling needs an end date in the future; disabling ignores whatever is sent
+  body('expiresAt')
+    .if(body('active').custom((value) => value === true))
+    .notEmpty().withMessage('An end date is required to switch the add-on on')
+    .bail()
+    .isISO8601().withMessage('expiresAt must be a valid date')
+    .bail()
+    .custom((value) => new Date(value) > new Date()).withMessage('The end date must be in the future'),
+  body('amountPaid')
+    .optional({ values: 'null' })
+    .isFloat({ min: 0 }).withMessage('amountPaid must be a number of naira, 0 or more')
+    .toFloat(),
+  body('note')
+    .optional({ values: 'null' })
+    .isString().withMessage('note must be text')
+    .trim()
+    .isLength({ max: 500 }).withMessage('note must be 500 characters or fewer'),
+  handleValidationErrors,
+];
+
+router.patch('/tenants/:tenantId/cbt-addon', requireAuth, requireSuperAdmin, validateCbtAddon, async (req, res) => {
+  try {
+    const { active, expiresAt, amountPaid, note } = req.body;
+
+    const tenant = await Tenant.findOne({ tenantId: req.params.tenantId }).select('+cbtAddonLog +cbtAddon.note');
+    if (!tenant) {
+      return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    const by = req.user?.email || req.user?.id;
+    const now = new Date();
+    const previous = {
+      active: !!tenant.cbtAddon?.active,
+      activeNow: tenant.hasActiveCbtAddon(),
+      expiresAt: tenant.cbtAddon?.expiresAt || null,
+    };
+
+    let action;
+    if (active) {
+      const newExpiry = new Date(expiresAt);
+      if (previous.activeNow && previous.expiresAt && previous.expiresAt.getTime() === newExpiry.getTime()) {
+        return res.status(400).json({ error: 'The add-on is already active until that date. Pick a different end date to extend it.' });
+      }
+      action = previous.activeNow ? 'extended' : 'enabled';
+      tenant.cbtAddon = {
+        active: true,
+        expiresAt: newExpiry,
+        grantedBy: by,
+        grantedAt: now,
+        amountPaid: amountPaid ?? undefined,
+        note: note || undefined,
+      };
+    } else {
+      if (!previous.active) {
+        return res.json({ message: 'CBT add-on was already off', cbtAddon: tenant.cbtAddon, cbtStatus: getTenantCbtStatus(tenant) });
+      }
+      action = 'disabled';
+      // keep expiresAt and who granted it for the record; only the switch changes
+      tenant.cbtAddon.active = false;
+      if (note) tenant.cbtAddon.note = note;
+    }
+
+    tenant.cbtAddonLog.push({
+      action,
+      expiresAt: active ? tenant.cbtAddon.expiresAt : previous.expiresAt,
+      amountPaid: active ? amountPaid : undefined,
+      note,
+      by,
+      at: now,
+    });
+    await tenant.save();
+
+    await AuditLog.create({
+      tenantId: tenant.tenantId,
+      action: `cbt_addon_${action}`,
+      entityType: 'Tenant',
+      entityId: tenant._id,
+      snapshot: { previousExpiresAt: previous.expiresAt, expiresAt: tenant.cbtAddon.expiresAt || null, amountPaid, note },
+      performedBy: by,
+    });
+
+    res.json({
+      message: `CBT add-on ${action}`,
+      cbtAddon: tenant.cbtAddon,
+      cbtStatus: getTenantCbtStatus(tenant),
     });
   } catch (err) {
     res.status(400).json({ error: err.message });

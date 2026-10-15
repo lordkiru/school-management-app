@@ -9,6 +9,9 @@ const { PLANS } = require('../config/plans');
  *   - { unlimited: true }                              — currently trialing, trial not expired
  *   - { unlimited: false, plan, limits }                — active paid subscription found
  *
+ * Both also carry the school's CBT add-on state (cbtAddonActive, cbtAddonExpiresAt). The add-on
+ * only matters to plans without CBT; it never changes who gets blocked here.
+ *
  * Blocks (403) if the trial has ended and there's no active paid subscription —
  * including the case where no Subscription document exists at all.
  *
@@ -32,8 +35,13 @@ async function checkSubscriptionAccess(req, res, next) {
       });
     }
 
+    const addon = {
+      cbtAddonActive: tenant.hasActiveCbtAddon(),
+      cbtAddonExpiresAt: (tenant.cbtAddon && tenant.cbtAddon.expiresAt) || null,
+    };
+
     if (tenant.isTrialing && !tenant.isTrialExpired()) {
-      req.planAccess = { unlimited: true };
+      req.planAccess = { unlimited: true, ...addon };
       return next();
     }
 
@@ -47,7 +55,7 @@ async function checkSubscriptionAccess(req, res, next) {
       });
     }
 
-    req.planAccess = { unlimited: false, plan: subscription.plan, limits };
+    req.planAccess = { unlimited: false, plan: subscription.plan, limits, ...addon };
     next();
   } catch (err) {
     next(err);

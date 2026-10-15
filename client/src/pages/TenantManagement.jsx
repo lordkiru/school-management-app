@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount, extendTenantTrial } from '../services/superAdminApi';
+import { getTenants, updateTenantStatus, deleteTenant, permanentDeleteTenant, createTenant, getBanks, resolveAccountNumber, setupTenantSubaccount, extendTenantTrial, setTenantCbtAddon } from '../services/superAdminApi';
+import { formatDate } from '../utils/cbtAccess';
 import { SCHOOL_LEVELS } from '../constants/schoolLevels';
 import './TenantManagement.css';
+
+// CBT column: what the school gets (status computed by the server, see utils/cbtAccess.js)
+const CBT_BADGE_CLASS = { included: 'active', trial: 'trial', addon_active: 'active', addon_expired: 'suspended', off: 'cancelled' };
+
+const cbtLabel = ({ state, expiresAt } = {}) => {
+  if (state === 'included') return 'Included in plan';
+  if (state === 'trial') return 'Trial';
+  if (state === 'addon_active') return `Add-on until ${formatDate(expiresAt)}`;
+  if (state === 'addon_expired') return `Add-on expired ${formatDate(expiresAt)}`;
+  return 'Off';
+};
 
 const TenantManagement = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +28,7 @@ const TenantManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(null);
   const [showBankModal, setShowBankModal] = useState(null); // holds the tenant being edited, or null
+  const [showCbtModal, setShowCbtModal] = useState(null); // holds the tenant whose CBT add-on is being edited, or null
 
   useEffect(() => {
     fetchTenants();
@@ -152,6 +165,7 @@ const TenantManagement = () => {
                   <th>Owner</th>
                   <th>Students</th>
                   <th>Status</th>
+                  <th>CBT</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -180,6 +194,11 @@ const TenantManagement = () => {
                         {tenant.status}
                       </span>
                     </td>
+                    <td>
+                      <span className={`status-badge ${CBT_BADGE_CLASS[tenant.cbtStatus?.state] || 'cancelled'}`} style={{ whiteSpace: 'nowrap' }}>
+                        {cbtLabel(tenant.cbtStatus)}
+                      </span>
+                    </td>
                     <td>{new Date(tenant.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div className="action-buttons">
@@ -201,6 +220,16 @@ const TenantManagement = () => {
                         >
                           {tenant.paystackSubaccountCode ? '💳' : '⚠️💳'}
                         </button>
+                        {/* the add-on is for plans without CBT; schools with CBT in their plan or on trial don't need it */}
+                        {!['included', 'trial'].includes(tenant.cbtStatus?.state) && (
+                          <button
+                            onClick={() => setShowCbtModal(tenant)}
+                            className="btn-cancel"
+                            title="CBT Add-on (mock exams and practice tests)"
+                          >
+                            🖥️
+                          </button>
+                        )}
                         <button
                           onClick={() => handleExtendTrial(tenant.tenantId)}
                           className="btn-cancel"
@@ -267,6 +296,18 @@ const TenantManagement = () => {
           onClose={() => setShowBankModal(null)}
           onSuccess={() => {
             setShowBankModal(null);
+            fetchTenants();
+          }}
+        />
+      )}
+
+      {/* CBT Add-on Modal */}
+      {showCbtModal && (
+        <CbtAddonModal
+          tenant={showCbtModal}
+          onClose={() => setShowCbtModal(null)}
+          onSuccess={() => {
+            setShowCbtModal(null);
             fetchTenants();
           }}
         />
@@ -683,6 +724,101 @@ const BankSetupModal = ({ tenant, onClose, onSuccess }) => {
             </button>
             <button type="submit" disabled={saving} className="btn-create">
               {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// CBT Add-on Modal — lets a school on a plan without CBT run mock exams and practice tests
+// (never CA tests) until a chosen end date. Switch on, extend, or switch off.
+const CbtAddonModal = ({ tenant, onClose, onSuccess }) => {
+  const { state, expiresAt } = tenant.cbtStatus || {};
+  const isOn = state === 'addon_active';
+  const [endDate, setEndDate] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  // <input type="date"> gives YYYY-MM-DD in local time; local midnight-today is the earliest allowed
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const send = async (payload, successMessage) => {
+    setError(null);
+    setSaving(true);
+    try {
+      await setTenantCbtAddon(tenant.tenantId, payload);
+      alert(successMessage);
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.details?.[0]?.msg || 'Failed to update the CBT add-on');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    if (!endDate) {
+      setError('Choose the date the add-on should run until.');
+      return;
+    }
+    send(
+      {
+        active: true,
+        // the add-on runs through the end of the chosen day
+        expiresAt: new Date(`${endDate}T23:59:59`).toISOString(),
+        ...(amountPaid !== '' && { amountPaid: Number(amountPaid) }),
+        ...(note.trim() && { note: note.trim() }),
+      },
+      isOn ? 'CBT add-on extended.' : 'CBT add-on switched on.'
+    );
+  };
+
+  const handleSwitchOff = () => {
+    if (!confirm(`Switch off the CBT add-on for ${tenant.schoolName}? They will no longer be able to create or publish mock exams or practice tests. Past results stay visible.`)) return;
+    send({ active: false }, 'CBT add-on switched off.');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h2>🖥️ CBT Add-on — {tenant.schoolName}</h2>
+        <p>{cbtLabel(tenant.cbtStatus)}. Mock exams and practice tests only; CA tests need a plan that includes CBT.</p>
+        {state === 'addon_expired' && <p style={{ color: '#b45309' }}>Add-on ended {formatDate(expiresAt)}. Pick a new end date to renew it.</p>}
+        {error && <div className="error-message">{error}</div>}
+
+        <form onSubmit={handleSave}>
+          <div className="form-group">
+            <label>{isOn ? 'New end date' : 'Runs until'}</label>
+            <input type="date" value={endDate} min={todayStr} onChange={(e) => setEndDate(e.target.value)} required />
+          </div>
+
+          <div className="form-group">
+            <label>Amount paid (₦, optional)</label>
+            <input type="number" min="0" step="any" value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} />
+          </div>
+
+          <div className="form-group">
+            <label>Note (optional)</label>
+            <input type="text" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. paid by transfer, Second Term" />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="btn-cancel">
+              Cancel
+            </button>
+            {isOn && (
+              <button type="button" onClick={handleSwitchOff} disabled={saving} className="btn-danger">
+                Switch off
+              </button>
+            )}
+            <button type="submit" disabled={saving} className="btn-create">
+              {saving ? 'Saving...' : isOn ? 'Extend' : 'Switch on'}
             </button>
           </div>
         </form>

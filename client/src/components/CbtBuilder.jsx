@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
 const TERMS = ['First Term', 'Second Term', 'Third Term'];
-const EMPTY_QUESTION = () => ({ text: '', options: ['', ''], correctIndex: 0, marks: 1 });
+const EMPTY_QUESTION = () => ({ text: '', options: ['', ''], correctIndex: 0, marks: 1, topic: '' });
 
 // Escapes student-supplied text before it gets injected into the print window's raw HTML string
 function escapeHtml(str) {
@@ -19,6 +19,7 @@ function CbtBuilder({ onTestCreated }) {
   const [sessions, setSessions] = useState([]);
 
   const [title, setTitle] = useState('');
+  const [testType, setTestType] = useState('ca'); // 'ca' | 'mock' | 'practice'
   const [subjectId, setSubjectId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [session, setSession] = useState('');
@@ -134,9 +135,11 @@ function CbtBuilder({ onTestCreated }) {
           term,
           session,
           durationMinutes: Number(durationMinutes),
-          caSlot,
+          testType,
+          // only CA tests feed a CA slot
+          ...(testType === 'ca' ? { caSlot } : {}),
           shuffleQuestions,
-          questions: questions.map((q) => ({ ...q, marks: Number(q.marks) || 1 })),
+          questions: questions.map((q) => ({ ...q, marks: Number(q.marks) || 1, topic: q.topic.trim() || undefined })),
         }),
       });
 
@@ -328,6 +331,18 @@ function CbtBuilder({ onTestCreated }) {
         className={inputClass}
       />
 
+      <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Test type</label>
+      <select value={testType} onChange={(e) => setTestType(e.target.value)} className={inputClass}>
+        <option value="ca">CA test (counts on report card)</option>
+        <option value="mock">Mock exam (not counted in CA)</option>
+        <option value="practice">Practice test (not counted in CA)</option>
+      </select>
+      {testType !== 'ca' && (
+        <p className="text-xs text-slate-500 dark:text-gray-400 -mt-2 mb-3">
+          Results for this test appear only on the Mock &amp; Practice page. They are never added to CA scores or report cards.
+        </p>
+      )}
+
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Subject</label>
       <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} required className={inputClass}>
         <option value="">Select subject</option>
@@ -434,13 +449,15 @@ function CbtBuilder({ onTestCreated }) {
             className={inputClass}
           />
         </div>
-        <div>
-          <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Feeds into</label>
-          <select value={caSlot} onChange={(e) => setCaSlot(e.target.value)} className={inputClass}>
-            <option value="ca1">CA1</option>
-            <option value="ca2">CA2</option>
-          </select>
-        </div>
+        {testType === 'ca' && (
+          <div>
+            <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Feeds into</label>
+            <select value={caSlot} onChange={(e) => setCaSlot(e.target.value)} className={inputClass}>
+              <option value="ca1">CA1</option>
+              <option value="ca2">CA2</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <label className="flex items-center gap-2 mt-3 mb-1 text-sm text-slate-600 dark:text-gray-300 cursor-pointer">
@@ -534,6 +551,17 @@ function CbtBuilder({ onTestCreated }) {
                 value={q.marks}
                 onChange={(e) => updateQuestion(qIndex, { marks: e.target.value })}
                 className="w-14 p-1 rounded border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white"
+              />
+            </label>
+            <label className="text-xs text-slate-500 dark:text-gray-400 flex items-center gap-1 min-w-0 flex-1">
+              Topic:
+              <input
+                type="text"
+                maxLength={100}
+                value={q.topic}
+                onChange={(e) => updateQuestion(qIndex, { topic: e.target.value })}
+                placeholder="optional, e.g. Bearings"
+                className="w-full min-w-0 p-1 rounded border border-slate-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-slate-800 dark:text-white"
               />
             </label>
           </div>

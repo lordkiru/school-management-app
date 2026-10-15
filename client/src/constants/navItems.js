@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor, CreditCard, UserX } from 'lucide-react';
+import { LayoutDashboard, Users, GraduationCap, BookOpen, ClipboardList, Wallet, Settings, History, UserCog, Calendar, ArrowUpCircle, FileText, CalendarRange, UserPlus, Shield, Building2, ListTree, BarChart3, ClipboardCheck, MessageSquare, PenLine, Upload, Monitor, CreditCard, UserX, Target } from 'lucide-react';
 
 // Every leaf item is declared once. `group` assigns it to a collapsible
 // section for roles that use grouped navigation; items with no `group`
@@ -18,6 +18,7 @@ const navItems = [
 
   { key: 'scores', to: '/dashboard/scores', label: 'Scores', icon: ClipboardList, allowedRoles: ['proprietor', 'admin', 'teacher'], group: 'assessment' },
   { key: 'cbt', to: '/dashboard/cbt', label: 'CBT Tests', icon: Monitor, allowedRoles: ['proprietor', 'admin', 'teacher'], group: 'assessment' },
+  { key: 'mocks', to: '/dashboard/mocks', label: 'Mock & Practice', icon: Target, allowedRoles: ['proprietor', 'admin', 'teacher'], group: 'assessment' },
   { key: 'reportcards', to: '/dashboard/reportcards', label: 'Report Card', icon: FileText, allowedRoles: ['proprietor', 'admin', 'teacher'], group: 'assessment' },
   { key: 'remarks', to: '/dashboard/remarks', label: 'Remarks', icon: PenLine, allowedRoles: ['proprietor', 'admin', 'teacher'], group: 'assessment' },
 

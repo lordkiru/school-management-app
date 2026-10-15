@@ -36,7 +36,7 @@ function Sidebar({ userRole, mobileOpen, onClose }) {
   // Teacher's exact existing order — not read off declaration order in
   // navItems (which is organized by group for the other roles' benefit),
   // so grouping the array differently can never silently reshuffle this.
-  const TEACHER_ORDER = ['dashboard', 'attendance', 'scores', 'cbt', 'reportcards', 'timetable', 'remarks'];
+  const TEACHER_ORDER = ['dashboard', 'attendance', 'scores', 'cbt', 'mocks', 'reportcards', 'timetable', 'remarks'];
   const flatItems = TEACHER_ORDER
     .map((key) => navItems.find((item) => item.key === key))
     .filter((item) => item && item.allowedRoles.includes(userRole));

@@ -12,6 +12,7 @@ const questionSchema = new mongoose.Schema({
   },
   correctIndex: { type: Number, required: true },
   marks: { type: Number, default: 1, min: 1 },
+  topic: { type: String, trim: true, maxlength: 100 }, // optional; lets mock/practice results show weak topics
 }, { _id: true });
 
 const cbtTestSchema = new mongoose.Schema({
@@ -22,8 +23,15 @@ const cbtTestSchema = new mongoose.Schema({
   term: { type: String, enum: ['First Term', 'Second Term', 'Third Term'], required: true },
   session: { type: String, required: true },
   durationMinutes: { type: Number, required: true, min: 1, max: 300 },
-  // Which CA slot on Score this test's auto-marked result feeds into
-  caSlot: { type: String, enum: ['ca1', 'ca2'], required: true },
+  // 'ca' tests feed a CA slot on Score; 'mock' and 'practice' tests never touch Score. Tests created
+  // before this field existed have none and read back as 'ca' via the default.
+  testType: { type: String, enum: ['ca', 'mock', 'practice'], default: 'ca' },
+  // Which CA slot on Score this test's auto-marked result feeds into (CA tests only)
+  caSlot: {
+    type: String,
+    enum: ['ca1', 'ca2'],
+    required: function () { return this.testType === 'ca'; },
+  },
   questions: {
     type: [questionSchema],
     validate: {
@@ -43,6 +51,7 @@ cbtTestSchema.index({ tenantId: 1, classId: 1, status: 1 }); // Student: availab
 cbtTestSchema.index({ tenantId: 1, subjectId: 1 }); // Filter by tenant + subject
 cbtTestSchema.index({ tenantId: 1, createdBy: 1 }); // Filter by tenant + teacher
 cbtTestSchema.index({ createdAt: -1 }); // Sort by creation date
+cbtTestSchema.index({ tenantId: 1, testType: 1, classId: 1, subjectId: 1, session: 1 }); // Mock & practice results lookup
 
 // Total marks available on this test — used to scale the raw score against caXMax on submit
 cbtTestSchema.virtual('totalPossibleMarks').get(function () {

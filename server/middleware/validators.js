@@ -221,7 +221,13 @@ const validateCbtTest = [
     .withMessage('Duration is required')
     .isInt({ min: 1, max: 300 })
     .withMessage('Duration must be between 1 and 300 minutes'),
+  body('testType')
+    .optional()
+    .isIn(['ca', 'mock', 'practice'])
+    .withMessage('testType must be ca, mock or practice'),
+  // Only CA tests feed a CA slot, so mock and practice tests don't need one (a missing testType is a CA test)
   body('caSlot')
+    .if((value, { req }) => !['mock', 'practice'].includes(req.body.testType))
     .notEmpty()
     .withMessage('CA slot is required')
     .isIn(['ca1', 'ca2'])
@@ -243,6 +249,13 @@ const validateCbtTest = [
   body('questions.*.correctIndex')
     .isInt({ min: 0 })
     .withMessage('Every question needs a valid correct answer index'),
+  body('questions.*.topic')
+    .optional({ values: 'falsy' })
+    .isString()
+    .withMessage('Question topic must be text')
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Question topic must be 100 characters or fewer'),
   handleValidationErrors,
 ];
 

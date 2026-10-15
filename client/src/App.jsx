@@ -46,6 +46,7 @@ import StudentLogin from './components/StudentLogin';
 import CbtTestTaking from './components/CbtTestTaking';
 import CbtBuilder from './components/CbtBuilder';
 import CbtResults from './components/CbtResults';
+import MockResults from './components/MockResults';
 import CbtHistory from './components/CbtHistory';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import TenantManagement from './pages/TenantManagement';
@@ -203,6 +204,10 @@ function DashboardShell({
             <CbtResults refreshKey={refreshKeys.cbt} />
           </div>
         }
+      />
+      <Route
+        path="mocks"
+        element={<RequireRole roles={['proprietor', 'admin', 'teacher']} userRole={user.role}><MockResults /></RequireRole>}
       />
 
       <Route

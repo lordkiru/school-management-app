@@ -78,8 +78,15 @@ router.post('/tests', requireAuth, requireActiveSubscription, checkSubscriptionA
       }
     }
 
+    // No testType means a CA test, exactly as before. Mock and practice tests never feed a CA
+    // slot, so any caSlot sent with one is dropped rather than saved.
+    const { caSlot, testType, ...fields } = req.body;
+    const type = testType || 'ca';
+
     const test = new CbtTest({
-      ...req.body,
+      ...fields,
+      testType: type,
+      ...(type === 'ca' ? { caSlot } : {}),
       tenantId: req.user.tenantId,
       createdBy: req.user.id,
     });
@@ -124,6 +131,7 @@ router.patch('/tests/:id', requireAuth, requireRole('proprietor', 'admin', 'teac
     // Don't allow changing tenantId/createdBy through this route
     const { tenantId, createdBy, ...updates } = req.body;
     Object.assign(test, updates);
+    if (test.testType === 'mock' || test.testType === 'practice') test.caSlot = undefined;
     await test.save();
     res.json(test);
   } catch (err) {
@@ -333,6 +341,12 @@ router.post('/attempts/:id/submit', requireAuth, requireRole('student'), validat
     attempt.status = 'submitted';
     await attempt.save();
 
+    // Mock exams and practice tests are never counted in CA or the report card: return before
+    // anything below can read or write Score.
+    if (test.testType === 'mock' || test.testType === 'practice') {
+      return res.json({ attempt, caSynced: null });
+    }
+
     // Scale the raw score to the school's configured CA max and sync into Score.
     // Only ever touches test.caSlot ('ca1' or 'ca2') — never the other CA field or exam.
     const school = await School.findOne({ tenantId: req.user.tenantId });
@@ -364,6 +378,141 @@ router.get('/attempts/mine', requireAuth, requireRole('student'), async (req, re
       .populate({ path: 'testId', populate: { path: 'subjectId' } })
       .sort({ createdAt: -1 });
     res.json(attempts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Tally one answered question into a topic map. Topics are grouped ignoring case ("Bearings" and
+// "bearings" are the same topic); label is the spelling to show for the group.
+function tallyTopic(map, label, isCorrect) {
+  const key = label.toLowerCase();
+  const entry = map.get(key) || { topic: label, correct: 0, total: 0 };
+  entry.total += 1;
+  if (isCorrect) entry.correct += 1;
+  map.set(key, entry);
+}
+
+const percentOf = (correct, total) => (total > 0 ? Math.round((correct / total) * 100) : 0);
+
+// ── Teacher/admin: mock & practice results for one subject. Read-only: this route never reads or
+// writes Score — mock/practice results exist only here, never in CA or the report card. ──────────
+router.get('/mock-results', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
+  try {
+    if (!assertCbtAvailable(req, res)) return;
+
+    const { subjectId, session, term, testType } = req.query;
+
+    if (typeof subjectId !== 'string' || !/^[0-9a-fA-F]{24}$/.test(subjectId)) {
+      return res.status(400).json({ error: 'A valid subjectId is required' });
+    }
+    if (typeof session !== 'string' || !session.trim()) {
+      return res.status(400).json({ error: 'session is required' });
+    }
+    if (term && !['First Term', 'Second Term', 'Third Term'].includes(term)) {
+      return res.status(400).json({ error: 'Invalid term' });
+    }
+    if (testType && !['mock', 'practice'].includes(testType)) {
+      return res.status(400).json({ error: 'testType must be mock or practice' });
+    }
+
+    const subject = await Subject.findOne({ _id: subjectId, tenantId: req.user.tenantId });
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+    if (!(await assertCanManageSubject(req, subjectId))) {
+      return res.status(403).json({ error: 'You are not assigned to teach this subject' });
+    }
+
+    const testFilter = {
+      tenantId: req.user.tenantId,
+      subjectId: subject._id,
+      classId: subject.classId,
+      session: session.trim(),
+      testType: testType || { $in: ['mock', 'practice'] },
+      isArchived: { $ne: true },
+    };
+    if (term) testFilter.term = term;
+
+    const tests = await CbtTest.find(testFilter).sort({ createdAt: 1 });
+    const testById = new Map(tests.map((t) => [String(t._id), t]));
+
+    const attempts = tests.length === 0
+      ? []
+      : await CbtAttempt.find({
+          tenantId: req.user.tenantId,
+          testId: { $in: tests.map((t) => t._id) },
+          status: 'submitted',
+        }).populate('studentId', 'name admissionNumber');
+
+    const byStudent = new Map();
+    const classTopics = new Map();
+
+    // One spelling per topic, taken from the tests' own question order (oldest test first) so the
+    // label never depends on which student's attempt happens to be read first.
+    const topicLabels = new Map();
+    for (const t of tests) {
+      for (const q of t.questions) {
+        if (q.topic && !topicLabels.has(q.topic.toLowerCase())) topicLabels.set(q.topic.toLowerCase(), q.topic);
+      }
+    }
+
+    for (const attempt of attempts) {
+      const student = attempt.studentId;
+      const test = testById.get(String(attempt.testId));
+      if (!student || !test) continue;
+
+      const key = String(student._id);
+      if (!byStudent.has(key)) {
+        byStudent.set(key, {
+          studentId: student._id,
+          name: student.name,
+          admissionNumber: student.admissionNumber,
+          scores: {},
+          topics: new Map(),
+        });
+      }
+      const entry = byStudent.get(key);
+      entry.scores[String(test._id)] = percentOf(attempt.score, attempt.maxScore);
+
+      // Grade topics against the order this student actually saw, same as submit does
+      orderQuestions(test.questions, attempt.questionOrder).forEach((q, i) => {
+        if (!q.topic) return;
+        const isCorrect = attempt.answers[i] === q.correctIndex;
+        const label = topicLabels.get(q.topic.toLowerCase());
+        tallyTopic(entry.topics, label, isCorrect);
+        tallyTopic(classTopics, label, isCorrect);
+      });
+    }
+
+    const byWeakest = (a, b) => a.pct - b.pct || a.topic.localeCompare(b.topic);
+
+    const students = [...byStudent.values()]
+      .map(({ topics, ...s }) => {
+        const ranked = [...topics.values()]
+          .map((t) => ({ topic: t.topic, pct: percentOf(t.correct, t.total) }))
+          .sort(byWeakest);
+        // null when every topic was fully right (or there are no topics at all)
+        const weakest = ranked[0] && ranked[0].pct < 100 ? ranked[0].topic : null;
+        return { ...s, weakestTopic: weakest };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const topics = [...classTopics.values()]
+      .map((t) => ({ ...t, pct: percentOf(t.correct, t.total) }))
+      .sort(byWeakest);
+
+    res.json({
+      subject: { _id: subject._id, name: subject.name },
+      tests: tests.map((t) => ({
+        _id: t._id,
+        title: t.title,
+        testType: t.testType,
+        term: t.term,
+        createdAt: t.createdAt,
+        questionCount: t.questions.length,
+      })),
+      students,
+      topics,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

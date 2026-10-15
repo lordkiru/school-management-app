@@ -6,6 +6,16 @@ function authHeaders() {
   return { Authorization: `Bearer ${token}` };
 }
 
+// Tests saved before test types existed have no testType and are CA tests.
+const TYPE_LABELS = { mock: 'Mock exam', practice: 'Practice test' };
+
+function describeTestType(test) {
+  if (test.testType === 'mock' || test.testType === 'practice') {
+    return `${TYPE_LABELS[test.testType].toLowerCase()} · not counted in CA`;
+  }
+  return `feeds into ${test.caSlot ? test.caSlot.toUpperCase() : 'CA'}`;
+}
+
 function CbtResults({ refreshKey }) {
   const [tests, setTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
@@ -132,7 +142,7 @@ function CbtResults({ refreshKey }) {
           <>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-1">{results.test.title}</h2>
             <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">
-              {results.test.questions.length} questions · feeds into {results.test.caSlot.toUpperCase()} ·{' '}
+              {results.test.questions.length} questions · {describeTestType(results.test)} ·{' '}
               {results.attempts.length} attempt{results.attempts.length === 1 ? '' : 's'}
             </p>
 
@@ -225,6 +235,11 @@ function CbtResults({ refreshKey }) {
                 <p className="font-medium text-slate-800 dark:text-white truncate">{test.title}</p>
                 <p className="text-sm text-slate-500 dark:text-gray-400 flex flex-wrap items-center gap-2">
                   {test.subjectId?.name} · {test.classId?.name} · {test.questions.length} questions
+                  {TYPE_LABELS[test.testType] && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+                      {TYPE_LABELS[test.testType]}
+                    </span>
+                  )}
                   {test.status === 'draft' ? (
                     <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
                       <AlertTriangle size={12} /> Draft

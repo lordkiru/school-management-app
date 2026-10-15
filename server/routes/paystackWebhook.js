@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
+const AuditLog = require('../models/AuditLog');
 const Subscription = require('../models/Subscription');
 const Tenant = require('../models/Tenant');
 const { SELF_SERVICE_PLAN_NAMES } = require('../config/plans');
@@ -77,6 +78,21 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
     paymentDate: new Date(paidAt || Date.now()),
   });
   await fee.save();
+
+  await AuditLog.create({
+    tenantId: fee.tenantId,
+    action: 'payment',
+    entityType: 'Fee',
+    entityId: fee._id,
+    snapshot: {
+      amountPaid,
+      reference,
+      paymentMethod: 'Paystack',
+      newAmountPaid: fee.amountPaid,
+      amountExpected: fee.amountExpected,
+    },
+    performedBy: 'system:paystack-webhook', // no authenticated user on a webhook
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

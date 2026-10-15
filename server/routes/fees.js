@@ -133,6 +133,23 @@ router.patch('/:id/pay', requireAuth, requireRole('proprietor', 'bursar'), valid
     });
     await fee.save();
 
+    await AuditLog.create({
+      tenantId: req.user.tenantId,
+      action: 'payment',
+      entityType: 'Fee',
+      entityId: fee._id,
+      snapshot: {
+        amountReceived: amount,
+        appliedToFee,
+        excess,
+        paymentMethod: fee.payments[fee.payments.length - 1].paymentMethod,
+        notes,
+        newAmountPaid: fee.amountPaid,
+        amountExpected: fee.amountExpected,
+      },
+      performedBy: req.user?.email || req.user?.id,
+    });
+
     let studentWalletBalance;
     if (excess > 0) {
       // Route the overpayment into the student's wallet as credit for a future term,

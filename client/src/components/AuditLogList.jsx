@@ -40,6 +40,11 @@ function AuditLogList() {
 
   const describeLog = (log) => {
     const s = log.snapshot;
+    if (log.entityType === 'Fee' && log.action === 'payment') {
+      // Paystack logs `amountPaid` for the payment itself; manual payments log `amountReceived`.
+      const received = s.amountReceived ?? s.amountPaid ?? 0;
+      return `Payment of ₦${received.toLocaleString()} via ${s.paymentMethod || 'unknown method'} — fee now ₦${(s.newAmountPaid || 0).toLocaleString()} of ₦${(s.amountExpected || 0).toLocaleString()}`;
+    }
     if (log.entityType === 'Fee') {
       const studentName = s.studentId?.name || 'Unknown student';
       return `${studentName} — ${s.term || ''} ${s.session || ''} — Expected ₦${(s.amountExpected || 0).toLocaleString()}, Paid ₦${(s.amountPaid || 0).toLocaleString()}`;
@@ -61,7 +66,7 @@ function AuditLogList() {
           <div>
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">Audit Trail</h2>
             <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">
-              A record of deleted items, kept for reference even after removal.
+              A record of fee payments, deletions and other changes, kept for reference.
             </p>
           </div>
           <button

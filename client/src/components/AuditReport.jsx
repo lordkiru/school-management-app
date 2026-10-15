@@ -26,6 +26,10 @@ function AuditReport({ logs, onClose }) {
 
   const describeSnapshot = (log) => {
     const s = log.snapshot;
+    if (log.entityType === 'Fee' && log.action === 'payment') {
+      const received = s.amountReceived ?? s.amountPaid ?? 0;
+      return `Payment: ₦${received.toLocaleString()} via ${s.paymentMethod || '—'}${s.reference ? ` (ref ${s.reference})` : ''}, Fee now paid: ₦${(s.newAmountPaid || 0).toLocaleString()} of ₦${(s.amountExpected || 0).toLocaleString()}`;
+    }
     if (log.entityType === 'Fee') {
       return `Term: ${s.term || '—'}, Session: ${s.session || '—'}, Expected: ₦${(s.amountExpected || 0).toLocaleString()}, Paid: ₦${(s.amountPaid || 0).toLocaleString()}`;
     }

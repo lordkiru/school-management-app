@@ -48,7 +48,15 @@ router.post('/', async (req, res) => {
         // The `metadata.feeId` fallback exists only so a fee payment already
         // in flight at the moment this deploy goes live (initiated by the old
         // code, which never set `type`) still gets credited correctly.
-        await handleFeePayment(metadata, amountPaid, reference, event.data.paid_at);
+        // When the Paystack account passes transaction charges to the customer,
+        // `amount` includes Paystack's charge on top of what we asked for, and
+        // `requested_amount` is what we asked for. Only the requested amount
+        // counts toward the fee — the charge goes to Paystack, not the school.
+        const requested = Number(event.data.requested_amount);
+        const amountForFee = Number.isFinite(requested) && requested > 0 && requested <= event.data.amount
+          ? requested / 100
+          : amountPaid;
+        await handleFeePayment(metadata, amountForFee, reference, event.data.paid_at, amountPaid);
       }
     }
 
@@ -61,9 +69,11 @@ router.post('/', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fee payment — credits a Fee record, capped at its outstanding balance; any
-// overpayment goes to the student's wallet.
+// overpayment goes to the student's wallet. `amountPaid` is the amount toward the
+// fee (excluding any Paystack charge passed to the payer); `amountCharged` is what
+// the payer was actually charged.
 // ─────────────────────────────────────────────────────────────────────────────
-async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
+async function handleFeePayment(metadata, amountPaid, reference, paidAt, amountCharged = amountPaid) {
   const { feeId } = metadata;
   const fee = await Fee.findById(feeId);
   if (!fee) return;
@@ -75,16 +85,19 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
   // Cap what's applied to this fee at the outstanding balance; anything beyond that is an
   // overpayment — same handling as a manual payment in PATCH /fees/:id/pay.
   const appliedToFee = Math.max(Math.min(amountPaid, balance), 0);
-  const excess = amountPaid - appliedToFee;
+  // Round to kobo so float noise from the subtraction never becomes a phantom wallet credit.
+  const excess = Math.round((amountPaid - appliedToFee) * 100) / 100;
+  const paystackCharge = Math.round((amountCharged - amountPaid) * 100) / 100;
 
   fee.amountPaid += appliedToFee;
-  // Record the full amount received (not just what was applied) so the history
-  // reflects what actually changed hands — the audit log explains the split.
+  // Record the full amount received toward the fee (not just what was applied) so the
+  // history reflects what actually changed hands — the audit log explains the split.
   fee.payments.push({
     amount: amountPaid,
     reference,
     paymentMethod: 'Paystack',
     paymentDate: new Date(paidAt || Date.now()),
+    ...(paystackCharge > 0 && { notes: `Payer also paid a ₦${paystackCharge.toLocaleString()} Paystack charge` }),
   });
   await fee.save();
 
@@ -95,6 +108,8 @@ async function handleFeePayment(metadata, amountPaid, reference, paidAt) {
     entityId: fee._id,
     snapshot: {
       amountPaid,
+      amountCharged,
+      paystackCharge,
       appliedToFee,
       excess,
       reference,

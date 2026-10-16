@@ -256,6 +256,48 @@ const validateCbtTest = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Question topic must be 100 characters or fewer'),
+  body('questions.*.explanation')
+    .optional({ values: 'falsy' })
+    .isString()
+    .withMessage('Question explanation must be text')
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Question explanation must be 2000 characters or fewer'),
+  body('questions.*.bankQuestionId')
+    .optional({ values: 'falsy' })
+    .isMongoId()
+    .withMessage('Invalid question bank id'),
+  handleValidationErrors,
+];
+
+// Pulling questions from the Lemida question bank into a mock/practice test
+const validateBankPick = [
+  body('subject')
+    .isString()
+    .withMessage('subject is required')
+    .trim()
+    .notEmpty()
+    .withMessage('subject is required')
+    .isLength({ max: 100 })
+    .withMessage('subject must be 100 characters or fewer'),
+  body('topics')
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage('topics must be a list of up to 50 topics'),
+  body('topics.*')
+    .isString()
+    .trim()
+    .notEmpty()
+    .isLength({ max: 100 })
+    .withMessage('Each topic must be text of 100 characters or fewer'),
+  body('count')
+    .isInt({ min: 1, max: 60 })
+    .withMessage('count must be between 1 and 60')
+    .toInt(),
+  body('difficulty')
+    .optional()
+    .isIn(['mixed', 'easy', 'medium', 'hard'])
+    .withMessage('difficulty must be mixed, easy, medium or hard'),
   handleValidationErrors,
 ];
 
@@ -410,6 +452,7 @@ module.exports = {
   validateFee,
   validateScore,
   validateCbtTest,
+  validateBankPick,
   validateCbtSubmit,
   validateMongoId,
   validatePasswordReset,

@@ -71,6 +71,21 @@ const apiLimiter = rateLimit({
   },
 });
 
+// Pulling questions from the Lemida question bank samples the database each time, so it gets its own
+// budget. Keyed per user (the route runs requireAuth first, so the token has been verified).
+const bankPickLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: rateLimitKey,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'You are adding questions too quickly. Please wait a few minutes and try again.'
+    });
+  },
+});
+
 // Strict rate limiter for authentication endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -103,6 +118,7 @@ const paymentLimiter = rateLimit({
 
 module.exports = {
   apiLimiter,
+  bankPickLimiter,
   authLimiter,
   paymentLimiter,
   // exported for verification only

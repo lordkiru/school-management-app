@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Lemida Content Studio: a plain, readable admin tool. Light theme only. */
+@theme {
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html { background: #f6f5fb; }
+body { margin: 0; color: #1e2433; font-family: var(--font-sans); }
+
+/* A clearly visible focus ring for keyboard users everywhere */
+:focus-visible { outline: 2px solid #4338ca; outline-offset: 2px; }

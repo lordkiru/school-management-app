@@ -9,7 +9,9 @@ const CbtAttempt = require('../models/CbtAttempt');
 const Subject = require('../models/Subject');
 const Score = require('../models/Score');
 const School = require('../models/School');
-const { validateCbtTest, validateCbtSubmit, validateMongoId } = require('../middleware/validators');
+const { validateCbtTest, validateBankPick, validateCbtSubmit, validateMongoId } = require('../middleware/validators');
+const { bankPickLimiter } = require('../middleware/rateLimiter');
+const { listApprovedSubjects, pickApprovedQuestions } = require('../modules/questionBank');
 
 // CBT is a plan feature, not just an active/inactive gate. Two levels (see utils/cbtAccess.js):
 //   full CBT      - the plan includes it, or the school is trialing (trialing always passes, per
@@ -120,6 +122,31 @@ router.post('/tests', requireAuth, requireActiveSubscription, checkSubscriptionA
     res.status(201).json(test);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// ── Teacher/admin: approved subjects and topics in the Lemida question bank (mock/practice access only) ──
+router.get('/bank/subjects', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), async (req, res) => {
+  try {
+    if (!canUseMockPractice(req)) return denyNoCbt(req, res);
+    res.json(await listApprovedSubjects());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Teacher/admin: pull random approved questions from the bank into a mock/practice test ──
+// Questions kept for school mocks ('reserved') are used first, topped up from the public pool. The
+// teacher gets the questions back and they are copied into the test when it is saved.
+router.post('/bank/pick', requireAuth, bankPickLimiter, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), validateBankPick, async (req, res) => {
+  try {
+    if (!canUseMockPractice(req)) return denyNoCbt(req, res);
+
+    const { subject, topics, count, difficulty } = req.body;
+    const questions = await pickApprovedQuestions({ subject, topics, count, difficulty: difficulty || 'mixed', preferPool: 'reserved' });
+    res.json({ questions, requested: count, returned: questions.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

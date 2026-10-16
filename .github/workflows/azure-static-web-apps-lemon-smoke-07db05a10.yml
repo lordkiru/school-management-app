@@ -3,10 +3,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'content-studio/**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+    paths-ignore:
+      - 'content-studio/**'
 
 jobs:
   build_and_deploy_job:
@@ -26,6 +30,8 @@ jobs:
       - name: Install and Build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          # Where the Super Admin dashboard link to Lemida Content Studio points (optional; link stays disabled if unset)
+          VITE_CONTENT_STUDIO_URL: ${{ secrets.VITE_CONTENT_STUDIO_URL }}
         run: |
           cd client
           npm install

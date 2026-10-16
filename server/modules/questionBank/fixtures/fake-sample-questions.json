@@ -1,0 +1,47 @@
+{
+  "exam": "WAEC/NECO (FAKE SAMPLE DATA FOR TESTS)",
+  "subject": "FAKE Sample Subject",
+  "batch": "fake-sample-001",
+  "objective": [
+    {
+      "id": "FAKE-001",
+      "section": "Fake section",
+      "topic": "Fake Topic One",
+      "difficulty": "easy",
+      "question": "FAKE SAMPLE: What is one plus one?",
+      "options": { "A": "1", "B": "2", "C": "3", "D": "4" },
+      "answer": "B",
+      "explanation": "FAKE SAMPLE: One plus one is two."
+    },
+    {
+      "id": "FAKE-002",
+      "topic": "Fake Topic One",
+      "difficulty": "hard",
+      "question": "FAKE SAMPLE: A question whose options repeat.",
+      "options": { "A": "Same", "B": "Same", "C": "Other", "D": "Another" },
+      "answer": "A",
+      "explanation": "FAKE SAMPLE: Two options are identical, so this must be rejected."
+    },
+    {
+      "id": "FAKE-003",
+      "topic": "Fake Topic Two",
+      "difficulty": "medium",
+      "question": "FAKE SAMPLE: A question whose answer letter does not exist.",
+      "options": { "A": "Red", "B": "Green", "C": "Blue" },
+      "answer": "E",
+      "explanation": "FAKE SAMPLE: The answer E is not one of A, B, C."
+    },
+    {
+      "id": "FAKE-004",
+      "topic": "Fake Topic Two",
+      "difficulty": "medium",
+      "question": "FAKE SAMPLE: A question with no explanation.",
+      "options": { "A": "Up", "B": "Down" },
+      "answer": "A"
+    }
+  ],
+  "theory": [
+    { "id": "FAKE-T1", "question": "FAKE SAMPLE theory question one." },
+    { "id": "FAKE-T2", "question": "FAKE SAMPLE theory question two." }
+  ]
+}

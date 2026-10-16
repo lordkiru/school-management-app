@@ -70,15 +70,21 @@ function shuffle(arr) {
   return result;
 }
 
-// Strip answer keys before sending a test to a student — never let correctIndex leave the server.
-// The explanation goes too: it usually spells out the answer.
+// What a student may see of a question while taking a test. An allowlist, not a list of things to hide:
+// the answer key (correctIndex), the explanation and the question bank link must never reach a student
+// before they submit, and a field added to the question schema later (as explanation once was) stays
+// private until someone decides to add it here.
+const STUDENT_QUESTION_FIELDS = ['_id', 'text', 'options', 'marks'];
+const forStudent = (q) => Object.fromEntries(STUDENT_QUESTION_FIELDS.filter((k) => q[k] !== undefined).map((k) => [k, q[k]]));
+
+// Prepare a test for a student: questions reduced to the allowlist above.
 // questionOrder (an attempt's shuffled order, if any) determines the order questions are sent in.
 function stripAnswerKey(test, questionOrder) {
   const obj = test.toObject ? test.toObject() : test;
   const questions = orderQuestions(obj.questions, questionOrder);
   return {
     ...obj,
-    questions: questions.map(({ correctIndex, explanation, bankQuestionId, ...q }) => q),
+    questions: questions.map(forStudent),
   };
 }
 
@@ -420,12 +426,114 @@ router.post('/attempts/:id/submit', requireAuth, requireRole('student'), validat
 });
 
 // ── Student: their own attempt history ───────────────────────────────────────
+// Returns only what the history screen shows. It must never carry question content: a student with an
+// attempt in progress could otherwise read the answer key from here while the timer is running. So the
+// tests are loaded with a projection that only counts the questions, and the response is built by hand.
 router.get('/attempts/mine', requireAuth, requireRole('student'), async (req, res) => {
   try {
     const attempts = await CbtAttempt.find({ tenantId: req.user.tenantId, studentId: req.user.id })
-      .populate({ path: 'testId', populate: { path: 'subjectId' } })
-      .sort({ createdAt: -1 });
-    res.json(attempts);
+      .select('testId status score maxScore startedAt submittedAt autoSubmitted')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const uniqueTestIds = [...new Map(attempts.map((a) => [String(a.testId), a.testId])).values()];
+    const tests = uniqueTestIds.length === 0
+      ? []
+      : await CbtTest.aggregate([
+          { $match: { _id: { $in: uniqueTestIds }, tenantId: req.user.tenantId } },
+          {
+            $project: {
+              title: 1, testType: 1, term: 1, session: 1, durationMinutes: 1, subjectId: 1,
+              questionCount: { $size: { $ifNull: ['$questions', []] } },
+            },
+          },
+        ]);
+    const testById = new Map(tests.map((t) => [String(t._id), t]));
+
+    const subjectIds = [...new Map(tests.filter((t) => t.subjectId).map((t) => [String(t.subjectId), t.subjectId])).values()];
+    const subjects = subjectIds.length === 0
+      ? []
+      : await Subject.find({ _id: { $in: subjectIds }, tenantId: req.user.tenantId }).select('name').lean();
+    const subjectById = new Map(subjects.map((s) => [String(s._id), s]));
+
+    res.json(attempts.map((a) => {
+      const t = testById.get(String(a.testId));
+      const subject = t && subjectById.get(String(t.subjectId));
+      return {
+        _id: a._id,
+        status: a.status,
+        score: a.score,
+        maxScore: a.maxScore,
+        startedAt: a.startedAt,
+        submittedAt: a.submittedAt,
+        autoSubmitted: a.autoSubmitted,
+        // same key the history screen already reads (attempt.testId.title ...)
+        testId: t
+          ? {
+              _id: t._id,
+              title: t.title,
+              testType: t.testType || 'ca', // tests saved before test types existed are CA tests
+              term: t.term,
+              session: t.session,
+              durationMinutes: t.durationMinutes,
+              questionCount: t.questionCount,
+              subjectId: subject ? { _id: subject._id, name: subject.name } : null,
+            }
+          : null,
+      };
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Student: review a finished mock exam or practice test (their answers, the right answers and the
+// explanations). Only once the attempt is submitted, and only for mock/practice tests: CA tests count on
+// the report card and never get a review. Someone else's attempt looks the same as one that doesn't exist.
+router.get('/attempts/:id/review', requireAuth, requireRole('student'), validateMongoId, async (req, res) => {
+  try {
+    const attempt = await CbtAttempt.findOne({ _id: req.params.id, tenantId: req.user.tenantId, studentId: req.user.id }).lean();
+    if (!attempt) return res.status(404).json({ error: 'Attempt not found' });
+
+    if (attempt.status !== 'submitted') {
+      return res.status(403).json({ error: 'You can review a test after you have submitted it.', code: 'REVIEW_NOT_AVAILABLE' });
+    }
+
+    const test = await CbtTest.findOne({ _id: attempt.testId, tenantId: req.user.tenantId });
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    if (!isMockOrPractice(test.testType)) {
+      return res.status(403).json({ error: 'Answers are not shown for tests that count towards your CA.', code: 'REVIEW_NOT_AVAILABLE' });
+    }
+
+    // in the order this student saw the questions (attempt.questionOrder when the test was shuffled)
+    const questions = orderQuestions(test.questions, attempt.questionOrder).map((q, i) => {
+      const given = attempt.answers[i];
+      const answered = Number.isInteger(given) && given >= 0 && given < q.options.length;
+      return {
+        _id: q._id,
+        text: q.text,
+        options: q.options,
+        marks: q.marks,
+        topic: q.topic || null,
+        yourAnswerIndex: answered ? given : null,
+        correctIndex: q.correctIndex,
+        correct: answered && given === q.correctIndex,
+        explanation: q.explanation || null,
+      };
+    });
+
+    res.json({
+      attempt: {
+        _id: attempt._id,
+        status: attempt.status,
+        score: attempt.score,
+        maxScore: attempt.maxScore,
+        submittedAt: attempt.submittedAt,
+        autoSubmitted: attempt.autoSubmitted,
+      },
+      test: { _id: test._id, title: test.title, testType: test.testType, term: test.term, session: test.session },
+      questions,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { SYSTEM_TENANT_IDS, isReservedSubdomain, reservedSubdomainMessage } = require('../config/reservedSubdomains');
 
 const tenantSchema = new mongoose.Schema({
   // Tenant identification
@@ -27,7 +28,21 @@ const tenantSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: /^[a-z0-9-]+$/
+    match: /^[a-z0-9-]+$/,
+    // Reserved names (config/reservedSubdomains.js) can't be used. Checked when a tenant is created or its
+    // subdomain changes, never on an unchanged existing tenant (so a school already on a reserved name is
+    // not broken by unrelated saves), and never for Lemida's own system tenants.
+    validate: {
+      validator: function (value) {
+        const isDocument = typeof this.isModified === 'function'; // false for findOneAndUpdate validators
+        if (isDocument) {
+          if (SYSTEM_TENANT_IDS.includes(this.tenantId)) return true;
+          if (!this.isNew && !this.isModified('subdomain')) return true;
+        }
+        return !isReservedSubdomain(value);
+      },
+      message: (props) => reservedSubdomainMessage(props.value),
+    },
   },
   
   // Optional custom domain (e.g., "school.greenwood.edu")

@@ -13,6 +13,7 @@ const { handleValidationErrors } = require('../middleware/validators');
 const { getTenantCbtStatus } = require('../utils/cbtAccess');
 const { PLAN_NAMES, FOUNDING_SCHOOL_LIMIT } = require('../config/plans');
 const { SCHOOL_LEVELS } = require('../config/schoolLevels');
+const { isReservedSubdomain, reservedSubdomainMessage } = require('../config/reservedSubdomains');
 
 // The super admin's own internal tenant — not a real customer school,
 // so it's excluded from school lists/counts shown in the dashboard.
@@ -377,6 +378,10 @@ router.post('/tenants/create', requireAuth, requireSuperAdmin, async (req, res) 
 
     if (!isTrial && !PLAN_NAMES.includes(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
+    }
+
+    if (isReservedSubdomain(subdomain)) {
+      return res.status(400).json({ error: reservedSubdomainMessage(subdomain) });
     }
 
     if (plan === 'founding') {

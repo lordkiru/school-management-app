@@ -10,6 +10,7 @@ const requireRole = require('../middleware/requireRole');
 const bcrypt = require('bcryptjs');
 const { createSubaccount, updateSubaccount } = require('../services/paystackSubaccount');
 const { SCHOOL_LEVELS } = require('../config/schoolLevels');
+const { isReservedSubdomain, reservedSubdomainMessage } = require('../config/reservedSubdomains');
 
 // Get all tenants (Super Admin only - for platform management)
 router.get('/', requireAuth, async (req, res) => {
@@ -56,6 +57,10 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({
         error: 'School name, owner name, email, and password are required'
       });
+    }
+
+    if (isReservedSubdomain(subdomain)) {
+      return res.status(400).json({ error: reservedSubdomainMessage(subdomain) });
     }
 
     // Levels the school operates — defaults to all 5 if omitted; must be a
@@ -155,6 +160,10 @@ router.post('/register', authLimiter, async (req, res) => {
 router.patch('/me', requireAuth, requireRole('proprietor'), async (req, res) => {
   try {
     const { name, subdomain, settings } = req.body;
+
+    if (isReservedSubdomain(subdomain)) {
+      return res.status(400).json({ error: reservedSubdomainMessage(subdomain) });
+    }
 
     const tenant = await Tenant.findOneAndUpdate(
       { tenantId: req.user.tenantId },

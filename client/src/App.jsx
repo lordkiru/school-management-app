@@ -44,8 +44,7 @@ import AddParent from './components/AddParent';
 import ParentPortal from './components/ParentPortal';
 import StudentLogin from './components/StudentLogin';
 import CbtTestTaking from './components/CbtTestTaking';
-import CbtBuilder from './components/CbtBuilder';
-import CbtResults from './components/CbtResults';
+import CbtPage from './components/CbtPage';
 import MockResults from './components/MockResults';
 import CbtHistory from './components/CbtHistory';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
@@ -198,12 +197,7 @@ function DashboardShell({
       />
       <Route
         path="cbt"
-        element={
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
-            <CbtBuilder onTestCreated={() => bumpRefresh('cbt')} />
-            <CbtResults refreshKey={refreshKeys.cbt} />
-          </div>
-        }
+        element={<CbtPage refreshKey={refreshKeys.cbt} onChanged={() => bumpRefresh('cbt')} />}
       />
       <Route
         path="mocks"

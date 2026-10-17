@@ -16,7 +16,7 @@ function describeTestType(test) {
   return `feeds into ${test.caSlot ? test.caSlot.toUpperCase() : 'CA'}`;
 }
 
-function CbtResults({ refreshKey }) {
+function CbtResults({ refreshKey, onEdit, editingId }) {
   const [tests, setTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
   const [error, setError] = useState('');
@@ -28,6 +28,10 @@ function CbtResults({ refreshKey }) {
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const canArchive = ['proprietor', 'admin'].includes(user.role);
+  // Only drafts can be edited (a published test is locked until it is unpublished). A teacher can edit
+  // their own tests; a proprietor or admin can edit any. The server enforces the same rules.
+  const canEdit = (test) =>
+    test.status === 'draft' && !test.isArchived && (canArchive || String(test.createdBy) === String(user.id));
 
   const fetchTests = useCallback(async (includeArchived) => {
     setLoadingTests(true);
@@ -255,6 +259,15 @@ function CbtResults({ refreshKey }) {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {onEdit && canEdit(test) && (
+                  <button
+                    onClick={() => onEdit(test)}
+                    disabled={editingId === test._id}
+                    className="text-sm font-medium py-2 px-3 rounded-lg border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 disabled:opacity-60 transition"
+                  >
+                    {editingId === test._id ? 'Editing' : 'Edit'}
+                  </button>
+                )}
                 <button
                   onClick={() => togglePublish(test)}
                   className="text-sm font-medium py-2 px-3 rounded-lg border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 transition"

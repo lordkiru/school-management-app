@@ -18,6 +18,17 @@ const fromBank = (b) => ({
 });
 const isBlank = (q) => !q.text.trim() && q.options.every((o) => !o.trim());
 
+// A saved question, in the shape the form edits.
+const fromSaved = (q) => ({
+  text: q.text,
+  options: [...q.options],
+  correctIndex: q.correctIndex,
+  marks: q.marks ?? 1,
+  topic: q.topic || '',
+  ...(q.explanation ? { explanation: q.explanation } : {}),
+  ...(q.bankQuestionId ? { bankQuestionId: q.bankQuestionId } : {}),
+});
+
 // Escapes student-supplied text before it gets injected into the print window's raw HTML string
 function escapeHtml(str) {
   return String(str)
@@ -28,23 +39,26 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-function CbtBuilder({ onTestCreated }) {
+// With `editTest` (a saved draft from the tests list) the form opens filled in and saves with PATCH instead
+// of creating a new test. The parent gives it a different `key` per test, so it starts fresh each time.
+function CbtBuilder({ onTestCreated, editTest = null, flash = '', onTestSaved, onCancelEdit }) {
+  const isEditing = Boolean(editTest);
   const [subjects, setSubjects] = useState([]);
   const [sessions, setSessions] = useState([]);
 
-  const [title, setTitle] = useState('');
-  const [testType, setTestType] = useState('ca'); // 'ca' | 'mock' | 'practice'
+  const [title, setTitle] = useState(editTest ? editTest.title : '');
+  const [testType, setTestType] = useState(editTest ? editTest.testType || 'ca' : 'ca'); // 'ca' | 'mock' | 'practice'
   const [cbtAccess, setCbtAccess] = useState(null); // see utils/cbtAccess.js
-  const [subjectId, setSubjectId] = useState('');
-  const [term, setTerm] = useState('First Term');
-  const [session, setSession] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(30);
-  const [caSlot, setCaSlot] = useState('ca1');
-  const [shuffleQuestions, setShuffleQuestions] = useState(false);
-  const [questions, setQuestions] = useState([EMPTY_QUESTION()]);
+  const [subjectId, setSubjectId] = useState(editTest ? (editTest.subjectId && editTest.subjectId._id) || editTest.subjectId || '' : '');
+  const [term, setTerm] = useState(editTest ? editTest.term : 'First Term');
+  const [session, setSession] = useState(editTest ? editTest.session : '');
+  const [durationMinutes, setDurationMinutes] = useState(editTest ? editTest.durationMinutes : 30);
+  const [caSlot, setCaSlot] = useState(editTest ? editTest.caSlot || 'ca1' : 'ca1');
+  const [shuffleQuestions, setShuffleQuestions] = useState(editTest ? Boolean(editTest.shuffleQuestions) : false);
+  const [questions, setQuestions] = useState(editTest ? editTest.questions.map(fromSaved) : [EMPTY_QUESTION()]);
 
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useState(flash);
   const [loading, setLoading] = useState(false);
 
   const [pinResults, setPinResults] = useState(null);
@@ -69,7 +83,7 @@ function CbtBuilder({ onTestCreated }) {
         const list = Array.isArray(sessionData) ? sessionData : [];
         setSessions(list);
         const current = list.find((s) => s.isCurrent);
-        if (current) setSession(current.name);
+        if (current) setSession((prev) => prev || current.name); // never replaces the session of a test being edited
       } catch (err) {
         console.error('Failed to load data', err);
       }
@@ -82,9 +96,10 @@ function CbtBuilder({ onTestCreated }) {
   useEffect(() => {
     fetchCbtAccess().then((access) => {
       setCbtAccess(access);
-      if (isAddonOnly(access)) setTestType((current) => (current === 'ca' ? 'mock' : current));
+      // a new test starts on Mock for an add-on school; an existing draft keeps the type it has
+      if (isAddonOnly(access) && !isEditing) setTestType((current) => (current === 'ca' ? 'mock' : current));
     });
-  }, []);
+  }, [isEditing]);
   const addonOnly = isAddonOnly(cbtAccess);
 
   const selectedSubject = subjects.find((s) => s._id === subjectId);
@@ -156,8 +171,8 @@ function CbtBuilder({ onTestCreated }) {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/cbt/tests`, {
-        method: 'POST',
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cbt/tests${isEditing ? `/${editTest._id}` : ''}`, {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -165,7 +180,10 @@ function CbtBuilder({ onTestCreated }) {
         body: JSON.stringify({
           title,
           subjectId,
-          classId: selectedSubject?.classId?._id || selectedSubject?.classId,
+          // before the subjects have loaded, an edited test still has its own class
+          classId: selectedSubject
+            ? selectedSubject.classId?._id || selectedSubject.classId
+            : editTest?.classId?._id || editTest?.classId,
           term,
           session,
           durationMinutes: Number(durationMinutes),
@@ -183,12 +201,16 @@ function CbtBuilder({ onTestCreated }) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create test');
+      if (!res.ok) throw new Error(data.error || (isEditing ? 'Failed to save changes' : 'Failed to create test'));
 
-      setSuccess('Test created as a draft. Publish it when ready.');
-      setTitle('');
-      setQuestions([EMPTY_QUESTION()]);
-      onTestCreated?.(data);
+      if (isEditing) {
+        onTestSaved?.(data);
+      } else {
+        setSuccess('Test created as a draft. Publish it when ready.');
+        setTitle('');
+        setQuestions([EMPTY_QUESTION()]);
+        onTestCreated?.(data);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -347,7 +369,21 @@ function CbtBuilder({ onTestCreated }) {
       onSubmit={handleSubmit}
       className="glass-card p-6 rounded-xl max-w-2xl"
     >
-      <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">New CBT Test</h2>
+      <h2 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">{isEditing ? 'Edit CBT Test' : 'New CBT Test'}</h2>
+      {isEditing && (
+        <div className="mb-4 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-900/20 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-slate-600 dark:text-gray-300">
+            You are editing the draft <strong>{editTest.title}</strong>. Publish it from the list when it is ready.
+          </p>
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="text-sm font-medium py-1.5 px-3 rounded-lg border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-700 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="bg-rose-50 dark:bg-red-900 text-rose-700 dark:text-red-200 text-sm p-2 rounded-lg mb-3">
@@ -372,7 +408,7 @@ function CbtBuilder({ onTestCreated }) {
 
       <label className="block text-sm mb-1 text-slate-600 dark:text-gray-300">Test type</label>
       <select value={testType} onChange={(e) => setTestType(e.target.value)} className={inputClass}>
-        {!addonOnly && <option value="ca">CA test (counts on report card)</option>}
+        {(!addonOnly || testType === 'ca') && <option value="ca">CA test (counts on report card)</option>}
         <option value="mock">Mock exam (not counted in CA)</option>
         <option value="practice">Practice test (not counted in CA)</option>
       </select>
@@ -629,7 +665,7 @@ function CbtBuilder({ onTestCreated }) {
         disabled={loading}
         className="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-3 px-4 rounded-lg transition"
       >
-        {loading ? 'Saving...' : 'Save as draft'}
+        {loading ? 'Saving...' : isEditing ? 'Save changes' : 'Save as draft'}
       </button>
     </form>
   );

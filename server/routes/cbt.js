@@ -170,7 +170,11 @@ router.get('/tests', requireAuth, requireRole('proprietor', 'admin', 'teacher'),
 });
 
 // ── Teacher/admin: edit a draft test (locked once published) ────────────────
-router.patch('/tests/:id', requireAuth, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, async (req, res) => {
+// Takes the whole form, like creating a test, and follows the same rules: the same validation, the same
+// plan / add-on check for the kind of test, and teachers only for subjects they teach. Only the fields of
+// the form can change here (never status, archive state, owner or school), so this route can't be used to
+// publish a test around the plan check.
+router.patch('/tests/:id', requireAuth, requireActiveSubscription, checkSubscriptionAccess, requireRole('proprietor', 'admin', 'teacher'), validateMongoId, validateCbtTest, async (req, res) => {
   try {
     const test = await CbtTest.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
     if (!test) return res.status(404).json({ error: 'Test not found' });
@@ -181,10 +185,32 @@ router.patch('/tests/:id', requireAuth, requireRole('proprietor', 'admin', 'teac
       return res.status(403).json({ error: 'You did not create this test' });
     }
 
-    // Don't allow changing tenantId/createdBy through this route
-    const { tenantId, createdBy, ...updates } = req.body;
-    Object.assign(test, updates);
-    if (test.testType === 'mock' || test.testType === 'practice') test.caSlot = undefined;
+    if (!assertTestTypeAvailable(req, res, req.body.testType || 'ca')) return;
+
+    const canManage = await assertCanManageSubject(req, req.body.subjectId);
+    if (!canManage) {
+      return res.status(403).json({ error: 'You are not assigned to teach this subject' });
+    }
+
+    for (const q of req.body.questions) {
+      if (q.correctIndex >= q.options.length) {
+        return res.status(400).json({ error: `correctIndex out of range for question: "${q.text}"` });
+      }
+    }
+
+    // Answers are stored by position, so once any student has started a test its questions must never
+    // change (a test that was published, taken and then unpublished is a draft again, but it has attempts).
+    if (await CbtAttempt.exists({ tenantId: req.user.tenantId, testId: test._id })) {
+      return res.status(409).json({
+        error: 'Students have already started this test, so it can no longer be edited. Create a new test instead.',
+        code: 'TEST_HAS_ATTEMPTS',
+      });
+    }
+
+    const { title, subjectId, classId, term, session, durationMinutes, testType, caSlot, shuffleQuestions, questions } = req.body;
+    Object.assign(test, { title, subjectId, classId, term, session, durationMinutes, testType: testType || 'ca', questions });
+    if (shuffleQuestions !== undefined) test.shuffleQuestions = shuffleQuestions;
+    test.caSlot = test.testType === 'ca' ? caSlot : undefined; // mock and practice tests never feed a CA slot
     await test.save();
     res.json(test);
   } catch (err) {

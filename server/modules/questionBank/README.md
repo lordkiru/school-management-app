@@ -48,6 +48,16 @@ student Exam Prep app will read it through the API later; SchoolManager uses it 
 - `theory` is skipped for now and counted in the report.
 - Every problem with a question is reported (not just the first). Valid questions are imported as **draft**;
   questions with problems are skipped.
+- **Possible duplicates** (warnings, never errors): on every import, dry run or real, each question is compared with
+  the other questions of the same subject in the bank (a different id, and not one this file is about to overwrite)
+  and with the earlier questions in the same file. It is flagged when the normalised text is identical, or when the
+  wording is very similar (Dice similarity of trigrams of at least 0.9) **and the numbers in the question are the
+  same**. Normalising lower-cases, collapses spaces and strips prose punctuation, but keeps maths symbols (+ - * / =
+  < > ^ %, brackets, a minus sign, a decimal point), so `6 + 3` and `6 - 3` or `x = -3` and `x = 3` are different.
+  The report gets `possibleDuplicates: [{ externalId, matchesExternalId, similarity, reason, text, matchesText,
+  matchesIn: 'bank' | 'file', matchesStatus }]`, one entry per question (its best match). They never block an import.
+- An id belongs to one subject for good: reusing an id the bank already holds under a **different** subject is an
+  error (the question is left out), so an import can never move a question between subjects.
 - Re-importing: an unchanged question is skipped; a changed draft or rejected question is updated; a changed
   **approved** question is updated and goes back to draft (listed as needing re-approval). Fields a file leaves
   out (`exams`, `difficulty`, `pool`, `section`) keep their current value.

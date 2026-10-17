@@ -1,5 +1,6 @@
 const BankQuestion = require('./models/BankQuestion');
 const { validateQuestionFields, EXAMS, LETTERS } = require('./validation');
+const { findPossibleDuplicates } = require('./duplicates');
 
 const MAX_QUESTIONS_PER_FILE = 10000;
 const FILE_ERROR_ID = '(file)';
@@ -126,6 +127,21 @@ function parseImportFile(payload) {
   return result;
 }
 
+// An id belongs to one subject for good. A file may not reuse an id that the bank already holds under a
+// DIFFERENT subject (it would silently move that question). Those questions get an error and are left out.
+function rejectCrossSubjectIds(parsed, existingByExternalId) {
+  parsed.valid = parsed.valid.filter((q) => {
+    const existing = existingByExternalId.get(q.externalId);
+    if (!existing || existing.subject === q.subject) return true;
+    parsed.errors.push({
+      externalId: q.externalId,
+      messages: [`id "${q.externalId}" already belongs to the subject "${existing.subject}" and cannot be reused for "${q.subject}". Use a new id.`],
+    });
+    return false;
+  });
+  return parsed;
+}
+
 const sameArray = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 const sameSet = (a, b) => a.length === b.length && [...a].sort().every((v, i) => v === [...b].sort()[i]);
 
@@ -164,7 +180,7 @@ function planImport(parsed, existingByExternalId) {
   return { toCreate, toUpdate, unchanged, reapprovalNeeded };
 }
 
-function buildReport(parsed, plan, dryRun) {
+function buildReport(parsed, plan, dryRun, possibleDuplicates = []) {
   return {
     dryRun,
     subject: parsed.subject,
@@ -175,6 +191,8 @@ function buildReport(parsed, plan, dryRun) {
     unchanged: plan.unchanged,
     reapprovalNeeded: plan.reapprovalNeeded,
     errors: parsed.errors,
+    // warnings, not errors: they never stop an import (see duplicates.js)
+    possibleDuplicates,
     theorySkipped: parsed.theorySkipped,
   };
 }
@@ -209,7 +227,21 @@ async function importQuestionBank({ payload, dryRun = true, actor = 'unknown' })
 
   const ids = parsed.valid.map((q) => q.externalId);
   const existingDocs = ids.length ? await BankQuestion.find({ externalId: { $in: ids } }).lean() : [];
-  const plan = planImport(parsed, new Map(existingDocs.map((d) => [d.externalId, d])));
+  const existingByExternalId = new Map(existingDocs.map((d) => [d.externalId, d]));
+  rejectCrossSubjectIds(parsed, existingByExternalId);
+  const plan = planImport(parsed, existingByExternalId);
+
+  // Possible duplicates: each question against the rest of this subject in the bank (a different id, and not
+  // one this file is about to overwrite) and against the other questions in the file. Warnings only.
+  let possibleDuplicates = [];
+  if (parsed.valid.length > 0) {
+    const importedIds = new Set(parsed.valid.map((q) => q.externalId));
+    const inSubject = await BankQuestion.find({ subject: parsed.subject }, { externalId: 1, text: 1, status: 1 }).lean();
+    possibleDuplicates = findPossibleDuplicates({
+      incoming: parsed.valid.map((q) => ({ externalId: q.externalId, text: q.text })),
+      existing: inSubject.filter((d) => !importedIds.has(d.externalId)),
+    });
+  }
 
   if (!dryRun && (plan.toCreate.length || plan.toUpdate.length)) {
     const ops = [
@@ -243,13 +275,14 @@ async function importQuestionBank({ payload, dryRun = true, actor = 'unknown' })
     await BankQuestion.bulkWrite(ops, { ordered: false });
   }
 
-  return buildReport(parsed, plan, dryRun);
+  return buildReport(parsed, plan, dryRun, possibleDuplicates);
 }
 
 module.exports = {
   importQuestionBank,
   parseImportFile,
   planImport,
+  rejectCrossSubjectIds,
   contentChanged,
   MAX_QUESTIONS_PER_FILE,
 };

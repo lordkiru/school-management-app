@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
-import { btnPrimary, btnSecondary, card, labelClass } from '../ui'
+import { btnPrimary, btnSecondary, card, labelClass, STATUS_LABELS } from '../ui'
 
 const MAX_BYTES = 5 * 1024 * 1024
+const DUPLICATES_SHOWN_AT_FIRST = 25
 
 function Count({ label, value }) {
   return (
@@ -14,9 +15,60 @@ function Count({ label, value }) {
   )
 }
 
+// Questions that look like another question in the bank or earlier in the same file. Warnings only: they are
+// imported anyway, but each is shown beside the question it looks like so you can decide before confirming.
+function DuplicateWarnings({ duplicates, done }) {
+  const [showAll, setShowAll] = useState(false)
+  if (duplicates.length === 0) return null
+  const shown = showAll ? duplicates : duplicates.slice(0, DUPLICATES_SHOWN_AT_FIRST)
+  const plural = duplicates.length === 1 ? '' : 's'
+
+  return (
+    <section aria-labelledby="duplicates-title" className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+      <h3 id="duplicates-title" className="mb-1 text-base font-bold text-amber-950">
+        {duplicates.length} possible duplicate{plural}: {done ? 'imported anyway, please check them' : 'please check before you import'}
+      </h3>
+      <p className="mb-3 text-sm text-amber-950">
+        These are warnings, not errors. {done ? 'They were imported.' : 'They will still be imported unless you remove them from your file.'}{' '}
+        Each one is shown next to the question it looks like (same or very similar wording, with the same numbers).
+      </p>
+      <ul className="space-y-3">
+        {shown.map((d) => (
+          <li key={d.externalId} className="rounded-lg border border-amber-200 bg-white p-3">
+            <p className="mb-2 text-sm font-semibold text-slate-900">
+              {d.externalId} looks like {d.matchesExternalId}
+              <span className="font-normal text-slate-700"> · {d.reason} ({Math.round(d.similarity * 100)}% similar)</span>
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-700">In this file · {d.externalId}</p>
+                <p className="whitespace-pre-wrap break-words text-sm text-slate-900">{d.text}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  {d.matchesIn === 'bank'
+                    ? `Already in the bank · ${d.matchesExternalId}${d.matchesStatus ? ` (${STATUS_LABELS[d.matchesStatus] || d.matchesStatus})` : ''}`
+                    : `Earlier in this file · ${d.matchesExternalId}`}
+                </p>
+                <p className="whitespace-pre-wrap break-words text-sm text-slate-900">{d.matchesText}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {duplicates.length > DUPLICATES_SHOWN_AT_FIRST && (
+        <button type="button" onClick={() => setShowAll((v) => !v)} className={`${btnSecondary} mt-3`}>
+          {showAll ? 'Show fewer' : `Show all ${duplicates.length}`}
+        </button>
+      )}
+    </section>
+  )
+}
+
 function Report({ report }) {
   const done = !report.dryRun
   const problems = report.errors.length
+  const duplicates = report.possibleDuplicates || []
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-800">
@@ -25,11 +77,12 @@ function Report({ report }) {
         {report.total === 1 ? '' : 's'} in the file
       </p>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Count label={done ? 'Created' : 'Will be created'} value={report.toCreate} />
         <Count label={done ? 'Updated' : 'Will be updated'} value={report.toUpdate} />
         <Count label="Unchanged" value={report.unchanged} />
         <Count label={done ? 'Skipped (problems)' : 'Have problems'} value={problems} />
+        <Count label="Possible duplicates" value={duplicates.length} />
         <Count label="Theory skipped" value={report.theorySkipped} />
       </div>
 
@@ -84,6 +137,8 @@ function Report({ report }) {
           </div>
         </section>
       )}
+
+      <DuplicateWarnings duplicates={duplicates} done={done} />
     </div>
   )
 }
@@ -210,6 +265,12 @@ export default function Import() {
                   ? 'There is nothing to import from this file.'
                   : `This will save ${report.toCreate} new question${report.toCreate === 1 ? '' : 's'} as ${report.toCreate === 1 ? 'a draft' : 'drafts'} and update ${report.toUpdate} existing one${report.toUpdate === 1 ? '' : 's'}.`}
               </p>
+              {(report.possibleDuplicates || []).length > 0 && (
+                <p className="mb-3 text-sm font-medium text-amber-950">
+                  {report.possibleDuplicates.length} possible duplicate{report.possibleDuplicates.length === 1 ? ' is' : 's are'} listed above and will still
+                  be imported. Remove them from your file first if you do not want them.
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={confirmImport} disabled={willWrite === 0 || stage === 'importing'} className={btnPrimary}>
                   {stage === 'importing' ? 'Importing...' : `Import ${willWrite} question${willWrite === 1 ? '' : 's'}`}

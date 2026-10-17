@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { parseImportFile, planImport, contentChanged } = require('./importer');
+const { parseImportFile, planImport, rejectCrossSubjectIds, contentChanged } = require('./importer');
 
 const sample = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'fake-sample-questions.json'), 'utf8'));
 const fakeQuestion = (over = {}) => ({
@@ -85,4 +85,29 @@ test('fields the file leaves out never count as a change; fields it states do', 
   assert.equal(contentChanged(edited, parsed.valid[0]), false);
   const explicit = parseImportFile(fileOf([fakeQuestion({ pool: 'public', difficulty: undefined })]));
   assert.equal(contentChanged(edited, explicit.valid[0]), true);
+});
+
+test('an id the bank already holds under ANOTHER subject cannot be reused: it is an error and the question is left out', () => {
+  const parsed = parseImportFile(fileOf([fakeQuestion({ id: 'FAKE-X' }), fakeQuestion({ id: 'FAKE-Y' })])); // subject: FAKE Subject
+  const existing = new Map([['FAKE-X', stored({ externalId: 'FAKE-X', subject: 'FAKE Other Subject' })]]);
+
+  rejectCrossSubjectIds(parsed, existing);
+
+  assert.deepEqual(parsed.valid.map((x) => x.externalId), ['FAKE-Y']);
+  assert.equal(parsed.errors.length, 1);
+  assert.equal(parsed.errors[0].externalId, 'FAKE-X');
+  assert.match(parsed.errors[0].messages[0], /already belongs to the subject "FAKE Other Subject" and cannot be reused for "FAKE Subject"/);
+  // and so it can never be planned as an update that would move the question to the other subject
+  const plan = planImport(parsed, existing);
+  assert.deepEqual([plan.toCreate.length, plan.toUpdate.length, plan.unchanged], [1, 0, 0]);
+});
+
+test('reusing an id inside the SAME subject is still an ordinary update, and new ids are untouched', () => {
+  const parsed = parseImportFile(fileOf([fakeQuestion({ id: 'FAKE-X', question: 'FAKE CHANGED?' }), fakeQuestion({ id: 'FAKE-NEW' })]));
+  const existing = new Map([['FAKE-X', stored({ externalId: 'FAKE-X', subject: 'FAKE Subject' })]]);
+
+  rejectCrossSubjectIds(parsed, existing);
+
+  assert.equal(parsed.errors.length, 0);
+  assert.deepEqual(parsed.valid.map((x) => x.externalId), ['FAKE-X', 'FAKE-NEW']);
 });

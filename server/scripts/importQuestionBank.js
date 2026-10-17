@@ -46,6 +46,14 @@ try {
   if (report.reapprovalNeeded.length) {
     console.log(`  Need re-approval (approved questions whose content changed): ${report.reapprovalNeeded.join(', ')}`);
   }
+  if (report.possibleDuplicates.length) {
+    console.log(`\n${report.possibleDuplicates.length} possible duplicate(s). These are warnings and do not stop the import:`);
+    report.possibleDuplicates.forEach((d) => {
+      console.log(`  ${d.externalId} looks like ${d.matchesExternalId} (${d.matchesIn === 'bank' ? 'already in the bank' : 'earlier in this file'}): ${d.reason}, ${Math.round(d.similarity * 100)}%`);
+      console.log(`      this file : ${d.text}`);
+      console.log(`      other     : ${d.matchesText}`);
+    });
+  }
   if (report.errors.length) {
     console.log(`\n${report.errors.length} question(s) have problems and ${dryRun ? 'would be' : 'were'} skipped:`);
     report.errors.forEach((e) => console.log(`  ${e.externalId}: ${e.messages.join('; ')}`));
